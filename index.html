@@ -566,41 +566,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div><span style="color:#4ade80;font-weight:800;">✓</span> Jika masa berlaku sudah habis, status VIP akan menjadi nonaktif</div>
       <div><span style="color:#4ade80;font-weight:800;">✓</span> Wajib mengaktifkan kembali untuk menikmati penghasilan harian</div>
     </div>
-  </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <button type="button" onclick="if(typeof goPage==='function')goPage('tugas')" style="padding:9px 8px;border-radius:10px;border:1px solid rgba(0,229,255,0.45);background:rgba(0,229,255,0.12);color:#e0f2fe;font-size:11px;font-weight:800;cursor:pointer;">Kerjakan Tugas</button>
-    <button type="button" onclick="var el=document.querySelector('.vtb');if(el)el.scrollIntoView({behavior:'smooth'});" style="padding:9px 8px;border-radius:10px;border:none;background:linear-gradient(135deg,#00e676,#00b0ff);color:#03120c;font-size:11px;font-weight:900;cursor:pointer;">Identitas Platform</button>
-  </div>
-</div>
-
-<script>
-(function(){
-  function refreshWphVipShowcase(){
-    var tiers = document.querySelectorAll('#wphVipTierRows .wph-vip-tier');
-    var labelEl = document.getElementById('wphSyncVipLabel');
-    if(!tiers.length) return;
-    var combined = '';
-    var cV = document.getElementById('cV');
-    var lv = document.getElementById('lv');
-    if(cV && cV.textContent) combined += ' ' + cV.textContent;
-    if(lv && lv.textContent) combined += ' ' + lv.textContent;
-    var found = combined.match(/VIP\s*([0-7])/i);
-    var activeLevel = found ? found[1] : '0';
-    if(labelEl) labelEl.textContent = 'VIP ' + activeLevel;
-    tiers.forEach(function(row){
-      var lvl = row.getAttribute('data-vip-level');
-      var tag = row.querySelector('.wph-vip-tag');
-      var active = lvl === activeLevel;
-      row.style.background = active ? 'rgba(0,255,140,0.18)' : (lvl === '0' ? 'rgba(250,204,21,0.06)' : '');
-      row.style.boxShadow = active ? 'inset 3px 0 0 #22ff88' : '';
-      if(tag) tag.style.display = active ? 'inline-block' : 'none';
-    });
-  }
-  refreshWphVipShowcase();
-  setInterval(refreshWphVipShowcase, 1500);
-})();
-</script>
 
   <!-- PENDAPATAN PAGE -->
   <div class="pg" id="pgPendapatan">
