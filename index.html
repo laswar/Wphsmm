@@ -400,11 +400,22 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <!-- PENGUMUMAN DISPLAY YANG TERSINKRON DARI ADMIN -->
     <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">Selamat kepada anggota ****2478 rekomendasi platinum, mendapat Rp 300,000 komisi!</span></div></div>
 
-    <div class="m3">
-      <div class="mc3" onclick="goPage('vip')"><div class="ml">Ruang<br>VIP</div><div class="mo">VIP</div></div>
-      <div class="mc3" onclick="goPage('pendapatan')"><div class="ml">Penghasilan<br>Harian</div><div class="mo">🪙</div></div>
-      <div class="mc3" onclick="goPage('referral')"><div class="ml">Ganjaran<br>Promosi</div><div class="mo">%</div></div>
-    </div>
+<div class="m3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 12px;">
+  <div onclick="goPage('vip')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+    <img src="./icon-ruang-vip.jpg" alt="Ruang VIP" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ruang<br>VIP</div>
+  </div>
+
+  <div onclick="goPage('pendapatan')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+    <img src="./icon-penghasilan-harian.jpg" alt="Penghasilan Harian" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Penghasilan<br>Harian</div>
+  </div>
+
+  <div onclick="goPage('referral')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+    <img src="./icon-ganjaran-promosi.jpg" alt="Ganjaran Promosi" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ganjaran<br>Promosi</div>
+  </div>
+</div>
 
     <div class="inv" onclick="goPage('referral')"><div class="sd">✦</div><div class="lt">⚡</div><h3>Undang Anggota Baru (Bonus Komisi)</h3></div>
 
