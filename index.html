@@ -338,10 +338,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <h2 id="loginTitle">Masuk</h2>
     <div class="msg err" id="errM"></div>
     <div class="msg ok" id="okM"></div>
-    <div class="fg"><label>Username</label><input type="text" id="inpU" placeholder="Masukkan username" autocomplete="off"></div>
-    <div class="fg"><label>Password</label><input type="password" id="inpP" placeholder="Masukkan password"></div>
-    <div class="fg" id="refG" style="display:none"><label>Kode Referral (opsional)</label><input type="text" id="inpR" placeholder="Masukkan kode referral"></div>
-    <button class="btn-main" id="btnL" onclick="doLogin()">Masuk Akun</button>
+ <div class="fg" id="fgPhone">
+  <label>Nomor HP</label>
+  <input type="tel" id="inpU" placeholder="Masukkan nomor HP (contoh: 081234567890)" autocomplete="tel">
+</div>
+
+<div class="fg">
+  <label>Password</label>
+  <input type="password" id="inpP" placeholder="Masukkan password" autocomplete="new-password">
+</div>
+
+<div class="fg" id="fgPass2" style="display:none;">
+  <label>Ulangi Password</label>
+  <input type="password" id="inpP2" placeholder="Masukkan ulang password" autocomplete="new-password">
+</div>
+
+<div class="fg" id="ref6" style="display:none;">
+  <label>Kode Referral</label>
+  <input type="text" id="inpRef" placeholder="Masukkan kode referral">
+</div>
+   <button class="btn-main" id="btnL" onclick="doLogin()">Masuk Akun</button>
     <button class="btn-sec" id="btnR" style="display:none" onclick="doRegister()">Daftar Akun Baru</button>
     <button class="btn-rst" onclick="doReset()">🗑️ Reset Data</button>
 
