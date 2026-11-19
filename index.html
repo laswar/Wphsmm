@@ -386,14 +386,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="slide-nav-btn prev" onclick="changeSlide(-1)">‹</div>
       <div class="slide-nav-btn next" onclick="changeSlide(1)">›</div>
       <div class="slide-track" id="slideTrack">
-        <div class="slide"><img src="file_0000000022308211bc06355775690541.png" alt="WPHSMM Galaxy"></div>
-        <div class="slide"><img src="WPHSMM_Display_Komisi_Referral_dan_Laba_Harian.png" alt="Sistem Komisi Referral"></div>
-        <div class="slide"><img src="WPHSMM_Display_Harga_VIP_Pendapatan.png" alt="Harga VIP & Estimasi Pendapatan"></div>
+                <div class="slide"><img src="./logo-wphsmm.png" alt="Logo WPH SMM"></div>
+        <div class="slide"><img src="./komisi-referral.png" alt="Komisi Referral WPH SMM"></div>
+        <div class="slide"><img src="./pendapatan-harian.png" alt="Pendapatan Harian WPH SMM"></div>
+        <div class="slide"><img src="./solusi-digital.png" alt="Solusi Digital WPH SMM"></div>
       </div>
       <div class="slide-dots-container">
         <div class="slide-dot active" onclick="goToSlide(0)"></div>
         <div class="slide-dot" onclick="goToSlide(1)"></div>
         <div class="slide-dot" onclick="goToSlide(2)"></div>
+        <div class="slide-dot" onclick="goToSlide(3)"></div>
+
       </div>
     </div>
 
@@ -943,7 +946,7 @@ const dgInfo = {
 
 
 let cPlat='youtube',sTP='youtube',sDG='youtube',sV=null,isLog=true,pUT=null,pUI=null,topupProofImg=null;
-let currentSlide=0;let slideInterval;const totalSlides=3;
+let currentSlide=0;let slideInterval;const totalSlides=4;
 
 let rawUData = null;
 let uData = null;
