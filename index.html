@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WPH SMM - The Digital Galaxy</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#030806;
+  --bg-card:rgba(6,20,15,0.88);
+  --emerald:#00e676;
+  --emerald-glow:rgba(0,230,118,0.4);
+  --cyan:#00e5ff;
+  --cyan-glow:rgba(0,229,255,0.4);
+  --gold:#ffd700;
+  --text:#e0f2fe;
+  --dim:rgba(180,225,220,0.6);
+  --border:rgba(0,229,255,0.3);
+  --border-emerald:rgba(0,230,118,0.4);
+  --ok:#00e676;
+  --err:#ff3366;
+  --orange:#ff9100;
+  --purple:#a855f7
+}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at 15% 30%,rgba(0,230,118,0.12),transparent 55%),radial-gradient(circle at 85% 70%,rgba(0,229,255,0.1),transparent 55%)}
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:tw var(--d) ease-in-out infinite alternate}
+@keyframes tw{0%{opacity:0.2;transform:scale(0.8)}100%{opacity:1;transform:scale(1.2)}}
+
+.login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;position:relative;z-index:1}
+.login-logo{font-family:'Orbitron';font-size:36px;font-weight:900;background:linear-gradient(135deg,#fff,var(--emerald),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px;filter:drop-shadow(0 0 10px var(--emerald-glow))}
+.login-sub{font-size:10px;color:var(--cyan);text-align:center;margin-bottom:20px;letter-spacing:2px;font-weight:600}
+.login-card{background:var(--bg-card);border:1px solid var(--border-emerald);border-radius:18px;padding:24px 20px;width:100%;backdrop-filter:blur(12px);box-shadow:0 0 25px rgba(0,230,118,0.15)}
+.login-card h2{text-align:center;margin-bottom:15px;color:var(--emerald);font-size:20px;font-family:'Orbitron'}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+.login-card input,.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:rgba(3,15,10,0.9);color:#fff;font-size:13px;outline:none;font-family:'Poppins';transition:all 0.3s}
+.login-card input:focus,.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--emerald);box-shadow:0 0 10px var(--emerald-glow)}
+.btn-main{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Orbitron';letter-spacing:1px;box-shadow:0 4px 15px var(--emerald-glow);transition:all 0.2s}
+.btn-main:active{transform:scale(0.98)}
+.btn-sec{width:100%;padding:11px;border:1.5px solid var(--cyan);border-radius:10px;background:transparent;color:var(--cyan);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;font-family:'Poppins'}
+.btn-rst{width:100%;padding:8px;border:1px solid rgba(255,51,102,0.4);border-radius:8px;background:rgba(255,51,102,0.1);color:var(--err);font-size:11px;cursor:pointer;margin-top:8px}
+.btn-wa{width:100%;padding:11px;border:none;border-radius:10px;background:#25D366;color:#fff;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Poppins';display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(37,211,102,0.3)}
+.toggle{text-align:center;margin-top:14px;font-size:12px;color:var(--dim)}
+.toggle span{color:var(--cyan);cursor:pointer;font-weight:600}
+.msg{padding:10px;border-radius:8px;font-size:11px;margin-bottom:10px;display:none}
+.msg.err{background:rgba(255,51,102,0.15);border:1px solid var(--err);color:var(--err)}
+.msg.ok{background:rgba(0,230,118,0.15);border:1px solid var(--ok);color:var(--ok)}
+.msg.show{display:block}
+
+.app{display:none;padding-bottom:85px;position:relative;z-index:1}
+.app.on{display:block}
+.hdr{background:rgba(3,12,8,0.95);border-bottom:1px solid var(--border-emerald);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.hdr-logo{font-family:'Orbitron';font-size:18px;font-weight:900;background:linear-gradient(135deg,var(--emerald),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-r{font-size:11px;color:var(--dim);cursor:pointer;padding:4px 8px;border-radius:6px;background:rgba(0,229,255,0.08);border:1px solid var(--border)}
+.pg{display:none}.pg.on{display:block}
+
+.slideshow-container {
+  position: relative;
+  width: calc(100% - 24px);
+  margin: 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1.8px solid var(--emerald);
+  box-shadow: 0 0 20px rgba(0, 230, 118, 0.25);
+  background: rgba(4, 18, 13, 0.95);
+  min-height: 220px;
+}
+.slide-track { display: flex; transition: transform 0.5s ease-in-out; width: 100%; }
+.slide { min-width: 100%; box-sizing: border-box; position: relative; }
+.slide img { width: 100%; height: auto; display: block; }
+.slide-nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,0.65); border: 1.5px solid var(--emerald); color: var(--emerald);
+  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; z-index: 20; font-weight: 800; transition: all 0.2s; user-select: none;
+}
+.slide-nav-btn:active { transform: translateY(-50%) scale(0.9); }
+.slide-nav-btn.prev { left: 10px; }
+.slide-nav-btn.next { right: 10px; }
+.slide-dots-container {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; justify-content: center; gap: 6px; z-index: 20;
+  background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 10px; backdrop-filter: blur(4px);
+}
+.slide-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); cursor: pointer; transition: all 0.3s; }
+.slide-dot.active { background: var(--emerald); width: 18px; border-radius: 4px; box-shadow: 0 0 8px var(--emerald-glow); }
+
+.ann{margin:12px;background:rgba(6,22,16,0.9);border:1px solid var(--border-emerald);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:11px}
+.ann .spk-i{font-size:18px;flex-shrink:0;animation:spk 1s ease-in-out infinite}
+@keyframes spk{0%,100%{opacity:1}50%{opacity:0.4}}
+.ann-t{flex:1;white-space:nowrap;overflow:hidden}
+.ann-t span{display:inline-block;animation:scr 14s linear infinite}
+@keyframes scr{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+.m3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px 12px}
+.mc3{background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:12px;padding:12px 8px;cursor:pointer;transition:all 0.3s;position:relative;display:flex;flex-direction:column;align-items:flex-start;min-height:75px}
+.mc3:hover{transform:translateY(-2px);border-color:var(--emerald);box-shadow:0 0 12px var(--emerald-glow)}
+.mc3 .ml{font-size:11px;font-weight:700;color:#fff;line-height:1.3;flex:1}
+.mc3 .mo{position:absolute;right:8px;bottom:8px;width:28px;height:28px;border:1px solid rgba(0,230,118,0.5);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--emerald);font-weight:800;background:rgba(0,230,118,0.1)}
+
+.inv{margin:0 12px 12px;background:linear-gradient(135deg,#005c30,#004d40,#006064);padding:14px 16px;border-radius:12px;position:relative;overflow:hidden;border:1px solid var(--emerald);box-shadow:0 0 15px rgba(0,230,118,0.2);cursor:pointer}
+.inv h3{font-size:15px;font-weight:800;color:#fff;position:relative;z-index:1}
+.inv .sd{position:absolute;top:8px;right:15px;font-size:16px;z-index:1;animation:sp 2s ease-in-out infinite}
+.inv .lt{position:absolute;bottom:4px;right:8px;font-size:24px;opacity:0.5;z-index:1}
+@keyframes sp{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+
+.st{padding:12px 12px 8px;font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.st-sub{font-size:10.5px;color:var(--dim);font-weight:400}
+
+.tg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
+.tc2{background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;gap:10px;min-height:65px;position:relative}
+.tc2:hover{transform:translateY(-2px);border-color:var(--emerald)}
+.tc2 .ti{flex:1}
+.tc2 .tn{font-size:12px;font-weight:700;color:#fff;line-height:1.2}
+.tc2 .tr{font-size:9.5px;color:var(--gold);margin-top:3px}
+.tc2 .tl{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:900}
+.tl.yt{background:#FF0000;color:#fff}.tl.tt{background:#000;color:#fff;border:1px solid #444}.tl.fb{background:#1877F2;color:#fff}.tl.fbs{background:linear-gradient(135deg,#00e676,#00e5ff);color:#000}
+
+.dagang-section{margin:0 12px 12px}
+.dagang-header{background:linear-gradient(135deg,rgba(255,145,0,0.25),rgba(0,230,118,0.25));border:1.5px solid var(--orange);border-radius:14px;padding:14px;margin-bottom:10px;text-align:center;position:relative;overflow:hidden}
+.dagang-header .dh-t{font-family:'Orbitron';font-size:14px;font-weight:900;color:var(--gold)}
+.dagang-header .dh-s{font-size:10px;color:var(--dim);margin-top:4px}
+.dagang-header .dh-p{font-size:10.5px;color:var(--orange);font-weight:700;margin-top:4px}
+.dagang-tabs{display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto}
+.dagang-tab{flex:1;min-width:75px;padding:8px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.3s;text-align:center}
+.dagang-tab.act{border-color:var(--orange);background:rgba(255,145,0,0.15)}
+.dagang-tab .dt-i{font-size:16px;margin-bottom:2px}
+.dagang-tab .dt-n{font-size:10.5px;font-weight:700}
+.dagang-tab .dt-c{font-size:8.5px;color:var(--dim);margin-top:1px}
+.dagang-info{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin:0 12px 10px}
+.dagang-info .di-r{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.dagang-info .di-r:last-child{border-bottom:none}
+.dagang-info .di-l{font-size:10.5px;color:var(--dim)}
+.dagang-info .di-v{font-size:11.5px;font-weight:700;color:var(--gold);font-family:'Orbitron'}
+.btn-pasang{width:calc(100% - 24px);margin:0 12px 12px;padding:11px;background:linear-gradient(135deg,#ff9100,var(--emerald));border:none;border-radius:10px;color:#030806;font-size:12.5px;font-weight:800;cursor:pointer;font-family:'Orbitron'}
+.dagang-list{padding:0 12px 12px}
+.dagang-item{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;position:relative}
+.dagang-item .di-h{display:flex;align-items:center;gap:10px}
+.dagang-item .di-ic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.dagang-item .di-inf{flex:1}
+.dagang-item .di-t{font-size:11.5px;font-weight:600;color:#fff}
+.dagang-item .di-d{font-size:9.5px;color:var(--dim)}
+
+.tib{margin:12px;background:linear-gradient(135deg,rgba(0,230,118,0.2),rgba(0,229,255,0.15));border:1px solid var(--emerald);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.tib .tlb{font-size:9.5px;color:var(--dim)}
+.tib .tlv{font-size:16px;font-weight:800;color:var(--emerald);font-family:'Orbitron'}
+.tib .tv{font-size:11.5px;color:var(--gold);font-weight:700}
+.tpt{display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto}
+.tptb{flex:1;min-width:75px;padding:8px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:center}
+.tptb.act{border-color:var(--emerald);background:rgba(0,230,118,0.15)}
+.tptb .ti2{font-size:16px;margin-bottom:2px}
+.tptb .tn2{font-size:10.5px;font-weight:700}
+.tl3{padding:0 12px 12px}
+.ti3{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;position:relative}
+.ti3-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ti3 .ti-ic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ti3 .ti-inf{flex:1}
+.ti3 .ti-t{font-size:11.5px;font-weight:600;color:#fff}
+.ti3 .ti-r{font-size:9.5px;color:var(--gold);font-weight:700}
+.ti3 .ti-s{font-size:8.5px;padding:3px 7px;border-radius:8px;font-weight:600}
+.ti3 .ti-s.av{background:rgba(0,229,255,0.2);color:var(--cyan)}
+.ti3 .ti-s.pn{background:rgba(255,215,0,0.2);color:var(--gold)}
+.ti3 .ti-s.vr{background:rgba(0,230,118,0.2);color:var(--emerald)}
+.pc{margin-top:8px;position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.pc img{width:100%;max-height:160px;object-fit:cover;display:block}
+.ta{display:flex;gap:6px;margin-top:8px}
+.bt{flex:1;padding:7px;border:none;border-radius:6px;font-size:10.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px}
+.bt.pr{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806}
+.bt.ol{background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid var(--cyan)}
+
+.vc{padding:14px 12px}
+.cvi{background:linear-gradient(135deg,rgba(0,230,118,0.2),rgba(0,229,255,0.15));border:1px solid var(--emerald);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.cvi .ilb{font-size:10px;color:var(--dim)}
+.cvi .ilv{font-size:15px;font-weight:800;color:var(--gold)}
+.cvi .ilt{font-size:11px;color:var(--cyan);margin-top:2px}
+.bu{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;border:none;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Orbitron'}
+.vtb{background:rgba(6,22,16,0.9);border:1px solid var(--border-emerald);border-radius:14px;padding:14px;margin-bottom:14px;text-align:center}
+.vtb h2{font-family:'Orbitron';font-size:18px;margin-bottom:10px;color:var(--emerald)}
+.vts{display:flex;gap:4px;background:rgba(0,0,0,0.4);border-radius:8px;padding:3px}
+.vt{flex:1;padding:7px;text-align:center;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--dim)}
+.vt.act{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-weight:800}
+.vs{text-align:center;font-size:11.5px;color:var(--dim);margin-bottom:14px}
+.vg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vcd{border-radius:12px;padding:12px;position:relative;overflow:hidden;cursor:pointer;border:1.5px solid rgba(255,255,255,0.15);transition:all 0.3s}
+.vcd:hover{transform:translateY(-2px)}
+.vcd-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.vbd{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(0,0,0,0.3)}
+.vcd-t h3{font-size:14px;font-weight:800;color:#fff}
+.vcd-t .vn{font-size:10px;opacity:0.9}
+.vcd-f{display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15)}
+.vpr{display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;color:#fff}
+.vtk{display:flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;color:#fff;background:rgba(0,0,0,0.3);padding:3px 6px;border-radius:12px}
+.v0{background:linear-gradient(135deg,#334155,#1e293b)}
+.vb{background:linear-gradient(135deg,#78350f,#451a03)}
+.vs2{background:linear-gradient(135deg,#475569,#334155)}
+.vg2{background:linear-gradient(135deg,#854d0e,#713f12)}
+.vp{background:linear-gradient(135deg,#1e1b4b,#312e81)}
+.vd{background:linear-gradient(135deg,#0c4a6e,#075985)}
+.vsa{background:linear-gradient(135deg,#4c1d95,#581c87)}
+.vr{background:linear-gradient(135deg,#831843,#9f1239)}
+
+.vip-info-box{background:rgba(0,230,118,0.08);border:1px solid var(--emerald);border-radius:12px;padding:12px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+.vip-info-box .vib-ic{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:18px;color:#000;flex-shrink:0}
+.vip-info-box .vib-t{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
+.vip-info-box .vib-d{font-size:9.5px;color:var(--dim);line-height:1.4}
+.earning-box{margin:0 0 14px;background:rgba(6,22,16,0.9);border:1px solid var(--border-emerald);border-radius:12px;padding:14px}
+.earning-box .eb-t{font-family:'Orbitron';font-size:13px;font-weight:900;color:var(--gold);text-align:center;margin-bottom:2px}
+.earning-box .eb-s{font-size:9.5px;color:var(--dim);text-align:center;margin-bottom:8px}
+.e-tbl{width:100%;border-collapse:separate;border-spacing:0 3px}
+.e-tbl th{background:rgba(0,230,118,0.2);padding:5px 4px;font-weight:700;color:var(--emerald);font-size:9.5px}
+.e-tbl td{padding:5px 4px;text-align:center;font-size:9.5px;background:rgba(3,15,10,0.8)}
+.e-tbl tr.active-row td{background:rgba(255,215,0,0.15);border:1px solid var(--gold);color:#fff;font-weight:700}
+.e-tbl .ev{font-family:'Orbitron';color:var(--gold)}
+
+.wc{background:linear-gradient(135deg,rgba(0,230,118,0.2),rgba(0,229,255,0.15));border:1.5px solid var(--emerald);border-radius:16px;padding:14px;margin:12px;position:relative;overflow:hidden;box-shadow:0 0 20px rgba(0,230,118,0.2)}
+.wg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:relative;z-index:1}
+.wi{text-align:center}
+.wi .wic{font-size:18px;margin-bottom:2px}
+.wi .wl{font-size:9px;color:var(--dim);margin-bottom:2px}
+.wi .wv{font-size:12px;font-weight:800;color:var(--emerald);font-family:'Orbitron'}
+.wi .wu{font-size:8px;color:var(--dim)}
+.wi.hl .wv{color:var(--gold)}
+.bw{background:linear-gradient(135deg,var(--emerald),var(--cyan));border:none;color:#030806;padding:5px 8px;border-radius:6px;font-size:9.5px;font-weight:800;cursor:pointer;font-family:'Orbitron'}
+
+.income-summary{background:rgba(6,22,16,0.9);border:1px solid var(--border-emerald);border-radius:14px;padding:12px;margin:12px}
+.income-summary .is-title{font-size:11.5px;font-weight:700;color:var(--emerald);margin-bottom:8px;text-align:center}
+.income-summary .is-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.income-summary .is-item{background:rgba(3,15,10,0.8);border-radius:8px;padding:7px;text-align:center;border:1px solid var(--border)}
+.income-summary .is-label{font-size:8.5px;color:var(--dim);margin-bottom:2px}
+.income-summary .is-value{font-size:11.5px;font-weight:800;color:var(--gold);font-family:'Orbitron'}
+
+.mcg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 12px 12px}
+.mci{background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:10px;padding:10px 6px;cursor:pointer;position:relative}
+.mci .mci-ic{font-size:20px;margin-bottom:4px}
+.mci .mci-l{font-size:9.5px;color:var(--dim);line-height:1.2}
+.mci .mci-val{font-size:11px;font-weight:800;color:var(--gold);font-family:'Orbitron';margin-top:2px}
+
+.mg3x3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px 12px}
+.mgi{background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all 0.3s}
+.mgi:hover{border-color:var(--emerald);transform:translateY(-2px)}
+.mgi .mg-ic{font-size:24px;margin-bottom:4px}
+.mgi .mg-l{font-size:10px;font-weight:600;color:#fff;line-height:1.2}
+
+.btt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px 12px}
+.ti4{text-align:center;cursor:pointer;padding:10px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.ti4 .t-ic{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 4px;color:#000;font-weight:800}
+.ti4 .t-l{font-size:10px;font-weight:600}
+
+.phs{padding:16px 12px;background:linear-gradient(135deg,rgba(0,230,118,0.2),rgba(0,229,255,0.15));border-bottom:1px solid var(--border-emerald)}
+.ptop{display:flex;align-items:center;gap:10px}
+.pav{width:55px;height:55px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:24px;border:2.5px solid var(--emerald);box-shadow:0 0 15px var(--emerald-glow);font-weight:900;color:#000}
+.pinf{flex:1}
+.pun{display:flex;align-items:center;gap:6px;background:rgba(0,230,118,0.2);padding:4px 10px;border-radius:14px;font-size:12px;font-weight:700;margin-bottom:4px;width:fit-content}
+.pil{font-size:10px;color:var(--dim)}
+.pic{font-family:'Orbitron';font-size:12px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:4px}
+.pic .cb{background:rgba(0,229,255,0.2);border:none;color:var(--cyan);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px}
+.bl{background:rgba(255,51,102,0.2);border:1px solid var(--err);color:var(--err);padding:5px 10px;border-radius:14px;font-size:10px;font-weight:600;cursor:pointer}
+
+/* STYLE LIVE CHAT CS */
+.btn-chat-cs{background:linear-gradient(135deg,var(--emerald),var(--cyan));border:none;color:#030806;padding:6px 12px;border-radius:14px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:'Poppins';display:flex;align-items:center;gap:4px;box-shadow:0 0 10px var(--emerald-glow);transition:all 0.2s}
+.btn-chat-cs:active{transform:scale(0.96)}
+.chat-box-container{height:220px;overflow-y:auto;background:rgba(3,15,10,0.9);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.chat-msg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:11px;line-height:1.4}
+.chat-msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-weight:600;border-bottom-right-radius:2px}
+.chat-msg.cs{align-self:flex-start;background:rgba(255,255,255,0.1);color:#fff;border-bottom-left-radius:2px;border:1px solid var(--border)}
+
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(3,10,7,0.98);border-top:1px solid var(--border-emerald);display:flex;justify-content:space-around;padding:6px 0 8px;z-index:100;backdrop-filter:blur(12px)}
+.ni{text-align:center;cursor:pointer;flex:1;padding:3px;transition:all 0.2s}
+.ni .nic{font-size:18px;margin-bottom:1px}
+.ni .nl{font-size:9.5px;color:var(--dim);font-weight:600}
+.ni.act .nl{color:var(--emerald)}
+.ni.act .nic{filter:drop-shadow(0 0 6px var(--emerald))}
+
+.lh{background:rgba(3,12,8,0.95);border-bottom:1px solid var(--emerald);padding:10px 14px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.lh .bb{position:absolute;left:14px;width:28px;height:28px;border-radius:50%;background:rgba(0,230,118,0.2);border:1px solid var(--emerald);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--emerald)}
+.lh h2{font-family:'Orbitron';font-size:16px;font-weight:900;color:#fff}
+.rh{margin:12px;background:linear-gradient(135deg,rgba(0,230,118,0.2),rgba(0,229,255,0.15));border:1.5px solid var(--emerald);border-radius:16px;padding:16px;text-align:center;position:relative}
+.rh .rt{font-size:11px;color:var(--dim)}
+.rh .rc{font-family:'Orbitron';font-size:20px;font-weight:900;color:var(--gold);margin:6px 0;letter-spacing:2px}
+.rh .rs{font-size:10px;color:var(--dim);margin-bottom:10px}
+.bcc{background:linear-gradient(135deg,var(--emerald),var(--cyan));border:none;color:#030806;padding:8px 16px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Orbitron'}
+.rsg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.rs{background:rgba(0,0,0,0.4);border-radius:8px;padding:8px 4px;text-align:center}
+.rs .rv{font-size:15px;font-weight:900;color:var(--cyan);font-family:'Orbitron'}
+.rs .rl{font-size:8.5px;color:var(--dim);margin-top:2px}
+
+.rf{margin:0 12px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.rf h4{font-size:11.5px;color:var(--emerald);margin-bottom:8px;text-align:center}
+.fs{display:flex;align-items:center;gap:8px;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:5px;font-size:10px}
+.fs .fn{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;flex-shrink:0;font-size:10px}
+.fs .ft{flex:1;color:var(--text)}
+
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;justify-content:center;align-items:flex-end;backdrop-filter:blur(4px)}
+.mo.on{display:flex}
+.mc{background:var(--bg);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:20px 16px 24px;border-top:2px solid var(--emerald);animation:su 0.3s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mh{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 14px}
+.mc h3{font-size:16px;margin-bottom:12px;font-family:'Orbitron';color:var(--emerald);text-align:center}
+.bm{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Orbitron'}
+.bm.pr{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806}
+.bm.cn{background:rgba(255,255,255,0.1);color:#fff}
+.bm.orange{background:linear-gradient(135deg,#ff9100,var(--emerald));color:#000}
+
+.tst{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-100px);background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:300;transition:transform 0.3s;white-space:nowrap;max-width:90%;text-align:center;font-family:'Orbitron';box-shadow:0 4px 15px var(--emerald-glow)}
+.tst.show{transform:translateX(-50%) translateY(0)}
+.hfi{display:none}
+
+.modal-tab-header{display:flex;gap:4px;background:rgba(0,0,0,0.4);border-radius:10px;padding:3px;margin-bottom:14px}
+.modal-tab-btn{flex:1;padding:8px;text-align:center;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--dim)}
+.modal-tab-btn.act{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-family:'Orbitron'}
+
+.qris-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.qris-preset-btn{padding:8px 4px;background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:11px;font-weight:700;color:var(--cyan)}
+.qris-preset-btn.act{border-color:var(--emerald);background:rgba(0,230,118,0.2);color:#fff}
+
+.bank-info-box{background:rgba(0,230,118,0.1);border:1px solid var(--emerald);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px}
+.bank-info-box b{color:var(--gold)}
+
+.qris-card{background:#fff;color:#000;border-radius:14px;padding:14px;text-align:center;margin:10px 0;box-shadow:0 4px 15px rgba(0,0,0,0.5)}
+.qris-card .qris-logo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.qris-card .qris-merchant-title{font-size:14px;font-weight:900;letter-spacing:1px;color:#000}
+.qris-card .qris-nmid{font-size:10px;color:#444;margin-bottom:6px;font-weight:600}
+.qris-card img.barcode-img{width:100%;max-width:200px;height:auto;margin:6px auto;display:block;border:1px solid #ccc;border-radius:6px;padding:4px;background:#fff}
+</style>
+</head>
+<body>
+<div class="stars" id="starsC"></div>
+
+<!-- LOGIN / REGISTER -->
+<div class="login-page" id="loginPg">
+  <div class="login-logo">WPH SMM</div>
+  <div class="login-sub">WPH SOCIAL MEDIA MARKETING - THE DIGITAL GALAXY</div>
+  <div class="login-card">
+    <h2 id="loginTitle">Masuk</h2>
+    <div class="msg err" id="errM"></div>
+    <div class="msg ok" id="okM"></div>
+    <div class="fg"><label>Username</label><input type="text" id="inpU" placeholder="Masukkan username" autocomplete="off"></div>
+    <div class="fg"><label>Password</label><input type="password" id="inpP" placeholder="Masukkan password"></div>
+    <div class="fg" id="refG" style="display:none"><label>Kode Referral (opsional)</label><input type="text" id="inpR" placeholder="Masukkan kode referral"></div>
+    <button class="btn-main" id="btnL" onclick="doLogin()">Masuk Akun</button>
+    <button class="btn-sec" id="btnR" style="display:none" onclick="doRegister()">Daftar Akun Baru</button>
+    <button class="btn-rst" onclick="doReset()">🗑️ Reset Data</button>
+
+    <!-- LAYANAN PELANGGAN DI HALAMAN LOGIN / REGISTER -->
+    <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+      <button class="btn-chat-cs" style="width: 100%; justify-content: center; padding: 10px;" onclick="openPublicLiveChat()">
+        💬 Layanan Pelanggan (Live Chat CS)
+      </button>
+    </div>
+
+    <div class="toggle"><span id="togT" onclick="togAuth()">Belum punya akun? <b>Daftar</b></span></div>
+  </div>
+</div>
+
+<!-- MAIN APP CONTAINER -->
+<div class="app" id="appC">
+  <div class="hdr">
+    <div class="hdr-r" onclick="openNodeModal()">🌐 Ubah Rute</div>
+    <div class="hdr-logo">WPH SMM</div>
+    <div class="hdr-r" onclick="toast('Bahasa: Indonesia')">🇮🇩 Indonesia</div>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div class="pg on" id="pgHome">
+    <div class="slideshow-container">
+      <div class="slide-nav-btn prev" onclick="changeSlide(-1)">‹</div>
+      <div class="slide-nav-btn next" onclick="changeSlide(1)">›</div>
+      <div class="slide-track" id="slideTrack">
+        <div class="slide"><img src="image_8.png" alt="WPHSMM Galaxy"></div>
+        <div class="slide"><img src="image_6.png" alt="Sistem Komisi Referral"></div>
+        <div class="slide"><img src="image_7.png" alt="Harga VIP & Estimasi Pendapatan"></div>
+      </div>
+      <div class="slide-dots-container">
+        <div class="slide-dot active" onclick="goToSlide(0)"></div>
+        <div class="slide-dot" onclick="goToSlide(1)"></div>
+        <div class="slide-dot" onclick="goToSlide(2)"></div>
+      </div>
+    </div>
+
+    <!-- PENGUMUMAN DISPLAY YANG TERSINKRON DARI ADMIN -->
+    <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">Selamat kepada anggota ****2478 rekomendasi Oscar, mendapat Rp 14.000 komisi!</span></div></div>
+
+    <div class="m3">
+      <div class="mc3" onclick="goPage('vip')"><div class="ml">Ruang<br>VIP</div><div class="mo">VIP</div></div>
+      <div class="mc3" onclick="goPage('pendapatan')"><div class="ml">Penghasilan<br>Harian</div><div class="mo">🪙</div></div>
+      <div class="mc3" onclick="goPage('referral')"><div class="ml">Ganjaran<br>Promosi</div><div class="mo">%</div></div>
+    </div>
+
+    <div class="inv" onclick="goPage('referral')"><div class="sd">✦</div><div class="lt">⚡</div><h3>Undang Anggota Baru (Bonus Komisi)</h3></div>
+
+    <div class="st">Ruang Tugas Platform <span class="st-sub">(Pilih Platform & Tautan)</span></div>
+    <div class="tg2" id="homeTG"></div>
+
+    <div class="st">🛒 Ruang Dagang Konten <span class="st-sub">(Promosi SMM)</span></div>
+    <div class="dagang-section">
+      <div class="dagang-header">
+        <div class="dh-t">🛒 RUANG DAGANG</div>
+        <div class="dh-s">Promosikan konten Anda ke ribuan anggota WPH SMM</div>
+        <div class="dh-p">💰 Rp 500/konten | Minimal 1.000 iklan | 7 hari aktif</div>
+      </div>
+      <div class="dagang-tabs" id="dagangTabs"></div>
+      <div class="dagang-info" id="dagangInfo"></div>
+      <button class="btn-pasang" onclick="openPasangModal()">📢 Pasang Iklan Sekarang</button>
+      <div class="st" style="font-size:13px">📋 Iklan Saya</div>
+      <div class="dagang-list" id="dagangList"></div>
+    </div>
+  </div>
+
+  <!-- TUGAS PAGE -->
+  <div class="pg" id="pgTugas">
+    <div class="tib">
+      <div><div class="tlb">Tugas Hari Ini</div><div class="tlv"><span id="tC">0</span> / <span id="tM">4</span></div></div>
+      <div style="text-align:right"><div class="tlb">Level VIP</div><div class="tv" id="tV">VIP 0 (Free)</div></div>
+    </div>
+    
+    <div class="st">Platform Ruang Tugas <span class="st-sub">(Pilih Platform)</span></div>
+    <div class="tpt" id="tPT"></div>
+    
+    <div class="st">Daftar Tugas Saya <span class="st-sub">(Siap Dikerjakan)</span></div>
+    <div class="tl3" id="tL"></div>
+  </div>
+
+  <!-- VIP PAGE -->
+  <div class="pg" id="pgVIP">
+    <div class="vc">
+      <div class="cvi">
+        <div><div class="ilb">Status VIP Saat Ini</div><div class="ilv" id="cvN">VIP 0 (Free)</div><div class="ilt" id="cvT">4 tugas/hari</div></div>
+        <button class="bu" onclick="document.querySelector('.vtb').scrollIntoView({behavior:'smooth'})">Upgrade VIP</button>
+      </div>
+
+      <div class="vip-info-box">
+        <div class="vib-ic">⏳</div>
+        <div>
+          <div class="vib-t">Ketentuan Berlaku VIP</div>
+          <div class="vib-d">✓ VIP 0 (Free): <b>3 hari</b> (auto-renew)<br>✓ VIP 1-7: <b>90 hari</b> aktif penuh</div>
+        </div>
+      </div>
+
+      <div class="earning-box">
+        <div class="eb-t">ESTIMASI PENGHASILAN VIP</div>
+        <div class="eb-s">Tingkat VIP yang lebih tinggi menghasilkan komisi lebih besar.</div>
+        <table class="e-tbl"><thead><tr><th>👑 VIP Level</th><th>💰 Harian</th></tr></thead><tbody id="eTB"></tbody></table>
+      </div>
+
+      <div class="vtb">
+        <h2>Identitas Platform</h2>
+        <div class="vts">
+          <div class="vt act" onclick="swPlat('youtube',this)">YouTube</div>
+          <div class="vt" onclick="swPlat('tiktok',this)">TikTok</div>
+          <div class="vt" onclick="swPlat('facebook',this)">Facebook</div>
+        </div>
+      </div>
+      <div class="vs" id="vSub">Pilih level identitas YouTube Anda</div>
+      <div class="vg" id="vG"></div>
+    </div>
+  </div>
+
+  <!-- PENDAPATAN PAGE -->
+  <div class="pg" id="pgPendapatan">
+    <div class="wc">
+      <div class="wg">
+        <div class="wi hl"><div class="wic">🪙</div><div class="wl">Saldo</div><div class="wv" id="wB">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">📈</div><div class="wl">Estimasi</div><div class="wv" id="wEst">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">❄️</div><div class="wl">Dibekukan</div><div class="wv">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">👛</div><div class="wl">Dompet</div><button class="bw" onclick="openWalletModal()">Dompetku</button></div>
+      </div>
+    </div>
+    <div class="st">Riwayat Transaksi Keuangan & Verifikasi Admin</div>
+    <div id="txL" style="padding:0 12px"></div>
+  </div>
+
+  <!-- PROFIL PAGE (MILIKKU) -->
+  <div class="pg" id="pgProfil">
+    <div class="phs">
+      <div class="ptop">
+        <div class="pav">U</div>
+        <div class="pinf">
+          <div class="pun">👤 <span id="pN">Username</span></div>
+          <div class="pil">Kode undangan:</div>
+          <div class="pic"><span id="pIC">WPH-0000</span><button class="cb" onclick="copyIC()">📋</button></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <button class="btn-chat-cs" onclick="openLiveChatModal()">💬 Live Chat CS</button>
+          <button class="bl" onclick="doLogout()">Keluar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="income-summary">
+      <div class="is-title">📊 Ringkasan Pendapatan Akun</div>
+      <div class="is-grid">
+        <div class="is-item"><div class="is-label">Saldo</div><div class="is-value" id="isBalance">Rp 0</div></div>
+        <div class="is-item"><div class="is-label">Hari Ini</div><div class="is-value" id="isToday">Rp 0</div></div>
+        <div class="is-item"><div class="is-label">Komisi Referral</div><div class="is-value" id="isCommission">Rp 0</div></div>
+        <div class="is-item"><div class="is-label">Total Pendapatan</div><div class="is-value" id="isTotal">Rp 0</div></div>
+      </div>
+    </div>
+
+    <div class="wc">
+      <div class="wg">
+        <div class="wi hl"><div class="wic">🪙</div><div class="wl">Saldo</div><div class="wv" id="pB">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">📈</div><div class="wl">Estimasi</div><div class="wv" id="pE">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">❄️</div><div class="wl">Dibekukan</div><div class="wv">0</div><div class="wu">IDR</div></div>
+        <div class="wi"><div class="wic">👛</div><div class="wl">Dompet</div><button class="bw" onclick="openWalletModal()">Dompetku</button></div>
+      </div>
+    </div>
+
+    <div class="st">📊 Rincian Milik Saya</div>
+    <div class="mcg">
+      <div class="mci"><div class="mci-ic">👛</div><div class="mci-l">Saldo</div><div class="mci-val" id="mSaldo">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">📅</div><div class="mci-l">Hari ini</div><div class="mci-val" id="mToday">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">🪙</div><div class="mci-l">Komisi</div><div class="mci-val" id="mCommission">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">%</div><div class="mci-l">Rabat</div><div class="mci-val" id="mRebate">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">🕐</div><div class="mci-l">Kemarin</div><div class="mci-val" id="mYesterday">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">📊</div><div class="mci-l">Minggu ini</div><div class="mci-val" id="mWeek">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">📅</div><div class="mci-l">Bulan ini</div><div class="mci-val" id="mMonth">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">📆</div><div class="mci-l">Bulan lalu</div><div class="mci-val" id="mLastMonth">Rp 0</div></div>
+      <div class="mci"><div class="mci-ic">💰</div><div class="mci-l">Total</div><div class="mci-val" id="mTotal">Rp 0</div></div>
+    </div>
+
+    <div class="st">Menu Aktivitas Terkait</div>
+    <div class="mg3x3">
+      <div class="mgi" onclick="openInfoModal()"><div class="mg-ic">👤</div><div class="mg-l">Informasi Pribadi</div></div>
+      <div class="mgi" onclick="openPesanModal()"><div class="mg-ic">💬</div><div class="mg-l">Sentro ng Mensahe</div></div>
+      <div class="mgi" onclick="openLaporanModal()"><div class="mg-ic">📊</div><div class="mg-l">Laporan Harian</div></div>
+      <div class="mgi" onclick="openRekorUangModal()"><div class="mg-ic">🪙</div><div class="mg-l">Rekor Uang</div></div>
+      <div class="mgi" onclick="goPage('referral')"><div class="mg-ic">👥</div><div class="mg-l">Ajak Teman</div></div>
+      <div class="mgi" onclick="goPage('laporanTim')" style="border-color:var(--emerald)"><div class="mg-ic">👨‍👩‍👧</div><div class="mg-l" style="color:var(--emerald);font-weight:700">Laporan Tim</div></div>
+      <div class="mgi" onclick="openManualModal()"><div class="mg-ic">📘</div><div class="mg-l">Manual Bantuan</div></div>
+      <div class="mgi" onclick="openCreditModal()"><div class="mg-ic">⭐</div><div class="mg-l">Pusat Kredit</div></div>
+      <div class="mgi" onclick="openAppModal()"><div class="mg-ic">☁️</div><div class="mg-l">Unggah APP</div></div>
+    </div>
+
+    <div class="btt">
+      <div class="ti4" onclick="openRekorTugasModal()"><div class="t-ic">📋</div><div class="t-l">Rekor Tugas</div></div>
+      <div class="ti4" onclick="openRilisModal()"><div class="t-ic">🚀</div><div class="t-l">Manajemen Rilis</div></div>
+      <div class="ti4" onclick="openAIModal()"><div class="t-ic">🤖</div><div class="t-l">Asisten AI</div></div>
+    </div>
+  </div>
+
+  <!-- REFERRAL PAGE -->
+  <div class="pg" id="pgReferral">
+    <div class="lh"><div class="bb" onclick="goPage('profil')">&lt;</div><h2>Program Referral</h2></div>
+    <div class="rh">
+      <div class="rt">Kode Referral Anda</div>
+      <div class="rc" id="rCD">WPH-0000</div>
+      <div class="rs">Bagikan kode ini untuk mendapat komisi referral</div>
+      <button class="bcc" onclick="copyIC()">Salin Kode Referral</button>
+      <div class="rsg">
+        <div class="rs"><div class="rv" id="rL1">0</div><div class="rl">Tingkat 1</div></div>
+        <div class="rs"><div class="rv" id="rL2">0</div><div class="rl">Tingkat 2</div></div>
+        <div class="rs"><div class="rv" id="rL3">0</div><div class="rl">Tingkat 3</div></div>
+      </div>
+    </div>
+
+    <div class="rf">
+      <h4>🎁 Ketentuan Komisi Referral</h4>
+      <div class="fs"><div class="fn">1</div><div class="ft"><b>Tingkat 1</b>: <b>10%</b> komisi dari VIP & tugas</div></div>
+      <div class="fs"><div class="fn">2</div><div class="ft"><b>Tingkat 2</b>: <b>5%</b> komisi dari VIP & tugas</div></div>
+      <div class="fs"><div class="fn">3</div><div class="ft"><b>Tingkat 3</b>: <b>3%</b> komisi dari VIP & tugas</div></div>
+    </div>
+    <div class="st">Daftar Referral Saya</div>
+    <div class="rls" id="refL" style="padding:0 12px"></div>
+  </div>
+
+  <!-- LAPORAN TIM PAGE -->
+  <div class="pg" id="pgLaporanTim">
+    <div class="lh"><div class="bb" onclick="goPage('profil')">&lt;</div><h2>Laporan Tim</h2></div>
+    <div class="st" style="font-size:14px">📊 Statistik Tim Saya</div>
+    <div style="padding:0 12px 12px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="font-size:11.5px;color:var(--dim)">Total Anggota Tim</span><span style="font-size:14px;font-weight:700;color:var(--emerald);font-family:'Orbitron'" id="ltTotal">0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="font-size:11.5px;color:var(--dim)">Tingkat 1</span><span style="font-size:14px;font-weight:700;color:var(--gold);font-family:'Orbitron'" id="ltL1">0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="font-size:11.5px;color:var(--dim)">Tingkat 2</span><span style="font-size:14px;font-weight:700;color:var(--gold);font-family:'Orbitron'" id="ltL2">0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="font-size:11.5px;color:var(--dim)">Tingkat 3</span><span style="font-size:14px;font-weight:700;color:var(--gold);font-family:'Orbitron'" id="ltL3">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <div class="bnav">
+    <div class="ni act" onclick="goPage('home')" data-p="home"><div class="nic">🏠</div><div class="nl">Halaman</div></div>
+    <div class="ni" onclick="goPage('tugas')" data-p="tugas"><div class="nic">📋</div><div class="nl">Tugas</div></div>
+    <div class="ni" onclick="goPage('vip')" data-p="vip"><div class="nic">💎</div><div class="nl">VIP</div></div>
+    <div class="ni" onclick="goPage('pendapatan')" data-p="pendapatan"><div class="nic">💰</div><div class="nl">Pendapatan</div></div>
+    <div class="ni" onclick="goPage('profil')" data-p="profil"><div class="nic">👤</div><div class="nl">Milikku</div></div>
+  </div>
+</div>
+
+<input type="file" id="fIn" class="hfi" accept="image/*">
+<input type="file" id="topupProofFile" class="hfi" accept="image/*">
+
+<!-- MODAL PILIH TAUTAN VIDEO TUGAS PLATFORM -->
+<div class="mo" id="availableTasksM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3 id="avTaskTitle">Pilih Tugas Video</h3>
+    <div style="font-size:10.5px;color:var(--dim);margin-bottom:12px;text-align:center">
+      Pilih tautan video di bawah untuk diambil. Batas tugas mengikuti level keanggotaan VIP Anda.
+    </div>
+    <div id="avTaskList" style="max-height:360px;overflow-y:auto;margin-bottom:10px"></div>
+    <button class="bm cn" onclick="closeM('availableTasksM')">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL DOMPET & TOPUP QRIS / WITHDRAW -->
+<div class="mo" id="walletM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3>👛 Dompet Keuangan</h3>
+    <div class="modal-tab-header">
+      <div class="modal-tab-btn act" id="tabTopupBtn" onclick="switchWalletTab('topup')">💳 Isi Ulang (QRIS)</div>
+      <div class="modal-tab-btn" id="tabWdBtn" onclick="switchWalletTab('wd')">💸 Tarik Dana</div>
+    </div>
+
+    <!-- TAB TOPUP QRIS -->
+    <div id="wTabTopup">
+      <div class="bank-info-box">
+        📲 <b>Isi Ulang Barcode QRIS Resmi</b><br>
+        Scan QRIS di bawah ini, lalu konfirmasikan pembayaran. Saldo akan diverifikasi oleh Admin.
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:6px">Pilih Nominal Instan:</div>
+      <div class="qris-preset-grid">
+        <div class="qris-preset-btn" onclick="setQrisAmt(20000,this)">Rp 20.000</div>
+        <div class="qris-preset-btn" onclick="setQrisAmt(50000,this)">Rp 50.000</div>
+        <div class="qris-preset-btn act" onclick="setQrisAmt(100000,this)">Rp 100.000</div>
+        <div class="qris-preset-btn" onclick="setQrisAmt(250000,this)">Rp 250.000</div>
+        <div class="qris-preset-btn" onclick="setQrisAmt(500000,this)">Rp 500.000</div>
+        <div class="qris-preset-btn" onclick="setQrisAmt(1000000,this)">Rp 1.000.000</div>
+      </div>
+      <div class="fg">
+        <label>Nominal Kustom (IDR)</label>
+        <input type="number" id="qrisAmtInp" value="100000" placeholder="Minimal 20000">
+      </div>
+      <button class="bm pr" onclick="generateQris()">📱 Tampilkan Barcode Pembayaran</button>
+      
+      <div id="qrisArea" style="display:none;text-align:center;margin-top:14px">
+        <div class="qris-card">
+          <div class="qris-logo-header">
+            <span style="font-weight:900;color:#d32f2f;font-size:14px">QRIS</span>
+            <span style="font-size:10px;font-weight:700;color:#1976d2">GPN</span>
+          </div>
+          <div class="qris-merchant-title">DOUBLE Z ALLSHOP</div>
+          <div class="qris-nmid">NMID: ID1026620743462 | A01</div>
+          <img src="59038.png" alt="QRIS DOUBLE Z ALLSHOP" class="barcode-img">
+          <div style="font-size:9px;color:#666;margin-top:4px">Dicetak oleh: 93600914</div>
+        </div>
+
+        <div style="font-size:12px;color:var(--gold);font-weight:700" id="qrisAmtTxt">Total: Rp 100.000</div>
+        
+        <div class="fg" style="margin-top:10px;text-align:left">
+          <label>Unggah Screenshot Bukti Transfer (Opsional)</label>
+          <button class="bm cn" style="padding:8px;font-size:11px" onclick="document.getElementById('topupProofFile').click()">📸 Pilih Foto Bukti Transfer</button>
+          <div id="topupProofPrev" style="margin-top:6px"></div>
+        </div>
+
+        <button class="btn-wa" onclick="sendProofToWhatsApp()">
+          <span style="font-size:16px">💬</span> Kirim Bukti ke CS (WhatsApp)
+        </button>
+        <button class="bm pr" style="margin-top:6px" onclick="confirmQrisPay()">✅ Konfirmasi & Kirim ke Admin</button>
+      </div>
+    </div>
+
+    <!-- TAB PENARIKAN -->
+    <div id="wTabWd" style="display:none">
+      <div class="bank-info-box">
+        📋 <b>Ketentuan Penarikan Dana (Verifikasi Admin)</b><br>
+        - Minimal ke-1: <b>Rp 20.000</b> | Ke-2 dst: <b>Rp 50.000</b><br>
+        - Saldo akan terpotong dan masuk ke antrean verifikasi admin.
+      </div>
+      <div class="fg">
+        <label>Kategori Tujuan Penarikan</label>
+        <select id="wdCategory" onchange="updateWdMethods()">
+          <option value="ewallet">E-Wallet (DANA, GoPay, OVO, ShopeePay, LinkAja, iSaku)</option>
+          <option value="bank">Transfer Bank (Semua Bank Indonesia)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Provider Bank / E-Wallet</label>
+        <select id="wdProvider"></select>
+      </div>
+      <div class="fg">
+        <label>Nomor Rekening / HP Akun E-Wallet</label>
+        <input type="text" id="wdAccountNum" placeholder="Contoh: 081234567890 / 123456789">
+      </div>
+      <div class="fg">
+        <label>Nama Pemilik Rekening</label>
+        <input type="text" id="wdAccountName" placeholder="Nama sesuai rekening/e-wallet">
+      </div>
+      <div class="fg">
+        <label>Jumlah Penarikan (IDR)</label>
+        <input type="number" id="wdAmountInp" placeholder="Masukkan jumlah">
+      </div>
+      <button class="bm pr" onclick="submitWithdraw()">🚀 Ajukan Penarikan Dana</button>
+    </div>
+
+    <button class="bm cn" onclick="closeM('walletM')">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL INFORMASI PRIBADI -->
+<div class="mo" id="infoM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3>👤 Informasi Pribadi Akun</h3>
+    <div class="fg"><label>Username</label><input type="text" id="infoU" readonly style="opacity:0.7"></div>
+    <div class="fg"><label>Nomor WhatsApp</label><input type="text" id="infoWa" placeholder="08xxxxxxxxxx"></div>
+    <div class="fg">
+      <label>Kaitkan Metode Pembayaran Utama</label>
+      <select id="infoMethod">
+        <option value="dana">DANA</option>
+        <option value="gopay">GoPay</option>
+        <option value="ovo">OVO</option>
+        <option value="shopeepay">ShopeePay</option>
+        <option value="linkaja">LinkAja</option>
+        <option value="bca">Bank BCA</option>
+        <option value="mandiri">Bank Mandiri</option>
+        <option value="bri">Bank BRI</option>
+        <option value="bni">Bank BNI</option>
+        <option value="bsi">Bank BSI</option>
+        <option value="cimb">Bank CIMB Niaga</option>
+        <option value="permata">Bank Permata</option>
+        <option value="danamon">Bank Danamon</option>
+        <option value="btn">Bank BTN</option>
+        <option value="seabank">SeaBank</option>
+        <option value="jago">Bank Jago</option>
+      </select>
+    </div>
+    <div class="fg"><label>Nomor Rekening / HP E-Wallet</label><input type="text" id="infoAcc" placeholder="Masukkan nomor akun"></div>
+    <div class="fg"><label>Nama Pemilik Rekening</label><input type="text" id="infoName" placeholder="Nama lengkap pemilik akun"></div>
+    <button class="bm pr" onclick="savePersonalInfo()">💾 Simpan Informasi Rekening</button>
+    <button class="bm cn" onclick="closeM('infoM')">Batal</button>
+  </div>
+</div>
+
+<!-- MODAL UPGRADE VIP -->
+<div class="mo" id="vipM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3 id="vmT">Upgrade VIP</h3>
+    <div style="background:var(--bg-card);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Level VIP</span><span style="font-weight:700;font-size:11px" id="vmL">-</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Jumlah Tugas</span><span style="font-weight:700;color:var(--cyan);font-size:11px" id="vmT2">-</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Masa Aktif</span><span style="font-weight:700;color:var(--emerald);font-size:11px" id="vmDur">-</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Harga Upgrade</span><span style="font-weight:800;color:var(--gold);font-size:14px" id="vmPr">-</span></div>
+    </div>
+    <button class="bm pr" onclick="buyVIP()">Konfirmasi Pembelian VIP</button>
+    <button class="bm cn" onclick="closeM('vipM')">Batal</button>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD BUKTI TUGAS -->
+<div class="mo" id="imgM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3>📸 Upload Bukti Tugas</h3>
+    <div id="imgC" style="margin-bottom:10px"></div>
+    <button class="bm pr" onclick="submitProof()">✅ Kirim Bukti & Klaim Reward</button>
+    <button class="bm cn" onclick="closeM('imgM')">Batal</button>
+  </div>
+</div>
+
+<!-- MODAL PASANG IKLAN RUANG DAGANG -->
+<div class="mo" id="pasangM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3>📢 Pasang Iklan Ruang Dagang</h3>
+    <div class="bank-info-box">💰 Tarif: <b>Rp 500/konten</b> | Min: <b>1.000 iklan</b> = <b>Rp 500.000</b></div>
+    <div class="fg"><label>Platform</label><select id="dgPlat"><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="facebook">Facebook</option></select></div>
+    <div class="fg"><label>Judul Iklan</label><input type="text" id="dgTitle" placeholder="Judul promosi"></div>
+    <div class="fg"><label>Deskripsi Konten</label><textarea id="dgDesc" placeholder="Penjelasan singkat..."></textarea></div>
+    <div class="fg"><label>Link Target Konten</label><input type="text" id="dgLink" placeholder="https://..."></div>
+    <div class="fg"><label>Jumlah Iklan (min. 1000)</label><input type="number" id="dgQty" value="1000" onchange="calcDgCost()"></div>
+    <div class="bank-info-box">💰 Total Pengeluaran: <b id="dgTotal">Rp 500.000</b></div>
+    <button class="bm orange" onclick="submitDagang()">🚀 Bayar & Tayangkan Iklan</button>
+    <button class="bm cn" onclick="closeM('pasangM')">Batal</button>
+  </div>
+</div>
+
+<!-- MODAL LIVE CHAT CS (REALTIME DENGAN ADMIN) -->
+<div class="mo" id="liveChatM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3>💬 Layanan Pelanggan (Live Chat)</h3>
+    <div class="bank-info-box" style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">🎧</span>
+      <div>
+        <b>CS Online 24/7 (Respon Cepat)</b><br>
+        <span style="font-size:9.5px;color:var(--dim)">Konsultasikan kendala tugas, isi ulang QRIS, atau penarikan dana.</span>
+      </div>
+    </div>
+
+    <div class="chat-box-container" id="chatBox">
+      <div class="chat-msg cs">
+        Halo <b><span class="chat-uname">Anggota</span></b>! Selamat datang di Layanan Pelanggan WPH SMM. Ada yang bisa kami bantu?
+      </div>
+    </div>
+
+    <div class="fg" style="display:flex;gap:6px;margin-bottom:8px">
+      <input type="text" id="chatInput" placeholder="Ketik pesan ke CS..." onkeypress="if(event.key==='Enter')sendChatMessage()">
+      <button class="bm pr" style="width:auto;padding:0 16px;margin:0" onclick="sendChatMessage()">Kirim</button>
+    </div>
+
+    <button class="btn-wa" style="margin-bottom:8px" onclick="openDirectWaCS()">
+      <span style="font-size:16px">💬</span> Hubungi CS via WhatsApp Resmi
+    </button>
+    <button class="bm cn" onclick="closeM('liveChatM')">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL INFORMASI UMUM -->
+<div class="mo" id="simpleMsgM">
+  <div class="mc">
+    <div class="mh"></div>
+    <h3 id="simpleTitle">Fitur Aktivitas</h3>
+    <div id="simpleBody" style="font-size:11.5px;color:var(--dim);line-height:1.6;margin-bottom:12px"></div>
+    <button class="bm cn" onclick="closeM('simpleMsgM')">Tutup</button>
+  </div>
+</div>
+
+<div class="tst" id="tst">Pesan sistem</div>
+
+<script>
+const vipD={
+  youtube:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:250000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:750000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1200000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:3000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:6000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:10000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:20000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}],
+  tiktok:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:200000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:600000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1000000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:2500000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:5000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:8000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:15000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}],
+  facebook:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:150000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:500000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:800000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:2000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:4000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:7000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:12000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}]
+};
+
+const defaultPlatformTasks = {
+  youtube: [
+    {id:'yt1', t:'Like & Subscribe Channel Gaming WPH SMM', l:'https://youtube.com/watch?v=dQw4w9WgXcQ'},
+    {id:'yt2', t:'Like Video Tutorial Strategi SMM Marketing', l:'https://youtube.com/watch?v=abc123456'},
+    {id:'yt3', t:'Subscribe Channel Official WPH SMM Galaxy', l:'https://youtube.com/watch?v=xyz789101'},
+    {id:'yt4', t:'Like & Comment Video Promosi Aplikasi WPH', l:'https://youtube.com/watch?v=travel1234'},
+    {id:'yt5', t:'Watch 2 Min & Like Video Review Komisi WPH', l:'https://youtube.com/watch?v=revwph99'},
+    {id:'yt6', t:'Subscribe & Bell Icon Fanbase SMM Indonesia', l:'https://youtube.com/watch?v=smmfanid'}
+  ],
+  tiktok: [
+    {id:'tt1', t:'Like & Follow Creator SMM Viral #1', l:'https://tiktok.com/@wphsmm/video/1001'},
+    {id:'tt2', t:'Like Video Edukasi Digital Galaxy SMM', l:'https://tiktok.com/@wphsmm/video/1002'},
+    {id:'tt3', t:'Follow Akun Marketing Digital WPH', l:'https://tiktok.com/@wphsmm/video/1003'},
+    {id:'tt4', t:'Like & Share Video Challenge SMM VIP', l:'https://tiktok.com/@wphsmm/video/1004'},
+    {id:'tt5', t:'Follow Akun Official Support WPH TikTok', l:'https://tiktok.com/@wphsmm/video/1005'}
+  ],
+  facebook: [
+    {id:'fb1', t:'Like & Follow Fanpage WPH SMM Official', l:'https://facebook.com/wphsmm/page'},
+    {id:'fb2', t:'Like Post Pengumuman Event VIP Bulan Ini', l:'https://facebook.com/wphsmm/posts/101'},
+    {id:'fb3', t:'Comment Positif di Post Testimoni WPH', l:'https://facebook.com/wphsmm/posts/102'},
+    {id:'fb4', t:'Follow Halaman Komunitas SMM Indonesia', l:'https://facebook.com/wphsmm/posts/103'}
+  ],
+  fbshare: [
+    {id:'fbs1', t:'Bagikan Post Banner WPH SMM ke Group FB', l:'https://facebook.com/sharer/sharer.php?id=1'},
+    {id:'fbs2', t:'Share Video Promo WPH ke Timeline Facebook', l:'https://facebook.com/sharer/sharer.php?id=2'},
+    {id:'fbs3', t:'Bagikan Link Referral ke Group Dagang FB', l:'https://facebook.com/sharer/sharer.php?id=3'}
+  ]
+};
+
+function getCombinedPlatformTasks(platform) {
+  const defaults = defaultPlatformTasks[platform] || [];
+  let customTasks = {};
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e) {}
+  const customs = customTasks[platform] || [];
+  return [...defaults, ...customs];
+}
+
+const pInfo={
+  youtube:{n:'YouTube',i:'▶',c:'#FF0000',lh:'▶'},
+  tiktok:{n:'TikTok',i:'♪',c:'#000',lh:'♪'},
+  facebook:{n:'Facebook',i:'f',c:'#1877F2',lh:'f'},
+  fbshare:{n:'FB Share',i:'📤',c:'#00e676',lh:'📤'}
+};
+const dgInfo={youtube:{n:'YouTube',i:'▶',c:'#FF0000'},tiktok:{n:'TikTok',i:'♪',c:'#000'},facebook:{n:'Facebook',i:'f',c:'#1877F2'}};
+
+let cPlat='youtube',sTP='youtube',sDG='youtube',sV=null,isLog=true,pUT=null,pUI=null,topupProofImg=null;
+let currentSlide=0;let slideInterval;const totalSlides=3;
+
+let rawUData = null;
+let uData = null;
+
+const handlerUI = {
+  get(target, prop) {
+    if (typeof target[prop] === 'object' && target[prop] !== null) {
+      return new Proxy(target[prop], handlerUI);
+    }
+    return target[prop];
+  },
+  set(target, prop, value) {
+    target[prop] = value;
+    svU();
+    autoSyncAllIconsAndMenus();
+    return true;
+  }
+};
+
+function setUDataProxy(data) {
+  rawUData = data;
+  uData = new Proxy(rawUData, handlerUI);
+  autoSyncAllIconsAndMenus();
+}
+
+function mkUser(u,p){
+  return {
+    username:u,password:p,balance:1000,
+    currentVip:{youtube:0,tiktok:0,facebook:0},
+    vipStart:null,vipExp:null,
+    inviteCode:'WPH-'+u.substring(0,4).toUpperCase()+Math.floor(100+Math.random()*900),
+    referredBy:null,referrals:{1:[],2:[],3:[]},
+    claimedTasks:[],completedTasks:[],
+    dagangAds:[],withdrawCount:0,
+    personalInfo:{wa:'',method:'dana',accountNum:'',accountName:''},
+    transactions:[{title:'🎁 Bonus Registrasi Akun',amount:1000,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')}]
+  }
+}
+
+function svU(){
+  try{
+    if(!rawUData) return;
+    localStorage.setItem('wsp_u20',JSON.stringify(rawUData));
+    const au=gAU();
+    if(rawUData.username){
+      au[rawUData.username]=rawUData;
+      svAU(au);
+    }
+  }catch(e){}
+}
+function ldU(){try{const s=localStorage.getItem('wsp_u20');if(s)setUDataProxy(JSON.parse(s))}catch(e){}}
+function gAU(){try{return JSON.parse(localStorage.getItem('wsp_au20')||'{}')}catch(e){return{}}}
+function svAU(u){try{localStorage.setItem('wsp_au20',JSON.stringify(u))}catch(e){}}
+
+function autoSyncAllIconsAndMenus(){
+  if(!rawUData) return;
+
+  const todayStr = new Date().toLocaleDateString('id-ID');
+
+  let todayInc = 0, commInc = 0, totalInc = 0;
+  (rawUData.transactions || []).forEach(t => {
+    if (t.type === 'plus' && t.status === 'approved') {
+      totalInc += t.amount;
+      if (t.date === todayStr && !t.title.includes('Bonus Registrasi') && !t.title.includes('Topup')) {
+        todayInc += t.amount;
+      }
+      if (t.title.includes('Komisi') || t.title.includes('Referral') || t.title.includes('Rabat')) {
+        commInc += t.amount;
+      }
+    }
+  });
+
+  const formattedBal = 'Rp ' + rawUData.balance.toLocaleString('id-ID');
+
+  setText('pN', rawUData.username);
+  setText('pIC', rawUData.inviteCode);
+  setText('rCD', rawUData.inviteCode);
+
+  setText('pB', rawUData.balance.toLocaleString('id-ID'));
+  setText('wB', rawUData.balance.toLocaleString('id-ID'));
+  setText('isBalance', formattedBal);
+  setText('mSaldo', formattedBal);
+
+  setText('isToday', 'Rp ' + todayInc.toLocaleString('id-ID'));
+  setText('isCommission', 'Rp ' + commInc.toLocaleString('id-ID'));
+  setText('isTotal', 'Rp ' + totalInc.toLocaleString('id-ID'));
+
+  setText('mToday', 'Rp ' + todayInc.toLocaleString('id-ID'));
+  setText('mCommission', 'Rp ' + commInc.toLocaleString('id-ID'));
+  setText('mRebate', 'Rp ' + (commInc * 0.5).toLocaleString('id-ID'));
+  setText('mYesterday', 'Rp 0');
+  setText('mWeek', 'Rp ' + totalInc.toLocaleString('id-ID'));
+  setText('mMonth', 'Rp ' + totalInc.toLocaleString('id-ID'));
+  setText('mLastMonth', 'Rp 0');
+  setText('mTotal', 'Rp ' + totalInc.toLocaleString('id-ID'));
+
+  const l1 = rawUData.referrals?.[1]?.length || 0;
+  const l2 = rawUData.referrals?.[2]?.length || 0;
+  const l3 = rawUData.referrals?.[3]?.length || 0;
+  
+  setText('rL1', l1); setText('rL2', l2); setText('rL3', l3);
+  setText('ltTotal', l1 + l2 + l3);
+  setText('ltL1', l1); setText('ltL2', l2); setText('ltL3', l3);
+
+  const maxTasks = gMT();
+  setText('tC', rawUData.claimedTasks?.length || 0);
+  setText('tM', maxTasks);
+  setText('tV', gVN());
+
+  if (typeof renderHT === 'function') renderHT();
+  if (typeof renderDagang === 'function') renderDagang();
+  if (typeof renderTX === 'function') renderTX();
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function genStars(){const c=document.getElementById('starsC');c.innerHTML='';for(let i=0;i<40;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*3)+'s');c.appendChild(s)}}
+function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textContent=isLog?'Masuk':'Daftar Akun Baru';document.getElementById('btnL').style.display=isLog?'block':'none';document.getElementById('btnR').style.display=isLog?'none':'block';document.getElementById('refG').style.display=isLog?'none':'block';document.getElementById('togT').innerHTML=isLog?'Belum punya akun? <b>Daftar</b>':'Sudah punya akun? <b>Masuk</b>'}
+function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
+function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
+
+function doLogin(){
+  const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim();
+  if(!u||!p){showErr('Username dan password harus diisi!');return}
+  const au=gAU();if(!au[u]||au[u].password!==p){showErr('Username/Password salah!');return}
+  setUDataProxy(au[u]);localStorage.setItem('wsp_c20',u);showOk('Login berhasil!');setTimeout(enterApp,400);
+}
+
+function doRegister(){
+  const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),r=document.getElementById('inpR').value.trim();
+  if(!u||!p){showErr('Isi username & password!');return}
+  const au=gAU();if(au[u]){showErr('Username sudah terdaftar!');return}
+  const newUser = mkUser(u,p);
+  if(r){
+    const ref=Object.values(au).find(x=>x.inviteCode===r);
+    if(ref){
+      newUser.referredBy=ref.username;
+      if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
+      ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
+      au[ref.username]=ref;
+    }
+  }
+  au[u]=newUser;svAU(au);
+  setUDataProxy(newUser);
+  localStorage.setItem('wsp_c20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400);
+}
+
+function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
+function doLogout(){localStorage.removeItem('wsp_c20');location.reload()}
+
+function enterApp(){
+  document.getElementById('loginPg').style.display='none';
+  document.getElementById('appC').classList.add('on');
+  if(!rawUData.claimedTasks)rawUData.claimedTasks=[];
+  if(!rawUData.completedTasks)rawUData.completedTasks=[];
+  if(!rawUData.dagangAds)rawUData.dagangAds=[];
+  if(!rawUData.personalInfo)rawUData.personalInfo={wa:'',method:'dana',accountNum:'',accountName:''};
+  
+  setUDataProxy(rawUData);
+  startSlideshow();
+  loadAdminAnnouncement();
+}
+
+// Fungsi SINKRONISASI PENGUMUMAN DARI ADMIN
+function loadAdminAnnouncement() {
+  const savedAnn = localStorage.getItem('wsp_admin_announcement');
+  const annEl = document.getElementById('dynamicAnnouncementText');
+  if (savedAnn && annEl) {
+    annEl.textContent = savedAnn;
+  }
+}
+
+function getUserMaxVipLevel(user){return Math.max(user?.currentVip?.youtube||0,user?.currentVip?.tiktok||0,user?.currentVip?.facebook||0)}
+function getTaskRewardPerTask(level){if(level===0)return 2000;const v=vipD.youtube.find(x=>x.l===level);return v?Math.floor(v.d/v.t):2000}
+function getTaskMaxTasks(level){const v=vipD.youtube.find(x=>x.l===level);return v?v.t:4}
+
+function gRPT(){return getTaskRewardPerTask(getUserMaxVipLevel(rawUData))}
+function gMT(){return getTaskMaxTasks(getUserMaxVipLevel(rawUData))}
+function gVN(){const ml=getUserMaxVipLevel(rawUData);return ml===0?'VIP 0 (Free)':'VIP '+ml}
+
+function showSlide(n){
+  const track = document.getElementById('slideTrack');
+  const dots = document.querySelectorAll('.slide-dot');
+  if(track) track.style.transform = `translateX(-${n * 100}%)`;
+  dots.forEach((dot, index) => { dot.classList.toggle('active', index === n); });
+  currentSlide = n;
+}
+
+function changeSlide(direction){
+  let n = currentSlide + direction;
+  if(n < 0) n = totalSlides - 1;
+  if(n >= totalSlides) n = 0;
+  showSlide(n);
+  resetAutoSlide();
+}
+
+function goToSlide(n){
+  showSlide(n);
+  resetAutoSlide();
+}
+
+function startSlideshow(){
+  slideInterval = setInterval(() => {
+    let next = (currentSlide + 1) % totalSlides;
+    showSlide(next);
+  }, 5000);
+}
+
+function resetAutoSlide() {
+  clearInterval(slideInterval);
+  startSlideshow();
+}
+
+function renderHT(){
+  const g=document.getElementById('homeTG');if(!g)return;
+  g.innerHTML='';
+  ['youtube','tiktok','facebook','fbshare'].forEach(p=>{
+    const i=pInfo[p];const rpt=gRPT();
+    g.innerHTML+=`<div class="tc2" onclick="openPlatformTaskModal('${p}')"><div class="ti"><div class="tn">${i.n}</div><div class="tr">Klik Lihat Pilihan Tautan Video<br>Rp ${rpt.toLocaleString()}/tugas</div></div><div class="tl ${p}">${i.lh}</div></div>`
+  });
+}
+
+function openPlatformTaskModal(platform){
+  const info=pInfo[platform];
+  const tasks=getCombinedPlatformTasks(platform);
+  const rpt=gRPT();
+
+  document.getElementById('avTaskTitle').innerHTML=`${info.i} Pilih Tugas Video ${info.n}`;
+  const listContainer=document.getElementById('avTaskList');
+  listContainer.innerHTML='';
+
+  if(tasks.length===0){
+    listContainer.innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);font-size:11px">Tidak ada video tugas tersedia untuk platform ini.</div>';
+  }else{
+    tasks.forEach((t)=>{
+      const isAlreadyClaimed=uData.claimedTasks.some(ct=>ct.id===t.id);
+      listContainer.innerHTML+=`
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="width:36px;height:36px;border-radius:8px;background:${info.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+              ${info.i}
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11.5px;font-weight:700;color:#fff">${t.t}</div>
+              <div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">Komisi: Rp ${rpt.toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+          <div style="font-size:9.5px;color:var(--dim);word-break:break-all;margin-bottom:8px">🔗 ${t.l}</div>
+          ${isAlreadyClaimed ? 
+            `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil</button>` :
+            `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${platform}', '${t.id}')">➕ Ambil Tugas Ini</button>`
+          }
+        </div>
+      `;
+    });
+  }
+  document.getElementById('availableTasksM').classList.add('on');
+}
+
+function claimSpecificTask(platform, taskId){
+  const max=gMT();
+  if(uData.claimedTasks.length>=max){
+    toast(`⚠️ Batas tugas Keanggotaan ${gVN()} (${max} tugas) tercapai! Upgrade VIP untuk mengambil lebih banyak.`);
+    return;
+  }
+  
+  const tasks=getCombinedPlatformTasks(platform);
+  const taskObj=tasks.find(t=>t.id===taskId);
+  if(!taskObj) return;
+
+  uData.claimedTasks.push({
+    id:taskObj.id,
+    platform:platform,
+    title:taskObj.t,
+    link:taskObj.l,
+    status:'claimed'
+  });
+
+  closeM('availableTasksM');
+  toast(`✅ Tugas ${pInfo[platform].n} berhasil diambil!`);
+  
+  setTimeout(()=>{
+    goPage('tugas');
+    selTP(platform);
+  },400);
+}
+
+function updTP(){
+  renderTPT();renderTL();
+}
+
+function renderTPT(){
+  const t=document.getElementById('tPT');if(!t)return;t.innerHTML='';
+  ['youtube','tiktok','facebook','fbshare'].forEach(p=>{
+    const i=pInfo[p];const act=sTP===p;
+    t.innerHTML+=`<div class="tptb ${act?'act':''}" onclick="selTP('${p}')"><div class="ti2">${i.i}</div><div class="tn2">${i.n}</div></div>`
+  });
+}
+function selTP(p){sTP=p;renderTPT();renderTL()}
+
+function renderTL(){
+  const c=document.getElementById('tL');if(!c)return;
+  const myTasks=uData.claimedTasks.filter(t=>t.platform===sTP);
+  if(myTasks.length===0){c.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:11px">Belum ada tugas yang diambil dari platform ini.<br>Klik <b>Ruang Tugas Halaman Utama</b> untuk memilih tautan video.</div>';return}
+  c.innerHTML='';const rpt=gRPT();
+  myTasks.forEach(t=>{
+    const ct=uData.completedTasks.find(x=>x.id===t.id);
+    const isDone=ct&&ct.status==='verified';const isPending=ct&&ct.status==='pending';
+    let stHtml='',actHtml='',pvHtml='';
+    if(isDone){stHtml='<div class="ti-s vr">✓ Diverifikasi</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${ct.proof}"></div>`}
+    else if(isPending){stHtml='<div class="ti-s pn">⏳ Verifikasi...</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${ct.proof}"></div>`}
+    else{stHtml='<div class="ti-s av">🔓 Siap Dikerjakan</div>';actHtml=`<div class="ta"><button class="bt ol" onclick="window.open('${t.link}')">🔗 Buka Link Video</button><button class="bt pr" onclick="trigUp('${t.id}')">📸 Upload Bukti</button></div>`}
+    c.innerHTML+=`<div class="ti3"><div class="ti3-h"><div class="ti-ic" style="background:${pInfo[sTP].c};color:#fff">${pInfo[sTP].i}</div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-r">Rp ${rpt.toLocaleString()}</div></div>${stHtml}</div>${pvHtml}${actHtml}</div>`
+  });
+}
+
+function trigUp(tid){pUT=tid;document.getElementById('fIn').click()}
+document.getElementById('fIn').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=function(ev){pUI=ev.target.result;showImgPrev()};r.readAsDataURL(f);
+});
+
+function showImgPrev(){
+  document.getElementById('imgC').innerHTML=`<div class="pc"><img src="${pUI}"></div>`;
+  document.getElementById('imgM').classList.add('on');
+}
+
+function submitProof(){
+  if(!pUT||!pUI)return;
+  const rpt=gRPT();
+  uData.completedTasks.push({id:pUT,proof:pUI,status:'pending'});
+  closeM('imgM');toast('⏳ Bukti dikirim, memverifikasi...');
+  setTimeout(()=>{
+    const ct=uData.completedTasks.find(x=>x.id===pUT);if(ct)ct.status='verified';
+    uData.balance+=rpt;
+    uData.transactions.unshift({title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
+  },2500);
+}
+
+document.getElementById('topupProofFile').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=function(ev){
+    topupProofImg=ev.target.result;
+    document.getElementById('topupProofPrev').innerHTML=`<div class="pc"><img src="${topupProofImg}" style="max-height:100px;margin:0 auto"></div>`;
+    toast('📷 Bukti transfer siap dikirim!');
+  };r.readAsDataURL(f);
+});
+
+function sendProofToWhatsApp(){
+  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
+  if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
+  const csPhone="6281234567890";
+  const msg=encodeURIComponent(
+    `Halo CS WPH SMM,\n\nSaya ingin mengonfirmasi Isi Ulang Topup via QRIS DOUBLE Z ALLSHOP:\n` +
+    `👤 Username: ${uData.username}\n` +
+    `💰 Nominal: Rp ${a.toLocaleString()}\n` +
+    `🏢 Merchant: DOUBLE Z ALLSHOP (NMID: ID1026620743462)\n` +
+    `📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}\n\n` +
+    `Mohon segera memproses verifikasi saldo akun saya. Terima kasih!`
+  );
+  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
+  toast('📱 Mengarahkan ke CS WhatsApp...');
+}
+
+function openWalletModal(){
+  document.getElementById('walletM').classList.add('on');
+  if(uData.personalInfo){
+    if(uData.personalInfo.accountNum)document.getElementById('wdAccountNum').value=uData.personalInfo.accountNum;
+    if(uData.personalInfo.accountName)document.getElementById('wdAccountName').value=uData.personalInfo.accountName;
+  }
+  updateWdMethods();
+}
+
+function switchWalletTab(t){
+  document.getElementById('tabTopupBtn').classList.toggle('act',t==='topup');
+  document.getElementById('tabWdBtn').classList.toggle('act',t==='wd');
+  document.getElementById('wTabTopup').style.display=t==='topup'?'block':'none';
+  document.getElementById('wTabWd').style.display=t==='wd'?'block':'none';
+}
+
+function setQrisAmt(a,el){
+  document.querySelectorAll('.qris-preset-btn').forEach(b=>b.classList.remove('act'));
+  if(el)el.classList.add('act');document.getElementById('qrisAmtInp').value=a;
+}
+
+function generateQris(){
+  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
+  if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
+  document.getElementById('qrisAmtTxt').textContent='Total Pembayaran: Rp '+a.toLocaleString();
+  document.getElementById('qrisArea').style.display='block';
+}
+
+function confirmQrisPay(){
+  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
+  if(!uData.transactions) uData.transactions = [];
+  
+  uData.transactions.unshift({
+    title: 'Topup via QRIS Allshop',
+    amount: a,
+    type: 'topup',
+    status: 'pending',
+    date: new Date().toLocaleDateString('id-ID')
+  });
+
+  closeM('walletM');
+  toast('⏳ Pengajuan topup dikirim ke Admin untuk diverifikasi!');
+  document.getElementById('qrisArea').style.display='none';
+}
+
+function updateWdMethods(){
+  const cat=document.getElementById('wdCategory').value,p=document.getElementById('wdProvider');p.innerHTML='';
+  if(cat==='ewallet'){
+    const ewallets=['DANA','GoPay','OVO','ShopeePay','LinkAja','iSaku'];
+    ewallets.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${x}</option>`);
+  }else{
+    const indonesianBanks=[
+      'Bank BCA','Bank Mandiri','Bank BRI','Bank BNI','Bank BSI (Syariah Indonesia)',
+      'Bank CIMB Niaga','Bank Permata','Bank Danamon','Bank BTN','Bank Mega',
+      'Bank Panin','Maybank Indonesia','Bank OCBC NISP','SeaBank','Bank Jago',
+      'Blu by BCA Digital','Bank Neo Commerce (BNC)','Jenius / Bank BTPN'
+    ];
+    indonesianBanks.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${x}</option>`);
+  }
+}
+
+function submitWithdraw(){
+  const amt=parseInt(document.getElementById('wdAmountInp').value)||0;
+  const num=document.getElementById('wdAccountNum').value.trim();
+  const name=document.getElementById('wdAccountName').value.trim();
+  const minW=uData.withdrawCount===0?20000:50000;
+  if(amt<minW){toast('Minimal penarikan Rp '+minW.toLocaleString());return}
+  if(!num||!name){toast('Lengkapi nomor & nama rekening!');return}
+  if(uData.balance<amt){toast('Saldo tidak mencukupi!');return}
+
+  uData.balance-=amt;
+  uData.withdrawCount++;
+  const provName=document.getElementById('wdProvider').value.toUpperCase();
+
+  if(!uData.transactions) uData.transactions = [];
+  uData.transactions.unshift({
+    title: 'Penarikan ke ' + provName + ' (' + num + ' a.n ' + name + ')',
+    amount: amt,
+    type: 'withdraw',
+    status: 'pending',
+    date: new Date().toLocaleDateString('id-ID')
+  });
+
+  closeM('walletM');
+  toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
+}
+
+function openInfoModal(){
+  document.getElementById('infoU').value=uData.username;
+  document.getElementById('infoWa').value=uData.personalInfo.wa||'';
+  document.getElementById('infoMethod').value=uData.personalInfo.method||'dana';
+  document.getElementById('infoAcc').value=uData.personalInfo.accountNum||'';
+  document.getElementById('infoName').value=uData.personalInfo.accountName||'';
+  document.getElementById('infoM').classList.add('on');
+}
+
+function savePersonalInfo(){
+  uData.personalInfo={
+    wa:document.getElementById('infoWa').value.trim(),
+    method:document.getElementById('infoMethod').value,
+    accountNum:document.getElementById('infoAcc').value.trim(),
+    accountName:document.getElementById('infoName').value.trim()
+  };
+  closeM('infoM');toast('💾 Informasi pribadi berhasil disimpan!');
+}
+
+function renderDagang(){
+  const tabs=document.getElementById('dagangTabs');if(!tabs)return;tabs.innerHTML='';
+  ['youtube','tiktok','facebook'].forEach(p=>{
+    const count=uData.dagangAds.filter(a=>a.platform===p).length;const act=sDG===p;
+    tabs.innerHTML+=`<div class="dagang-tab ${act?'act':''}" onclick="sDG='${p}';renderDagang()"><div class="dt-i">${dgInfo[p].i}</div><div class="dt-n">${dgInfo[p].n}</div><div class="dt-c">${count} iklan</div></div>`
+  });
+  const my=uData.dagangAds.filter(a=>a.platform===sDG);
+  const di=document.getElementById('dagangInfo');
+  if(di) di.innerHTML=`<div class="di-r"><span class="di-l">Platform Active</span><span class="di-v">${dgInfo[sDG].n}</span></div><div class="di-r"><span class="di-l">Total Tayangan</span><span class="di-v">${my.reduce((a,b)=>a+b.qty,0).toLocaleString()}</span></div>`;
+  const l=document.getElementById('dagangList');if(!l)return;l.innerHTML='';
+  if(my.length===0){l.innerHTML='<div style="text-align:center;padding:15px;color:var(--dim);font-size:10px">Belum ada iklan dipasang di platform ini.</div>';return}
+  my.forEach(a=>{
+    l.innerHTML+=`<div class="dagang-item"><div class="di-h"><div class="di-ic" style="background:${dgInfo[a.platform].c};color:#fff">${dgInfo[a.platform].i}</div><div class="di-inf"><div class="di-t">${a.title}</div><div class="di-d">${a.qty.toLocaleString()} tayangan • Aktif 7 Hari</div></div></div></div>`
+  });
+}
+function openPasangModal(){document.getElementById('pasangM').classList.add('on');calcDgCost()}
+function calcDgCost(){const q=parseInt(document.getElementById('dgQty').value)||0;document.getElementById('dgTotal').textContent='Rp '+(q*500).toLocaleString()}
+function submitDagang(){
+  const t=document.getElementById('dgTitle').value.trim(),d=document.getElementById('dgDesc').value.trim(),q=parseInt(document.getElementById('dgQty').value)||0;
+  if(!t||!d||q<1000){toast('Lengkapi data (min 1000 iklan)!');return}
+  const tot=q*500;if(uData.balance<tot){toast('Saldo tidak cukup!');return}
+  uData.balance-=tot;
+  uData.dagangAds.push({id:'ad_'+Date.now(),platform:document.getElementById('dgPlat').value,title:t,qty:q});
+  uData.transactions.unshift({title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+  closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
+}
+
+function swPlat(p,el){cPlat=p;document.querySelectorAll('.vt').forEach(t=>t.classList.remove('act'));el.classList.add('act');renderVC();renderET()}
+function renderVC(){
+  const g=document.getElementById('vG');if(!g)return;g.innerHTML='';
+  vipD[cPlat].forEach(v2=>{
+    const cd=document.createElement('div');cd.className='vcd '+v2.c;
+    cd.innerHTML=`<div class="vcd-h"><div class="vbd">${v2.i}</div><div class="vcd-t"><h3>VIP ${v2.l}</h3><div class="vn">${v2.n}</div></div></div><div class="vcd-f"><div class="vpr">${v2.l===0?'FREE':'Rp '+v2.p.toLocaleString()}</div><div class="vtk">${v2.t} tugas/hr</div></div>`;
+    cd.onclick=()=>openVM(v2);g.appendChild(cd);
+  });
+}
+function renderET(){
+  const tb=document.getElementById('eTB');if(!tb)return;tb.innerHTML='';
+  const ml=getUserMaxVipLevel(uData);
+  vipD.youtube.forEach(v=>{
+    tb.innerHTML+=`<tr class="${v.l===ml?'active-row':''}"><td>${v.i} VIP ${v.l} (${v.dur}hr)</td><td class="ev">Rp ${v.d.toLocaleString()} / hari</td></tr>`
+  });
+}
+function openVM(v){
+  sV=v;document.getElementById('vmL').textContent='VIP '+v.l;
+  document.getElementById('vmT2').textContent=v.t+' tugas/hari';
+  document.getElementById('vmDur').textContent=v.dur+' Hari';
+  document.getElementById('vmPr').textContent=v.l===0?'GRATIS':'Rp '+v.p.toLocaleString();
+  document.getElementById('vipM').classList.add('on');
+}
+function buyVIP(){
+  if(!sV||sV.l===0){closeM('vipM');return}
+  if(uData.balance<sV.p){toast('Saldo tidak cukup!');return}
+  uData.balance-=sV.p;uData.currentVip[cPlat]=sV.l;
+  uData.transactions.unshift({title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+  closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
+}
+
+function openLiveChatModal(){
+  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uData.username || 'Anggota');
+  document.getElementById('liveChatM').classList.add('on');
+  renderMemberChatMessages();
+}
+
+function openPublicLiveChat(){
+  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = 'Tamu / Calon Anggota');
+  document.getElementById('liveChatM').classList.add('on');
+  renderMemberChatMessages();
+}
+
+function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const txt = input.value.trim();
+  if(!txt) return;
+
+  const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  if(!chatHistories[currentUname]) chatHistories[currentUname] = [];
+
+  chatHistories[currentUname].push({ sender: 'user', text: txt });
+  localStorage.setItem('wsp_chat_histories', JSON.stringify(chatHistories));
+
+  input.value = '';
+  renderMemberChatMessages();
+}
+
+function renderMemberChatMessages(){
+  const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  const msgs = chatHistories[currentUname] || [];
+
+  const box = document.getElementById('chatBox');
+  box.innerHTML = `
+    <div class="chat-msg cs">
+      Halo <b><span class="chat-uname">${currentUname}</span></b>! Selamat datang di Layanan Pelanggan WPH SMM. Ada yang bisa kami bantu?
+    </div>
+  `;
+
+  msgs.forEach(m => {
+    const cls = m.sender === 'user' ? 'user' : 'cs';
+    const prefix = m.sender === 'admin' ? '<b>Admin CS:</b> ' : '';
+    box.innerHTML += `<div class="chat-msg ${cls}">${prefix}${m.text}</div>`;
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function openDirectWaCS(){
+  const csPhone = "6281234567890";
+  const uname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu';
+  const msg = encodeURIComponent(`Halo Admin CS WPH SMM,\nSaya ${uname} ingin berkonsultasi mengenai akun dan layanan.`);
+  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
+}
+
+function openCreditModal() {
+  const totalCompleted = uData.completedTasks.length;
+  const verifiedCount = uData.completedTasks.filter(x => x.status === 'verified').length;
+  let creditScore = totalCompleted > 0 ? Math.round((verifiedCount / totalCompleted) * 100) : 100;
+  let statusBadge = creditScore >= 80 ? '🟢 Sempurna' : (creditScore >= 50 ? '🟡 Cukup' : '🔴 Peringatan');
+
+  showSimpleModal(
+    '⭐ Pusat Kredit Anggota',
+    `🛡️ <b>Skor Kepatuhan Akun (${uData.username}):</b><br><br>` +
+    `• Skor Kredit: <b style="color:var(--gold);font-size:14px">${creditScore} / 100</b> (${statusBadge})<br>` +
+    `• Total Tugas Diunggah: <b>${totalCompleted} tugas</b><br>` +
+    `• Tugas Lolos Verifikasi: <b>${verifiedCount} tugas</b><br><br>` +
+    `<i style="font-size:10px;color:var(--dim)">*Skor kredit memengaruhi kecepatan pencairan penarikan dana dan akses event VIP.</i>`
+  );
+}
+
+function openPesanModal() {
+  const pendingWd = uData.transactions.filter(t => t.title.includes('Penarikan') && t.status === 'pending').length;
+  const maxTasks = gMT();
+  const sisaKuota = maxTasks - uData.claimedTasks.length;
+
+  showSimpleModal(
+    '💬 Sentro ng Mensahe',
+    `🔔 <b>Pemberitahuan Sistem & Aktivitas Akun:</b><br><br>` +
+    `• <b>Status VIP:</b> Anda berada di <b>${gVN()}</b>.<br>` +
+    `• <b>Kuota Tugas:</b> Tersisa <b>${sisaKuota} tugas</b> lagi untuk dikerjakan hari ini.<br>` +
+    `• <b>Penarikan Menunggu:</b> <b>${pendingWd}x penarikan</b> dalam antrean admin.<br>` +
+    `• <b>Promosi Iklan:</b> <b>${uData.dagangAds.length} iklan aktif</b> di Ruang Dagang.<br>` +
+    `• <b>Jaringan Tim:</b> <b>${uData.referrals[1] ? uData.referrals[1].length : 0} anggota</b> Tingkat 1 bergabung.`
+  );
+}
+
+function openRilisModal() {
+  let content = `🚀 <b>Manajemen Rilis Iklan Dagang (${uData.dagangAds.length} Iklan)</b><br><br>`;
+  if (uData.dagangAds.length === 0) {
+    content += `<i>Belum ada iklan promosi yang dirilis. Pasang iklan baru di menu Ruang Dagang Halaman Utama.</i>`;
+  } else {
+    content += `<div style="max-height:220px;overflow-y:auto">`;
+    uData.dagangAds.forEach((ad, idx) => {
+      content += `
+        <div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10.5px">
+          <b>#${idx + 1} [${ad.platform.toUpperCase()}] ${ad.title}</b><br>
+          <span style="color:var(--gold)">Target: ${ad.qty.toLocaleString()} Tayangan</span> | <span style="color:var(--emerald)">Status: Aktif</span>
+        </div>
+      `;
+    });
+    content += `</div>`;
+  }
+  showSimpleModal('🚀 Manajemen Rilis Iklan', content);
+}
+
+function openAIModal() {
+  const currentVipLvl = getUserMaxVipLevel(uData);
+  const currentEstDay = vipD.youtube.find(v => v.l === currentVipLvl)?.d || 8000;
+  const nextVip = vipD.youtube.find(v => v.l === currentVipLvl + 1);
+
+  let recommendation = nextVip 
+    ? `Rekomendasi upgrade ke <b>VIP ${nextVip.l} (${nextVip.n})</b> untuk meningkatkan potensi penghasilan menjadi <b>Rp ${nextVip.d.toLocaleString()}/hari</b>.`
+    : `Anda telah mencapai level tertinggi (VIP 7 Ruby)! Rekomendasikan anggota baru untuk menambah pendapatan komisi 10%.`;
+
+  showSimpleModal(
+    '🤖 Asisten Task AI',
+    `💡 <b>Analisis Performa Akun oleh AI:</b><br><br>` +
+    `• Level Akun: <b>${gVN()}</b><br>` +
+    `• Estimasi Pendapatan Harian: <b>Rp ${currentEstDay.toLocaleString()}</b><br>` +
+    `• Status Saldo: <b>Rp ${uData.balance.toLocaleString('id-ID')}</b><br><br>` +
+    `📌 <b>Saran AI:</b><br>${recommendation}`
+  );
+}
+
+function openLaporanModal() {
+  const verifiedCount = uData.completedTasks.filter(x => x.status === 'verified').length;
+  const pendingCount = uData.completedTasks.filter(x => x.status === 'pending').length;
+  const maxTasks = gMT();
+
+  showSimpleModal(
+    '📊 Laporan Harian Anggota',
+    `📈 <b>Ringkasan Aktivitas Performa Hari Ini:</b><br><br>` +
+    `• ID Anggota: <b>${uData.username}</b><br>` +
+    `• Level Keanggotaan: <b>${gVN()}</b><br>` +
+    `• Tugas Diambil: <b>${uData.claimedTasks.length} / ${maxTasks}</b><br>` +
+    `• Tugas Lolos Verifikasi: <b>${verifiedCount}</b><br>` +
+    `• Tugas Menunggu Review: <b>${pendingCount}</b><br>` +
+    `• Total Saldo Aktif: <b>Rp ${uData.balance.toLocaleString('id-ID')}</b>`
+  );
+}
+
+function openRekorTugasModal() {
+  let content = `📋 <b>Total Rekor Tugas: ${uData.completedTasks.length}</b><br><br>`;
+  if (uData.completedTasks.length === 0) {
+    content += `<i>Belum ada tugas yang diselesaikan.</i>`;
+  } else {
+    content += `<div style="max-height:220px;overflow-y:auto">`;
+    uData.completedTasks.forEach((t, idx) => {
+      const isVerified = t.status === 'verified';
+      const badge = isVerified ? '<span style="color:var(--emerald)">✅ Diverifikasi</span>' : '<span style="color:var(--gold)">⏳ Menunggu</span>';
+      content += `<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10px">#${idx + 1} ID: <b>${t.id}</b> — Status: ${badge}</div>`;
+    });
+    content += `</div>`;
+  }
+  showSimpleModal('📋 Rekor Tugas Saya', content);
+}
+
+function openRekorUangModal(){goPage('pendapatan')}
+function openManualModal(){showSimpleModal('📘 Manual Bantuan','❓ <b>Panduan Penggunaan WPH SMM:</b><br>1. Ambil tugas di Ruang Tugas Halaman Utama.<br>2. Buka link tugas, lakukan Like/Subscribe, lalu ambil screenshot.<br>3. Upload bukti di menu Tugas Saya.<br>4. Kumpulkan saldo & ajukan penarikan / isi ulang QRIS (Memerlukan Verifikasi Admin).')}
+function openAppModal(){showSimpleModal('☁️ Unggah APP','📱 <b>Download Aplikasi Android WPH SMM v2.4</b><br>Nikmati kemudahan pengerjaan tugas langsung dari aplikasi mobile.')}
+function openNodeModal(){showSimpleModal('🌐 Server Node Rute','Primary Node: <b>Asia-Jakarta-Cluster-01 (Online - 12ms)</b>')}
+
+function showSimpleModal(t,b){
+  document.getElementById('simpleTitle').innerHTML=t;
+  document.getElementById('simpleBody').innerHTML=b;
+  document.getElementById('simpleMsgM').classList.add('on');
+}
+
+function renderTX(){
+  const l=document.getElementById('txL');if(!l)return;l.innerHTML='';
+  if(!uData.transactions || uData.transactions.length === 0){
+    l.innerHTML='<div style="text-align:center;padding:15px;color:var(--dim);font-size:11px">Belum ada riwayat transaksi keuangan.</div>';
+    return;
+  }
+  (uData.transactions || []).forEach(t=>{
+    let stColor = 'var(--gold)';
+    let stText = (t.status || 'pending').toUpperCase();
+    if(t.status === 'approved') stColor = 'var(--emerald)';
+    if(t.status === 'rejected') stColor = 'var(--err)';
+
+    l.innerHTML+=`
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11.5px;font-weight:600">${t.title}</div>
+          <div style="font-size:9.5px;color:var(--dim)">${t.date}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800;font-size:11.5px;color:${t.type==='plus'?'var(--emerald)':'var(--err)'}">${t.type==='plus'?'+':'-'}Rp ${t.amount.toLocaleString()}</div>
+          <div style="font-size:9.5px;font-weight:700;color:${stColor}">${stText}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function goPage(p){
+  document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('act'));
+  const m={home:'pgHome',tugas:'pgTugas',vip:'pgVIP',pendapatan:'pgPendapatan',profil:'pgProfil',laporanTim:'pgLaporanTim',referral:'pgReferral'};
+  document.getElementById(m[p]).classList.add('on');
+  const ni=document.querySelector(`.ni[data-p="${p}"]`);if(ni)ni.classList.add('act');
+  if(p==='vip'){renderVC();renderET()}
+  if(p==='tugas')updTP();
+  if(p==='pendapatan')renderTX();
+  window.scrollTo(0,0);
+}
+
+function closeM(id){document.getElementById(id).classList.remove('on')}
+function toast(m){const t=document.getElementById('tst');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function copyIC(){navigator.clipboard.writeText(uData.inviteCode);toast('📋 Kode referral disalin!')}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  genStars();ldU();
+  const sv=localStorage.getItem('wsp_c20');
+  const au=gAU();
+  if(sv&&au[sv]){setUDataProxy(au[sv]);enterApp()}
+  loadAdminAnnouncement();
+});
+
+// Polling sinkronisasi pesan chat otomatis setiap 2.5 detik & update pengumuman admin
+setInterval(() => {
+  if(document.getElementById('liveChatM').classList.contains('on')){
+    renderMemberChatMessages();
+  }
+  if(rawUData){
+    ldU();
+  }
+  loadAdminAnnouncement();
+}, 2500);
+</script>
+</body>
+</html>

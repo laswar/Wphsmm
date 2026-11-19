@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WPH SMM - Master Admin Control Panel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Poppins:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020604;
+  --bg-card:rgba(4,16,11,0.92);
+  --emerald:#00e676;
+  --emerald-glow:rgba(0,230,118,0.3);
+  --cyan:#00e5ff;
+  --gold:#ffd700;
+  --text:#e0f2fe;
+  --dim:rgba(180,225,220,0.6);
+  --border:rgba(0,229,255,0.25);
+  --border-emerald:rgba(0,230,118,0.35);
+  --err:#ff3366;
+  --orange:#ff9100;
+}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+
+/* LAYOUT SIDEBAR KIRI */
+aside{width:260px;background:rgba(3,12,8,0.98);border-right:1px solid var(--border-emerald);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;z-index:100;padding:20px;overflow-y:auto}
+.logo{font-family:'Orbitron';font-size:18px;font-weight:900;background:linear-gradient(135deg,var(--emerald),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.admin-badge{background:rgba(255,145,0,0.2);border:1px solid var(--orange);color:var(--orange);padding:4px 8px;border-radius:6px;font-size:9.5px;font-weight:700;font-family:'Orbitron';width:fit-content;margin-bottom:20px}
+
+.menu-list{display:flex;flex-direction:column;gap:5px;flex:1}
+.menu-item{padding:9px 12px;border-radius:10px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--dim);transition:all 0.3s;display:flex;align-items:center;gap:8px;position:relative}
+.menu-item:hover, .menu-item.active{background:rgba(0,230,118,0.15);color:var(--emerald);border:1px solid var(--border-emerald)}
+.notif-badge{position:absolute;right:10px;background:var(--err);color:#fff;font-size:9px;padding:2px 6px;border-radius:10px;font-weight:800;display:none}
+
+/* KONTEN UTAMA DI KANAN */
+main{margin-left:260px;flex:1;padding:20px;max-width:calc(100vw - 260px);overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:center;background:rgba(3,12,8,0.95);border:1px solid var(--border-emerald);padding:14px 20px;border-radius:14px;margin-bottom:20px;backdrop-filter:blur(10px)}
+
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:0 0 15px rgba(0,0,0,0.5)}
+.stat-title{font-size:11px;color:var(--dim);margin-bottom:4px}
+.stat-val{font-family:'Orbitron';font-size:18px;font-weight:800;color:var(--gold)}
+
+.section-box{background:var(--bg-card);border:1px solid var(--border-emerald);border-radius:14px;padding:16px;margin-bottom:20px;display:none}
+.section-box.active{display:block}
+.section-title{font-family:'Orbitron';font-size:14px;font-weight:700;color:var(--emerald);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:10px;font-size:11px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06)}
+th{background:rgba(0,230,118,0.15);color:var(--emerald);font-weight:700;font-family:'Orbitron'}
+tr:hover{background:rgba(255,255,255,0.02)}
+
+.btn{padding:6px 12px;border:none;border-radius:6px;font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Poppins'}
+.btn.approve{background:var(--emerald);color:#030806}
+.btn.reject{background:var(--err);color:#fff}
+.btn.edit{background:var(--cyan);color:#030806}
+.btn.del{background:rgba(255,51,102,0.2);border:1px solid var(--err);color:var(--err)}
+.btn.add{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-family:'Orbitron'}
+
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:10.5px;color:var(--dim);margin-bottom:3px}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:rgba(2,10,7,0.9);color:#fff;font-size:12px;font-family:'Poppins'}
+input:focus,select:focus{border-color:var(--emerald);outline:none}
+
+/* MODAL EDIT ANGGOTA */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal.on{display:flex}
+.modal-content{background:var(--bg);border:1.5px solid var(--emerald);border-radius:14px;padding:20px;width:100%;max-width:400px}
+
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast-alert{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;padding:12px 18px;border-radius:12px;font-size:11.5px;font-weight:700;box-shadow:0 4px 20px var(--emerald-glow);font-family:'Orbitron';animation:slideIn 0.3s ease;display:flex;align-items:center;gap:10px;max-width:320px}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.chat-admin-box{height:250px;overflow-y:auto;background:rgba(2,8,5,0.9);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.c-msg{padding:6px 10px;border-radius:8px;font-size:11px;max-width:80%}
+.c-msg.user{background:rgba(255,255,255,0.1);align-self:flex-start}
+.c-msg.admin{background:var(--emerald);color:#000;align-self:flex-end}
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MODAL EDIT ANGGOTA -->
+<div class="modal" id="editUserModal">
+  <div class="modal-content">
+    <h3 style="font-family:'Orbitron';font-size:14px;color:var(--emerald);margin-bottom:12px">✏️ Edit Data Anggota</h3>
+    <input type="hidden" id="editTargetUsername">
+    <div class="fg">
+      <label>Username (Tidak dapat diubah)</label>
+      <input type="text" id="modalUsername" readonly style="opacity:0.6">
+    </div>
+    <div class="fg">
+      <label>Saldo Anggota (IDR)</label>
+      <input type="number" id="modalBalance">
+    </div>
+    <div class="fg">
+      <label>Level VIP YouTube</label>
+      <select id="modalVipYt">
+        <option value="0">VIP 0 (Free)</option>
+        <option value="1">VIP 1 (Bronze)</option>
+        <option value="2">VIP 2 (Silver)</option>
+        <option value="3">VIP 3 (Gold)</option>
+        <option value="4">VIP 4 (Platinum)</option>
+        <option value="5">VIP 5 (Diamond)</option>
+        <option value="6">VIP 6 (Sapphire)</option>
+        <option value="7">VIP 7 (Ruby)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn approve" style="flex:1" onclick="saveUserEdit()">💾 Simpan Perubahan</button>
+      <button class="btn reject" style="flex:1" onclick="closeEditModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR SEBELAH KIRI -->
+<aside>
+  <div>
+    <div class="logo">WPH SMM</div>
+    <div class="admin-badge">🔒 MASTER ADMIN</div>
+  </div>
+  <div class="menu-list">
+    <div class="menu-item active" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
+    <div class="menu-item" onclick="switchTab('transaksi', this)">💳 Verifikasi Tx <span class="notif-badge" id="badgeTx">0</span></div>
+    <div class="menu-item" onclick="switchTab('tugas', this)">📋 Kelola Tugas</div>
+    <div class="menu-item" onclick="switchTab('announcement', this)">📢 Pengumuman Display</div>
+    <div class="menu-item" onclick="switchTab('dagang', this)">🛒 Ruang Dagang</div>
+    <div class="menu-item" onclick="switchTab('downline', this)">👥 Downline Tim</div>
+    <div class="menu-item" onclick="switchTab('chat', this)">💬 Live Chat CS <span class="notif-badge" id="badgeChat">0</span></div>
+  </div>
+  <div style="font-size:9.5px;color:var(--dim);text-align:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:auto">
+    System Sync v2.5
+  </div>
+</aside>
+
+<!-- KONTEN UTAMA KANAN -->
+<main>
+  <header>
+    <div>
+      <div style="font-family:'Orbitron';font-weight:800;font-size:15px" id="headerTitle">Dashboard & Statistik Platform</div>
+      <div style="font-size:10.5px;color:var(--dim)">Sinkronisasi Real-Time dengan Web Anggota</div>
+    </div>
+    <button class="btn edit" onclick="loadAdminData()">🔄 Refresh Data</button>
+  </header>
+
+  <!-- 1. TAB DASHBOARD -->
+  <div class="section-box active" id="tab-dashboard">
+    <div class="section-title"><span>📊 Ringkasan Umum Sistem</span></div>
+    <div class="grid-stats">
+      <div class="stat-card">
+        <div class="stat-title">👥 Total Anggota Terdaftar</div>
+        <div class="stat-val" id="stUsers">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">💰 Total Saldo Platform</div>
+        <div class="stat-val" id="stBalance">Rp 0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">⏳ Pending Topup / WD</div>
+        <div class="stat-val" id="stPending">0 Transaksi</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">📋 Total Tugas Selesai</div>
+        <div class="stat-val" id="stTasks">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. TAB TRANSAKSI -->
+  <div class="section-box" id="tab-transaksi">
+    <div class="section-title"><span>💳 Verifikasi Topup QRIS & Penarikan Dana</span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Jenis Transaksi</th>
+            <th>Nominal</th>
+            <th>Tanggal</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="txTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. TAB KELOLA & EDIT TUGAS -->
+  <div class="section-box" id="tab-tugas">
+    <div class="section-title"><span id="taskFormTitle">➕ Tambah Tugas Baru</span></div>
+    <input type="hidden" id="editTaskIndex" value="-1">
+    <input type="hidden" id="editTaskPlatform" value="">
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:10px">
+      <div class="fg">
+        <label>Platform Target</label>
+        <select id="taskPlatform">
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="facebook">Facebook</option>
+          <option value="fbshare">FB Share</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Judul / Instruksi Tugas</label>
+        <input type="text" id="taskTitle" placeholder="Contoh: Like & Subscribe Channel">
+      </div>
+      <div class="fg">
+        <label>Link Tautan Target Video</label>
+        <input type="text" id="taskLink" placeholder="https://youtube.com/watch?v=...">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn add" id="btnSaveTask" onclick="saveTaskData()">💾 Simpan Tugas</button>
+      <button class="btn del" id="btnCancelEdit" style="display:none" onclick="resetTaskForm()">Batal Edit</button>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="section-title"><span>📋 Daftar Tugas Aktif Saat Ini</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Judul Tugas</th>
+              <th>Tautan Target</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="taskTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TAB PENGUMUMAN DISPLAY (RUNNING TEXT) -->
+  <div class="section-box" id="tab-announcement">
+    <div class="section-title"><span>📢 Pengaturan Pengumuman Display (Running Text Berjalan)</span></div>
+    <div class="fg">
+      <label>Teks Pengumuman di Bawah Display / Slideshow Web Anggota</label>
+      <textarea id="announcementInput" rows="4" placeholder="Contoh: Selamat kepada anggota ****2478 rekomendasi Oscar, mendapat Rp 14.000 komisi!"></textarea>
+    </div>
+    <button class="btn add" onclick="saveAnnouncementText()">💾 Perbarui Pengumuman Web</button>
+  </div>
+
+  <!-- 5. TAB KELOLA RUANG DAGANG (SMM MARKETPLACE) -->
+  <div class="section-box" id="tab-dagang">
+    <div class="section-title"><span>🛒 Kelola Iklan & Promosi Ruang Dagang Anggota</span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Platform</th>
+            <th>Judul Promosi</th>
+            <th>Jumlah Tayangan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="dagangTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. TAB DOWNLINE & TIM -->
+  <div class="section-box" id="tab-downline">
+    <div class="section-title"><span>👥 Monitoring Anggota & Edit Akun</span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Kode Referral</th>
+            <th>Level VIP</th>
+            <th>Saldo Aktif</th>
+            <th>Downline (T1, T2, T3)</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. TAB LIVE CHAT CS -->
+  <div class="section-box" id="tab-chat">
+    <div class="section-title"><span>💬 Live Chat Customer Service (Pusat Bantuan)</span></div>
+    <div class="fg">
+      <label>Pilih Anggota yang Sedang Chat:</label>
+      <select id="chatUserSelect" onchange="renderAdminChat()"></select>
+    </div>
+    <div class="chat-admin-box" id="adminChatBox">
+      <div style="color:var(--dim);text-align:center;padding:20px">Pilih akun anggota di atas untuk membalas pesan.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="adminChatInput" placeholder="Ketik balasan admin ke anggota..." onkeypress="if(event.key==='Enter')sendAdminChat()">
+      <button class="btn approve" onclick="sendAdminChat()">Kirim Balasan</button>
+    </div>
+  </div>
+</main>
+
+<script>
+function playBeep() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  } catch(e) {}
+}
+
+function showAdminNotification(message){
+  playBeep();
+  const container = document.getElementById('toastContainer');
+  const alertBox = document.createElement('div');
+  alertBox.className = 'toast-alert';
+  alertBox.innerHTML = `<span>🔔</span> <div><b>Aktivitas Masuk!</b><br>${message}</div>`;
+  container.appendChild(alertBox);
+  setTimeout(() => {
+    alertBox.style.opacity = '0';
+    setTimeout(() => alertBox.remove(), 300);
+  }, 4000);
+}
+
+function switchTab(tabId, el){
+  document.querySelectorAll('.section-box').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+  
+  document.getElementById('tab-' + tabId).classList.add('active');
+  if(el) el.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard & Statistik Platform',
+    transaksi: 'Verifikasi Transaksi Keuangan',
+    tugas: 'Pengelolaan & Edit Tugas Platform',
+    announcement: 'Pengaturan Teks Pengumuman Display',
+    dagang: 'Kelola Ruang Dagang Konten',
+    downline: 'Monitoring Jaringan Downline & Edit Anggota',
+    chat: 'Pusat Layanan Live Chat CS'
+  };
+  document.getElementById('headerTitle').textContent = titles[tabId];
+}
+
+let lastState = { usersCount: 0, pendingTxCount: 0 };
+
+function loadAdminData(){
+  const allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  const userKeys = Object.keys(allUsers);
+  
+  if(lastState.usersCount > 0 && userKeys.length > lastState.usersCount){
+    showAdminNotification(`Ada anggota baru mendaftar: <b>${userKeys[userKeys.length - 1]}</b>[span_3](start_span)[span_3](end_span)`);
+  }
+  lastState.usersCount = userKeys.length;
+
+  let totalBal = 0, pendingCount = 0, totalTasksDone = 0;
+  let txList = [], usersHtml = '', chatSelectOptions = '', dagangHtml = '';
+  let currentPendingCount = 0;
+
+  userKeys.forEach(uname => {
+    const u = allUsers[uname];
+    totalBal += (u.balance || 0);
+    totalTasksDone += (u.completedTasks ? u.completedTasks.length : 0);
+
+    if(u.transactions){
+      u.transactions.forEach((tx, idx) => {
+        if(tx.status === 'pending') {
+          pendingCount++;
+          currentPendingCount++;
+        }
+        txList.push({ username: uname, txIdx: idx, ...tx });
+      });
+    }
+
+    // Rekap Ruang Dagang
+    if(u.dagangAds){
+      u.dagangAds.forEach((ad, adIdx) => {
+        dagangHtml += `
+          <tr>
+            <td><b>${uname}</b></td>
+            <td><code style="color:var(--cyan)">${ad.platform.toUpperCase()}</code></td>
+            <td>${ad.title}</td>
+            <td style="color:var(--gold)">${ad.qty.toLocaleString()} x</td>
+            <td><button class="btn del" onclick="deleteDagangAd('${uname}', ${adIdx})">Hapus Iklan</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    const l1 = u.referrals?.[1]?.length || 0;
+    const l2 = u.referrals?.[2]?.length || 0;
+    const l3 = u.referrals?.[3]?.length || 0;
+    const maxVip = Math.max(u.currentVip?.youtube||0, u.currentVip?.tiktok||0, u.currentVip?.facebook||0);
+
+    usersHtml += `
+      <tr>
+        <td><b>${u.username}</b></td>
+        <td><code style="color:var(--cyan)">${u.inviteCode}</code></td>
+        <td>VIP ${maxVip}</td>
+        <td style="color:var(--gold);font-weight:700">Rp ${(u.balance||0).toLocaleString()}</td>
+        <td>T1: <b>${l1}</b> | T2: <b>${l2}</b> | T3: <b>${l3}</b></td>
+        <td><button class="btn edit" onclick="openEditUserModal('${uname}')">✏️ Edit</button></td>
+      </tr>
+    `;
+    chatSelectOptions += `<option value="${uname}">${uname} (Saldo: Rp ${(u.balance||0).toLocaleString()})</option>`;
+  });
+
+  if(lastState.pendingTxCount > 0 && currentPendingCount > lastState.pendingTxCount){
+    showAdminNotification(`Ada pengajuan transaksi baru (Topup/Withdraw) pending[span_4](start_span)[span_4](end_span)!`);
+  }
+  lastState.pendingTxCount = currentPendingCount;
+
+  const badgeTx = document.getElementById('badgeTx');
+  if(pendingCount > 0){
+    badgeTx.textContent = pendingCount;
+    badgeTx.style.display = 'inline-block';
+  } else { badgeTx.style.display = 'none'; }
+
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  let totalUnreadChat = 0;
+  Object.keys(chatHistories).forEach(uname => {
+    const msgs = chatHistories[uname] || [];
+    const lastMsg = msgs[msgs.length - 1];
+    if(lastMsg && lastMsg.sender === 'user') totalUnreadChat++;
+  });
+
+  const badgeChat = document.getElementById('badgeChat');
+  if(totalUnreadChat > 0){
+    badgeChat.textContent = totalUnreadChat;
+    badgeChat.style.display = 'inline-block';
+  } else { badgeChat.style.display = 'none'; }
+
+  document.getElementById('stUsers').textContent = userKeys.length;
+  document.getElementById('stBalance').textContent = 'Rp ' + totalBal.toLocaleString();
+  document.getElementById('stPending').textContent = pendingCount + ' Transaksi';
+  document.getElementById('stTasks').textContent = totalTasksDone;
+  document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Belum ada anggota.[span_5](start_span)[span_5](end_span)</td></tr>';
+  document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan ruang dagang.[span_6](start_span)[span_6](end_span)</td></tr>';
+  
+  const chatSel = document.getElementById('chatUserSelect');
+  const curSelected = chatSel.value;
+  chatSel.innerHTML = chatSelectOptions || '<option>Tidak ada anggota</option>';
+  if(curSelected) chatSel.value = curSelected;
+
+  // Render Transaksi
+  let txHtml = '';
+  txList.sort((a,b)=>b.date?.localeCompare(a.date));
+  txList.forEach(t => {
+    let stBadge = `<span style="color:var(--gold)">PENDING</span>`;
+    if(t.status === 'approved') stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
+    if(t.status === 'rejected') stBadge = `<span style="color:var(--err)">REJECTED</span>`;
+
+    let actionBtns = `<span style="color:var(--dim)">-</span>`;
+    if(t.status === 'pending'){
+      actionBtns = `
+        <button class="btn approve" onclick="resolveTx('${t.username}', ${t.txIdx}, 'approved')">✔ Setuju</button>
+        <button class="btn reject" onclick="resolveTx('${t.username}', ${t.txIdx}, 'rejected')">✖ Tolak</button>
+      `;
+    }
+    txHtml += `
+      <tr>
+        <td><b>${t.username}</b></td>
+        <td>${t.title}</td>
+        <td style="color:var(--gold)">Rp ${(t.amount||0).toLocaleString()}</td>
+        <td>${t.date}</td>
+        <td>${stBadge}</td>
+        <td>${actionBtns}</td>
+      </tr>
+    `;
+  });
+  document.getElementById('txTableBody').innerHTML = txHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Tidak ada transaksi pending.[span_7](start_span)[span_7](end_span)</td></tr>';
+
+  loadTasksManager();
+  loadAnnouncementText();
+  renderAdminChat();
+}
+
+// FITUR EDIT ANGGOTA MODAL
+function openEditUserModal(username){
+  const allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  const u = allUsers[username];
+  if(!u) return;
+
+  document.getElementById('editTargetUsername').value = username;
+  document.getElementById('modalUsername').value = username;
+  document.getElementById('modalBalance').value = u.balance || 0;
+  document.getElementById('modalVipYt').value = u.currentVip?.youtube || 0;
+
+  document.getElementById('editUserModal').classList.add('on');
+}
+
+function closeEditModal(){
+  document.getElementById('editUserModal').classList.remove('on');
+}
+
+function saveUserEdit(){
+  const username = document.getElementById('editTargetUsername').value;
+  const newBal = parseInt(document.getElementById('modalBalance').value) || 0;
+  const newVip = parseInt(document.getElementById('modalVipYt').value) || 0;
+
+  let allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  if(!allUsers[username]) return;
+
+  allUsers[username].balance = newBal;
+  allUsers[username].currentVip.youtube = newVip;
+  allUsers[username].currentVip.tiktok = newVip;
+  allUsers[username].currentVip.facebook = newVip;
+
+  localStorage.setItem('wsp_au20', JSON.stringify(allUsers));
+  
+  // Sinkronkan jika akun aktif di browser sama
+  const activeUser = localStorage.getItem('wsp_c20');
+  if(activeUser === username){
+    localStorage.setItem('wsp_u20', JSON.stringify(allUsers[username]));
+  }
+
+  closeEditModal();
+  showAdminNotification(`Data anggota <b>${username}</b> berhasil diperbarui[span_8](start_span)[span_8](end_span)!`);
+  loadAdminData();
+}
+
+// FITUR PENGUMUMAN DISPLAY (RUNNING TEXT)
+function loadAnnouncementText(){
+  const savedAnn = localStorage.getItem('wsp_admin_announcement') || 'Selamat kepada anggota ****2478 rekomendasi Oscar, mendapat Rp 14.000 komisi!';
+  document.getElementById('announcementInput').value = savedAnn;
+}
+
+function saveAnnouncementText(){
+  const text = document.getElementById('announcementInput').value.trim();
+  if(!text) return;
+  localStorage.setItem('wsp_admin_announcement', text);
+  showAdminNotification('Pengumuman display berhasil diperbarui dan aktif di web anggota[span_9](start_span)[span_9](end_span)!');
+}
+
+// KELOLA RUANG DAGANG
+function deleteDagangAd(username, adIndex){
+  if(!confirm('Hapus iklan ruang dagang ini?')) return;
+  let allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  if(allUsers[username] && allUsers[username].dagangAds){
+    allUsers[username].dagangAds.splice(adIndex, 1);
+    localStorage.setItem('wsp_au20', JSON.stringify(allUsers));
+    
+    const activeUser = localStorage.getItem('wsp_c20');
+    if(activeUser === username) localStorage.setItem('wsp_u20', JSON.stringify(allUsers[username]));
+
+    showAdminNotification('Iklan ruang dagang berhasil dihapus[span_10](start_span)[span_10](end_span)!');
+    loadAdminData();
+  }
+}
+
+function resolveTx(username, txIdx, status){
+  let allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  if(!allUsers[username]) return;
+
+  const tx = allUsers[username].transactions[txIdx];
+  if(status === 'approved' && tx.status === 'pending' && tx.type === 'topup'){
+    allUsers[username].balance += tx.amount;
+  } else if(status === 'rejected' && tx.status === 'pending' && tx.type === 'withdraw'){
+    allUsers[username].balance += tx.amount;
+  }
+
+  allUsers[username].transactions[txIdx].status = status;
+  localStorage.setItem('wsp_au20', JSON.stringify(allUsers));
+  showAdminNotification(`Transaksi ${username} diubah menjadi: ${status.toUpperCase()}[span_11](start_span)[span_11](end_span)`);
+  loadAdminData();
+}
+
+// TASK MANAGER
+function loadTasksManager(){
+  let customTasks = {};
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+
+  let html = '';
+  Object.keys(customTasks).forEach(plat => {
+    customTasks[plat].forEach((t, idx) => {
+      html += `
+        <tr>
+          <td><b style="color:var(--cyan)">${plat.toUpperCase()}</b></td>
+          <td>${t.t}</td>
+          <td><a href="${t.l}" target="_blank" style="color:var(--dim);word-break:break-all">${t.l}</a></td>
+          <td>
+            <button class="btn edit" onclick="editTask('${plat}', ${idx})">✏️ Edit</button>
+            <button class="btn del" onclick="deleteTask('${plat}', ${idx})">🗑️ Hapus</button>
+          </td>
+        </tr>
+      `;
+    });
+  });
+  document.getElementById('taskTableBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--dim)">Belum ada tugas kustom.[span_12](start_span)[span_12](end_span)</td></tr>';
+}
+
+function saveTaskData(){
+  const platform = document.getElementById('taskPlatform').value;
+  const title = document.getElementById('taskTitle').value.trim();
+  const link = document.getElementById('taskLink').value.trim();
+  const editIdx = parseInt(document.getElementById('editTaskIndex').value);
+  const oldPlatform = document.getElementById('editTaskPlatform').value;
+
+  if(!title || !link){
+    alert('Judul dan link tautan wajib diisi[span_13](start_span)[span_13](end_span)!');
+    return;
+  }
+
+  let customTasks = {};
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+
+  if(editIdx > -1){
+    if(oldPlatform !== platform){
+      customTasks[oldPlatform].splice(editIdx, 1);
+      if(!customTasks[platform]) customTasks[platform] = [];
+      customTasks[platform].push({ id: 'custom_' + Date.now(), t: title, l: link });
+    } else {
+      customTasks[platform][editIdx].t = title;
+      customTasks[platform][editIdx].l = link;
+    }
+    showAdminNotification('Tugas berhasil diperbarui[span_14](start_span)[span_14](end_span)!');
+  } else {
+    if(!customTasks[platform]) customTasks[platform] = [];
+    customTasks[platform].push({ id: 'custom_' + Date.now(), t: title, l: link });
+    showAdminNotification('Tugas baru berhasil ditambahkan[span_15](start_span)[span_15](end_span)!');
+  }
+
+  localStorage.setItem('wsp_custom_tasks', JSON.stringify(customTasks));
+  resetTaskForm();
+  loadAdminData();
+}
+
+function editTask(platform, index){
+  let customTasks = {};
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+  const task = customTasks[platform][index];
+
+  document.getElementById('taskPlatform').value = platform;
+  document.getElementById('taskTitle').value = task.t;
+  document.getElementById('taskLink').value = task.l;
+  document.getElementById('editTaskIndex').value = index;
+  document.getElementById('editTaskPlatform').value = platform;
+
+  document.getElementById('taskFormTitle').textContent = '✏️ Edit Tugas Platform';
+  document.getElementById('btnSaveTask').textContent = '💾 Perbarui Tugas';
+  document.getElementById('btnCancelEdit').style.display = 'block';
+
+  switchTab('tugas', document.querySelectorAll('.menu-item')[2]);
+}
+
+function resetTaskForm(){
+  document.getElementById('taskPlatform').value = 'youtube';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskLink').value = '';
+  document.getElementById('editTaskIndex').value = '-1';
+  document.getElementById('editTaskPlatform').value = '';
+
+  document.getElementById('taskFormTitle').textContent = '➕ Tambah Tugas Baru';
+  document.getElementById('btnSaveTask').textContent = '💾 Simpan Tugas';
+  document.getElementById('btnCancelEdit').style.display = 'none';
+}
+
+function deleteTask(platform, index){
+  if(!confirm('Yakin ingin menghapus tugas ini?[span_16](start_span)[span_16](end_span)')) return;
+  let customTasks = {};
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+  if(customTasks[platform]){
+    customTasks[platform].splice(index, 1);
+    localStorage.setItem('wsp_custom_tasks', JSON.stringify(customTasks));
+    showAdminNotification('Tugas berhasil dihapus[span_17](start_span)[span_17](end_span)!');
+    loadAdminData();
+  }
+}
+
+function renderAdminChat(){
+  const uname = document.getElementById('chatUserSelect').value;
+  const box = document.getElementById('adminChatBox');
+  if(!uname){
+    box.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px">Tidak ada data chat.[span_18](start_span)[span_18](end_span)</div>';
+    return;
+  }
+
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  const msgs = chatHistories[uname] || [];
+
+  if(msgs.length === 0){
+    box.innerHTML = `<div style="color:var(--dim);text-align:center;padding:20px">Belum ada pesan dari <b>${uname}</b>.[span_19](start_span)[span_19](end_span)</div>`;
+    return;
+  }
+
+  let html = '';
+  msgs.forEach(m => {
+    const isUser = m.sender === 'user';
+    html += `<div class="c-msg ${isUser ? 'user' : 'admin'}"><b>${isUser ? uname : 'Admin CS'}:</b> ${m.text}</div>`;
+  });
+  box.innerHTML = html;
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendAdminChat(){
+  const uname = document.getElementById('chatUserSelect').value;
+  const input = document.getElementById('adminChatInput');
+  const text = input.value.trim();
+  if(!uname || !text) return;
+
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  if(!chatHistories[uname]) chatHistories[uname] = [];
+
+  chatHistories[uname].push({ sender: 'admin', text: text });
+  localStorage.setItem('wsp_chat_histories', JSON.stringify(chatHistories));
+
+  input.value = '';
+  renderAdminChat();
+  showAdminNotification('Balasan chat terkirim[span_20](start_span)[span_20](end_span)!');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const allUsers = JSON.parse(localStorage.getItem('wsp_au20') || '{}');
+  lastState.usersCount = Object.keys(allUsers).length;
+  
+  let pCount = 0;
+  Object.values(allUsers).forEach(u => {
+    if(u.transactions) u.transactions.forEach(t => { if(t.status === 'pending') pCount++; });
+  });
+  lastState.pendingTxCount = pCount;
+
+  loadAdminData();
+  setInterval(loadAdminData, 3000);
+});
+</script>
+</body>
+</html>
