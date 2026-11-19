@@ -1052,7 +1052,8 @@ function setText(id, text) {
 }
 
 function genStars(){const c=document.getElementById('starsC');c.innerHTML='';for(let i=0;i<40;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*3)+'s');c.appendChild(s)}}
-function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textContent=isLog?'Masuk':'Daftar Akun Baru';document.getElementById('btnL').style.display=isLog?'block':'none';document.getElementById('btnR').style.display=isLog?'none':'block';document.getElementById('refG').style.display=isLog?'none':'block';document.getElementById('togT').innerHTML=isLog?'Belum punya akun? <b>Daftar</b>':'Sudah punya akun? <b>Masuk</b>'}
+function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textContent=isLog?'Masuk':'Daftar Akun Baru';document.getElementById('btnL').style.display=isLog?'block':'none';document.getElementById('btnR').style.display=isLog?'none':'block';document.getElementById('fgPass2').style.display=isLog?'none':'block';document.getElementById('ref6').style.display=isLog?'none':'block';document.getElementById('togT').innerHTML=isLog?'Belum punya akun? <b>Daftar</b>':'Sudah punya akun? <b>Masuk</b>';if(isLog){document.getElementById('inpP2').value='';document.getElementById('inpRef').value='';}}
+
 function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 
@@ -1062,25 +1063,8 @@ function doLogin(){
   const au=gAU();if(!au[u]||au[u].password!==p){showErr('Username/Password salah!');return}
   setUDataProxy(au[u]);localStorage.setItem('wsp_c20',u);showOk('Login berhasil!');setTimeout(enterApp,400);
 }
+function doRegister(){const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim();const digits=u.replace(/\D/g,'');if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}if(p!==p2){showErr('Ulangi password tidak sama!');return}const au=gAU();if(au[u]){showErr('Nomor HP sudah terdaftar!');return}const newUser=mkUser(u,p);if(r){const ref=Object.values(au).find(x=>x.inviteCode===r);if(ref){newUser.referredBy=ref.username;if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});au[ref.username]=ref}}au[u]=newUser;svAU(au);setUDataProxy(newUser);localStorage.setItem('wph_u20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400)}
 
-function doRegister(){
-  const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),r=document.getElementById('inpR').value.trim();
-  if(!u||!p){showErr('Isi username & password!');return}
-  const au=gAU();if(au[u]){showErr('Username sudah terdaftar!');return}
-  const newUser = mkUser(u,p);
-  if(r){
-    const ref=Object.values(au).find(x=>x.inviteCode===r);
-    if(ref){
-      newUser.referredBy=ref.username;
-      if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
-      ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
-      au[ref.username]=ref;
-    }
-  }
-  au[u]=newUser;svAU(au);
-  setUDataProxy(newUser);
-  localStorage.setItem('wsp_c20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400);
-}
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
 function doLogout(){localStorage.removeItem('wsp_c20');location.reload()}
