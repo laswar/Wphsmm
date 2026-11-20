@@ -85,9 +85,31 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
   body{flex-direction:column}
   main{margin-left:0;max-width:100vw;padding:14px}
 }
+
+/* ADMIN LOCK OVERLAY */
+.admin-lock-screen{position:fixed;inset:0;z-index:2000;background:radial-gradient(circle at 20% 25%,rgba(0,230,118,0.14),transparent 55%),radial-gradient(circle at 80% 75%,rgba(0,229,255,0.12),transparent 55%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.admin-lock-screen.unlocked{display:none}
+.admin-lock-card{width:100%;max-width:380px;background:var(--bg-card);border:1.5px solid var(--border-emerald);border-radius:16px;padding:24px 20px;box-shadow:0 0 28px rgba(0,230,118,0.18);text-align:center}
+.admin-lock-title{font-family:'Orbitron';font-size:18px;font-weight:900;color:var(--emerald);margin-bottom:6px}
+.admin-lock-sub{font-size:11px;color:var(--dim);margin-bottom:16px}
+.admin-lock-err{color:var(--err);font-size:11px;min-height:16px;margin-top:6px;font-weight:600}
 </style>
 </head>
 <body>
+
+<!-- LAYAR KUNCI LOGIN ADMIN -->
+<div class="admin-lock-screen" id="adminLockScreen">
+  <div class="admin-lock-card">
+    <div class="admin-lock-title">🔒 MASTER ADMIN LOCK</div>
+    <div class="admin-lock-sub">Masukkan PIN Admin untuk mengakses Panel Kontrol WPH SMM</div>
+    <div class="fg" style="text-align:left">
+      <label>PIN Keamanan Admin</label>
+      <input type="password" id="adminPinInput" placeholder="Masukkan PIN admin" onkeypress="if(event.key==='Enter')unlockAdminPanel()">
+    </div>
+    <button class="btn add" style="width:100%;padding:10px" onclick="unlockAdminPanel()">🔓 Masuk Panel Admin</button>
+    <div class="admin-lock-err" id="adminLockErr"></div>
+  </div>
+</div>
 
 <div class="toast-container" id="toastContainer"></div>
 
@@ -177,7 +199,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
       <div style="font-family:'Orbitron';font-weight:800;font-size:15px" id="headerTitle">Dashboard & Statistik Platform</div>
       <div style="font-size:10.5px;color:var(--dim)">Sinkronisasi Real-Time dengan Web Anggota</div>
     </div>
-    <button class="btn edit" onclick="loadAdminData()">🔄 Refresh Data</button>
+    <div style="display:flex;gap:8px"><button class="btn edit" onclick="loadAdminData(true)">🔄 Refresh Data</button><button class="btn del" onclick="lockAdminPanel()">🔒 Kunci</button></div>
   </header>
 
   <!-- 1. TAB DASHBOARD -->
@@ -422,7 +444,7 @@ function switchTab(tabId, el){
 
 let lastState = { usersCount: 0, pendingTxCount: 0 };
 
-async function loadAdminData(){
+async function loadAdminData(showToast = false){
 
   let allUsers = {};
   try { allUsers = getRawUsersStorage(); } catch(e){ allUsers = {}; }
@@ -455,6 +477,25 @@ async function loadAdminData(){
           if (m.referred_by) allUsers[key].referredBy = m.referred_by;
         }
 
+        if (m.transaksi_json) {
+          try {
+            const sbTxList = JSON.parse(m.transaksi_json);
+            if (Array.isArray(sbTxList)) {
+              const localTxList = Array.isArray(allUsers[key].transactions) ? allUsers[key].transactions : [];
+              const txMap = new Map();
+              sbTxList.forEach(t => txMap.set(t.id || (t.title + '_' + t.amount + '_' + t.date), t));
+              localTxList.forEach(t => {
+                const k = t.id || (t.title + '_' + t.amount + '_' + t.date);
+                const prev = txMap.get(k);
+                if (!prev || prev.status === 'pending') {
+                  txMap.set(k, t);
+                }
+              });
+              allUsers[key].transactions = Array.from(txMap.values());
+            }
+          } catch (_) {}
+        }
+
         const vipNum = parseInt(String(m.level_vip || "").replace(/\D/g, ""), 10);
         if (!Number.isNaN(vipNum)) {
           allUsers[key].currentVip = allUsers[key].currentVip || {};
@@ -463,10 +504,15 @@ async function loadAdminData(){
           allUsers[key].currentVip.facebook = vipNum;
         }
       });
-      const sbKeys = new Set(sbMembers.map(m => m.username).filter(Boolean));
-      Object.keys(allUsers).forEach(k => {
-        if (!sbKeys.has(k)) delete allUsers[k];
-      });
+      if (!sbErr && sbMembers.length > 0) {
+        const sbKeys = new Set(sbMembers.map(m => m.username).filter(Boolean));
+        Object.keys(allUsers).forEach(k => {
+          if (!sbKeys.has(k) && !allUsers[k]?.isLocalOnly) {
+            // keep local records if not explicitly deleted in Supabase
+          }
+          void sbKeys;
+        });
+      }
       Object.values(allUsers).forEach(u => {
         if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
       });
@@ -557,8 +603,8 @@ async function loadAdminData(){
     chatSelectOptions += `<option value="${escapeHtml(uname)}">${escapeHtml(phoneDisplay)} (Saldo: Rp ${(u.balance||0).toLocaleString()})</option>`;
   });
 
-  if(lastState.pendingTxCount > 0 && currentPendingCount > lastState.pendingTxCount){
-    showAdminNotification(`Ada pengajuan transaksi baru (Topup/Withdraw) pending!`);
+  if(currentPendingCount > lastState.pendingTxCount){
+    showAdminNotification(`Ada <b>${currentPendingCount}</b> pengajuan transaksi (Topup/Withdraw) menunggu tinjauan!`);
   }
   lastState.pendingTxCount = currentPendingCount;
 
@@ -566,38 +612,48 @@ async function loadAdminData(){
   if(pendingCount > 0){
     badgeTx.textContent = pendingCount;
     badgeTx.style.display = 'inline-block';
-  } else { badgeTx.style.display = 'none'; }
+  } else {
+    badgeTx.style.display = 'none';
+  }
 
   let chatHistories = {};
   try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
-  let totalUnreadChat = 0;
-  Object.keys(chatHistories).forEach(uname => {
-    const msgs = chatHistories[uname] || [];
-    const lastMsg = msgs[msgs.length - 1];
-    if(lastMsg && lastMsg.sender === 'user') totalUnreadChat++;
+  
+  let activeChatUsersCount = 0;
+  Object.keys(chatHistories).forEach(u => {
+    const msgs = chatHistories[u] || [];
+    if(msgs.length > 0 && msgs[msgs.length-1].sender === 'user'){
+      activeChatUsersCount++;
+    }
+    if(!allUsers[u]){
+      chatSelectOptions += `<option value="${escapeHtml(u)}">[Tamu] ${escapeHtml(u)}</option>`;
+    }
   });
 
   const badgeChat = document.getElementById('badgeChat');
-  if(totalUnreadChat > 0){
-    badgeChat.textContent = totalUnreadChat;
+  if(activeChatUsersCount > 0){
+    badgeChat.textContent = activeChatUsersCount;
     badgeChat.style.display = 'inline-block';
-  } else { badgeChat.style.display = 'none'; }
+  } else {
+    badgeChat.style.display = 'none';
+  }
 
   document.getElementById('stUsers').textContent = userKeys.length;
   document.getElementById('stBalance').textContent = 'Rp ' + totalBal.toLocaleString();
   document.getElementById('stPending').textContent = pendingCount + ' Transaksi';
   document.getElementById('stTasks').textContent = totalTasksDone;
-  document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota.</td></tr>';
-  document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan ruang dagang.</td></tr>';
-  
+
+  document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota terdaftar.</td></tr>';
+  document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan Ruang Dagang aktif.</td></tr>';
+
   const chatSel = document.getElementById('chatUserSelect');
   const curSelected = chatSel.value;
-  chatSel.innerHTML = chatSelectOptions || '<option>Tidak ada anggota</option>';
-  if(curSelected) chatSel.value = curSelected;
+  chatSel.innerHTML = chatSelectOptions || '<option value="">Belum ada data chat</option>';
+  if(curSelected && [...chatSel.options].some(o => o.value === curSelected)){
+    chatSel.value = curSelected;
+  }
 
-  // Render Transaksi
   let txHtml = '';
-  txList.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   txList.forEach(t => {
     let stBadge = `<span style="color:var(--gold)">PENDING</span>`;
     if(t.status === 'approved') stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
@@ -626,6 +682,9 @@ async function loadAdminData(){
   loadTasksManager();
   loadAnnouncementText();
   renderAdminChat();
+  if (showToast) {
+    showAdminNotification("Data panel admin berhasil disegarkan!");
+  }
 }
 
 // FITUR EDIT ANGGOTA MODAL
@@ -764,9 +823,10 @@ function resolveTx(username, txIdx, status){
   saveRawUsersStorage(allUsers);
 
   const updatedBal = Number(allUsers[username].balance ?? 0);
+  const updatedTxJson = JSON.stringify(allUsers[username].transactions || []);
   sbClient
     .from("members")
-    .update({ saldo: updatedBal })
+    .update({ saldo: updatedBal, transaksi_json: updatedTxJson })
     .eq("username", username)
     .then(({ error }) => {
       if (error) console.error("Gagal update saldo transaksi ke Supabase:", error.message);
@@ -929,7 +989,44 @@ function sendAdminChat(){
   showAdminNotification('Balasan chat terkirim!');
 }
 
+const ADMIN_PIN_CODE = "2026";
+const ADMIN_SESSION_KEY = "wph_admin_unlocked_v1";
+
+function unlockAdminPanel(){
+  const inp = document.getElementById("adminPinInput");
+  const errEl = document.getElementById("adminLockErr");
+  const val = (inp ? inp.value : "").trim();
+  if(val === ADMIN_PIN_CODE){
+    sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+    document.getElementById("adminLockScreen").classList.add("unlocked");
+    if(errEl) errEl.textContent = "";
+    showAdminNotification("Akses Master Admin berhasil dibuka!");
+    loadAdminData(true);
+  } else {
+    if(errEl) errEl.textContent = "PIN admin salah! Silakan coba lagi.";
+  }
+}
+
+function lockAdminPanel(){
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  const lockEl = document.getElementById("adminLockScreen");
+  const inp = document.getElementById("adminPinInput");
+  if(inp) inp.value = "";
+  if(lockEl) lockEl.classList.remove("unlocked");
+}
+
+function initAdminLockState(){
+  const lockEl = document.getElementById("adminLockScreen");
+  if(!lockEl) return;
+  if(sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"){
+    lockEl.classList.add("unlocked");
+  } else {
+    lockEl.classList.remove("unlocked");
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  initAdminLockState();
   const allUsers = getRawUsersStorage();
   lastState.usersCount = Object.keys(allUsers).length;
   
