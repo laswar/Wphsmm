@@ -456,9 +456,49 @@ function switchTab(tabId, el){
 let lastState = { usersCount: 0, pendingTxCount: 0 };
 
 async function loadAdminData(showToast = false){
+  let rawUsers = {};
+  try { rawUsers = getRawUsersStorage(); } catch(e){ rawUsers = {}; }
 
+  // Normalisasi dan gabungkan entri lokal berdasarkan nomor HP yang sama agar tidak tampil ganda
   let allUsers = {};
-  try { allUsers = getRawUsersStorage(); } catch(e){ allUsers = {}; }
+  Object.entries(rawUsers || {}).forEach(([k, u]) => {
+    if (!u || typeof u !== 'object') return;
+    const canonKey = normalizePhone(u.username || k);
+    if (!canonKey) return;
+
+    if (!allUsers[canonKey]) {
+      allUsers[canonKey] = { ...u, username: canonKey };
+    } else {
+      const prev = allUsers[canonKey];
+      allUsers[canonKey] = {
+        ...prev,
+        ...u,
+        username: canonKey,
+        password: u.password || prev.password || '',
+        balance: Math.max(Number(prev.balance ?? 0), Number(u.balance ?? 0)),
+        inviteCode: u.inviteCode || prev.inviteCode || '',
+        referredBy: u.referredBy || prev.referredBy || null,
+        personalInfo: {
+          ...(prev.personalInfo || {}),
+          ...(u.personalInfo || {})
+        },
+        currentVip: {
+          ...(prev.currentVip || {}),
+          ...(u.currentVip || {})
+        },
+        transactions: Array.isArray(u.transactions) && u.transactions.length
+          ? u.transactions
+          : (prev.transactions || []),
+        dagangAds: Array.isArray(u.dagangAds) && u.dagangAds.length
+          ? u.dagangAds
+          : (prev.dagangAds || []),
+        completedTasks: Array.isArray(u.completedTasks) && u.completedTasks.length
+          ? u.completedTasks
+          : (prev.completedTasks || []),
+        referrals: u.referrals || prev.referrals || { 1: [], 2: [], 3: [] }
+      };
+    }
+  });
 
   try {
     const { data: sbMembers, error: sbErr } = await sbClient
@@ -536,7 +576,7 @@ async function loadAdminData(showToast = false){
         const refKey = u.referredBy ? normalizePhone(u.referredBy) : null;
         if (refKey && allUsers[refKey]) {
           const t1List = allUsers[refKey].referrals[1];
-          if (!t1List.some(r => r.username === u.username)) {
+          if (!t1List.some(r => normalizePhone(r.username) === u.username)) {
             t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
           }
         }
@@ -769,7 +809,6 @@ function saveUserEdit(){
 
   saveRawUsersStorage(allUsers);
   
-  // Sinkronkan jika akun aktif di browser sama
   const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
   const activeCurrentRaw = localStorage.getItem(STORAGE_ACTIVE_USER);
   if(activeLegacy === username){
