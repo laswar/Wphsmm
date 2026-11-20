@@ -863,7 +863,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </script>
 
 <script>
+let _isSyncingMember = false;
 async function syncActiveMemberFromSupabase() {
+  if (_isSyncingMember) return;
+  if (typeof document !== "undefined" && document.hidden) return;
+  _isSyncingMember = true;
   try {
     const activeRaw =
       localStorage.getItem("wsp_c20") ||
@@ -949,6 +953,8 @@ async function syncActiveMemberFromSupabase() {
     }
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
+  } finally {
+    _isSyncingMember = false;
   }
 }
 
@@ -1082,6 +1088,22 @@ function mkUser(u,p){
   }
 }
 
+let _lastSyncedBal = null;
+let _syncBalTimer = null;
+function pushBalanceToSupabase(username, balance) {
+  if (!username || typeof sbClient === 'undefined' || !sbClient) return;
+  if (_lastSyncedBal === balance) return;
+  clearTimeout(_syncBalTimer);
+  _syncBalTimer = setTimeout(async () => {
+    try {
+      await sbClient.from('members').update({ saldo: Number(balance) }).eq('username', username);
+      _lastSyncedBal = balance;
+    } catch (e) {
+      console.warn('Gagal update saldo ke Supabase:', e);
+    }
+  }, 600);
+}
+
 function svU(){
   try{
     if(!rawUData) return;
@@ -1090,6 +1112,7 @@ function svU(){
     if(rawUData.username){
       au[rawUData.username]=rawUData;
       svAU(au);
+      pushBalanceToSupabase(rawUData.username, rawUData.balance);
     }
   }catch(e){}
 }
@@ -1168,17 +1191,175 @@ function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textConten
 function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim();
-  if(!u||!p){showErr('Username dan password harus diisi!');return}
-  const au=gAU();if(!au[u]||au[u].password!==p){showErr('Username/Password salah!');return}
-  setUDataProxy(au[u]);localStorage.setItem('wsp_c20',u);showOk('Login berhasil!');setTimeout(enterApp,400);
+  if(!u||!p){showErr('Nomor HP dan password harus diisi!');return}
+  const au=gAU();
+  let userObj=au[u]||null;
+
+  try {
+    if (typeof sbClient !== 'undefined' && sbClient) {
+      let sbRow = null;
+      for (const col of ['username', 'phone', 'no_hp']) {
+        const { data, error } = await sbClient.from('members').select('*').eq(col, u).maybeSingle();
+        if (!error && data) { sbRow = data; break; }
+      }
+      if (sbRow) {
+        if (sbRow.password && sbRow.password !== p) {
+          showErr('Nomor HP atau Password salah!');
+          return;
+        }
+        if (!userObj) {
+          userObj = mkUser(u, p);
+        }
+        if (sbRow.saldo !== undefined && sbRow.saldo !== null) {
+          userObj.balance = Number(sbRow.saldo);
+        }
+        if (sbRow.invite_code) userObj.inviteCode = sbRow.invite_code;
+        if (sbRow.vip_level !== undefined && sbRow.vip_level !== null) {
+          const vl = Number(sbRow.vip_level);
+          userObj.currentVip = { youtube: vl, tiktok: vl, facebook: vl };
+        }
+        au[u] = userObj;
+        svAU(au);
+      }
+    }
+  } catch (e) {
+    console.warn('Login fallback lokal:', e);
+  }
+
+  if(!userObj || userObj.password!==p){
+    showErr('Nomor HP atau Password salah!');
+    return;
+  }
+
+  setUDataProxy(userObj);
+  localStorage.setItem('wsp_c20',u);
+  localStorage.setItem('wph_u20',u);
+  showOk('Login berhasil!');
+  setTimeout(enterApp,400);
 }
-function doRegister(){const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim();const digits=u.replace(/\D/g,'');if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}if(p!==p2){showErr('Ulangi password tidak sama!');return}const au=gAU();if(au[u]){showErr('Nomor HP sudah terdaftar!');return}const newUser=mkUser(u,p);if(r){const ref=Object.values(au).find(x=>x.inviteCode===r);if(ref){newUser.referredBy=ref.username;if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});au[ref.username]=ref}}au[u]=newUser;svAU(au);setUDataProxy(newUser);localStorage.setItem('wsp_c20',u);localStorage.setItem('wph_u20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400)}
+async function doRegister(){
+  const u=document.getElementById('inpU').value.trim();
+  const p=document.getElementById('inpP').value.trim();
+  const p2=document.getElementById('inpP2').value.trim();
+  const r=document.getElementById('inpRef').value.trim().toUpperCase();
+  const digits=u.replace(/\D/g,'');
+
+  if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
+  if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}
+  if(p!==p2){showErr('Ulangi password tidak sama!');return}
+
+  const au=gAU();
+  if(au[u]){showErr('Nomor HP sudah terdaftar!');return}
+
+  let sbRefRow = null;
+  try {
+    if (typeof sbClient !== 'undefined' && sbClient) {
+      const { data: existingSb, error: existErr } = await sbClient
+        .from('members')
+        .select('username')
+        .eq('username', u)
+        .maybeSingle();
+      if (!existErr && existingSb) {
+        showErr('Nomor HP sudah terdaftar di server!');
+        return;
+      }
+      if (r) {
+        const { data: foundRef } = await sbClient
+          .from('members')
+          .select('*')
+          .eq('invite_code', r)
+          .maybeSingle();
+        if (foundRef) sbRefRow = foundRef;
+      }
+    }
+  } catch (e) {
+    console.warn('Cek Supabase saat daftar:', e);
+  }
+
+  let refLocal = r ? Object.values(au).find(x => (x.inviteCode || '').toUpperCase() === r) : null;
+  if (r && !refLocal && !sbRefRow) {
+    showErr('Kode referral tidak ditemukan! Pastikan kode referral akun pertama benar.');
+    return;
+  }
+
+  const newUser=mkUser(u,p);
+  const todayStr = new Date().toLocaleDateString('id-ID');
+
+  if (r) {
+    if (!refLocal && sbRefRow) {
+      refLocal = mkUser(sbRefRow.username, sbRefRow.password || '123456');
+      refLocal.balance = Number(sbRefRow.saldo ?? 1000);
+      refLocal.inviteCode = sbRefRow.invite_code || r;
+    }
+    if (refLocal) {
+      newUser.referredBy = refLocal.username;
+      if (!refLocal.referrals) refLocal.referrals = {1:[],2:[],3:[]};
+      if (!refLocal.referrals[1].some(item => item.username === u)) {
+        refLocal.referrals[1].push({username: u, date: todayStr});
+      }
+      au[refLocal.username] = refLocal;
+    }
+  }
+
+  au[u]=newUser;
+  svAU(au);
+  setUDataProxy(newUser);
+  localStorage.setItem('wsp_c20',u);
+  localStorage.setItem('wph_u20',u);
+
+  let sbSavedOk = false;
+  let sbLastErr = '';
+  try {
+    if (typeof sbClient !== 'undefined' && sbClient) {
+      const fullPayload = {
+        username: u,
+        password: p,
+        saldo: newUser.balance || 1000,
+        invite_code: newUser.inviteCode,
+        referred_by: newUser.referredBy || null
+      };
+      const { data: upData, error: insErr } = await sbClient
+        .from('members')
+        .upsert(fullPayload, { onConflict: 'username' })
+        .select();
+
+      if (!insErr && Array.isArray(upData) && upData.length > 0) {
+        sbSavedOk = true;
+      } else {
+        const { data: fbData, error: fbErr } = await sbClient
+          .from('members')
+          .upsert({ username: u, name: u, saldo: newUser.balance || 1000 }, { onConflict: 'username' })
+          .select();
+        if (!fbErr && Array.isArray(fbData) && fbData.length > 0) {
+          sbSavedOk = true;
+        } else {
+          sbLastErr = (insErr && insErr.message) || (fbErr && fbErr.message) || 'Akses tulis tabel members ditolak/gagal';
+        }
+      }
+    }
+  } catch (e) {
+    sbLastErr = e && e.message ? e.message : String(e);
+    console.error('Gagal simpan member baru ke Supabase:', e);
+  }
+
+  if (!sbSavedOk && sbLastErr) {
+    console.warn('Info sinkronisasi Supabase saat daftar:', sbLastErr);
+  }
+
+  showOk('Pendaftaran berhasil!');
+  setTimeout(enterApp,400);
+}
 
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
-function doLogout(){localStorage.removeItem('wsp_c20');location.reload()}
+function doLogout(){
+  localStorage.removeItem('wsp_c20');
+  localStorage.removeItem('wph_u20');
+  localStorage.removeItem('wsp_u20');
+  location.reload();
+}
 
 function enterApp(){
   document.getElementById('loginPg').style.display='none';
@@ -1758,6 +1939,61 @@ function renderTX(){
   });
 }
 
+async function renderReferralList() {
+  if (!rawUData) return;
+  const listEl = document.getElementById('refL');
+  if (!listEl) return;
+
+  if (!rawUData.referrals) rawUData.referrals = {1:[],2:[],3:[]};
+  const l1List = [...(rawUData.referrals[1] || [])];
+
+  try {
+    if (typeof sbClient !== 'undefined' && sbClient && rawUData.username) {
+      const { data: downlines } = await sbClient
+        .from('members')
+        .select('username, created_at')
+        .eq('referred_by', rawUData.username);
+      if (Array.isArray(downlines)) {
+        downlines.forEach(row => {
+          if (row.username && !l1List.some(item => item.username === row.username)) {
+            l1List.push({
+              username: row.username,
+              date: row.created_at ? new Date(row.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')
+            });
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
+  rawUData.referrals[1] = l1List;
+  const l2Count = rawUData.referrals[2]?.length || 0;
+  const l3Count = rawUData.referrals[3]?.length || 0;
+
+  setText('rL1', l1List.length);
+  setText('rL2', l2Count);
+  setText('rL3', l3Count);
+  setText('ltTotal', l1List.length + l2Count + l3Count);
+  setText('ltL1', l1List.length);
+  setText('ltL2', l2Count);
+  setText('ltL3', l3Count);
+
+  if (l1List.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;padding:18px;color:var(--dim);font-size:11px">Belum ada anggota yang mendaftar menggunakan kode referral Anda.</div>';
+    return;
+  }
+
+  listEl.innerHTML = l1List.map((item, idx) => `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11.5px;font-weight:700;color:#fff">#${idx + 1} • ${item.username}</div>
+        <div style="font-size:9.5px;color:var(--dim)">Tingkat 1 • Bergabung ${item.date || '-'}</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--emerald)">Aktif</div>
+    </div>
+  `).join('');
+}
+
 function goPage(p){
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('act'));
@@ -1767,6 +2003,7 @@ function goPage(p){
   if(p==='vip'){renderVC();renderET()}
   if(p==='tugas')updTP();
   if(p==='pendapatan')renderTX();
+  if(p==='referral' || p==='laporanTim')renderReferralList();
   window.scrollTo(0,0);
 }
 
@@ -1786,16 +2023,23 @@ window.addEventListener('DOMContentLoaded',()=>{
   loadAdminAnnouncement();
 });
 
-// Polling sinkronisasi pesan chat otomatis setiap 2.5 detik, saldo Supabase & update pengumuman admin
+// Sinkronisasi hemat kuota server untuk skala ribuan/jutaan member (setiap 20 detik & saat tab aktif)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && rawUData) {
+    syncActiveMemberFromSupabase();
+    loadAdminAnnouncement();
+  }
+});
+
 setInterval(() => {
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
   }
-  if(rawUData){
+  if(rawUData && !document.hidden){
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
-}, 2500);
+}, 20000);
 </script>
 </body>
 </html>
