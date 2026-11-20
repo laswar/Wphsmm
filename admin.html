@@ -442,12 +442,17 @@ async function loadAdminData(){
             nama: m.nama || key,
             password: m.password || "",
             balance: Number(m.saldo ?? 0),
+            inviteCode: m.invite_code || ('WPH-' + key.substring(0, 4).toUpperCase()),
+            referredBy: m.referred_by || null,
+            referrals: { 1: [], 2: [], 3: [] },
             currentVip: {}
           };
         } else {
           allUsers[key].balance = Number(m.saldo ?? allUsers[key].balance ?? 0);
           if (m.nama) allUsers[key].nama = m.nama;
           if (m.password) allUsers[key].password = m.password;
+          if (m.invite_code) allUsers[key].inviteCode = m.invite_code;
+          if (m.referred_by) allUsers[key].referredBy = m.referred_by;
         }
 
         const vipNum = parseInt(String(m.level_vip || "").replace(/\D/g, ""), 10);
@@ -456,6 +461,21 @@ async function loadAdminData(){
           allUsers[key].currentVip.youtube = vipNum;
           allUsers[key].currentVip.tiktok = vipNum;
           allUsers[key].currentVip.facebook = vipNum;
+        }
+      });
+      const sbKeys = new Set(sbMembers.map(m => m.username).filter(Boolean));
+      Object.keys(allUsers).forEach(k => {
+        if (!sbKeys.has(k)) delete allUsers[k];
+      });
+      Object.values(allUsers).forEach(u => {
+        if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
+      });
+      Object.values(allUsers).forEach(u => {
+        if (u.referredBy && allUsers[u.referredBy]) {
+          const t1List = allUsers[u.referredBy].referrals[1];
+          if (!t1List.some(r => r.username === u.username)) {
+            t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
+          }
         }
       });
       saveRawUsersStorage(allUsers);
@@ -742,6 +762,15 @@ function resolveTx(username, txIdx, status){
 
   allUsers[username].transactions[txIdx].status = status;
   saveRawUsersStorage(allUsers);
+
+  const updatedBal = Number(allUsers[username].balance ?? 0);
+  sbClient
+    .from("members")
+    .update({ saldo: updatedBal })
+    .eq("username", username)
+    .then(({ error }) => {
+      if (error) console.error("Gagal update saldo transaksi ke Supabase:", error.message);
+    });
 
   const activeLegacy = localStorage.getItem(LEGACY_ACTIVE_USER);
   const activeCurrent = localStorage.getItem(STORAGE_ACTIVE_USER);
