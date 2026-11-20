@@ -863,17 +863,23 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </script>
 
 <script>
-  async function syncActiveMemberFromSupabase() {
+async function syncActiveMemberFromSupabase() {
   try {
     const activeRaw =
-      localStorage.getItem("wph_u20") || localStorage.getItem("wsp_c20");
+      localStorage.getItem("wsp_c20") ||
+      localStorage.getItem("wsp_u20") ||
+      localStorage.getItem("wph_u20");
     if (!activeRaw) return;
 
-    let activeUser = JSON.parse(activeRaw);
-    const uname =
-      typeof activeUser === "string"
-        ? activeUser
-        : activeUser.username || activeUser.user || activeUser.id;
+    let uname = "";
+    try {
+      const parsed = JSON.parse(activeRaw);
+      uname = typeof parsed === "string"
+        ? parsed
+        : (parsed.username || parsed.user || parsed.id || "");
+    } catch (_) {
+      uname = String(activeRaw);
+    }
     if (!uname) return;
 
     const { data, error } = await sbClient
@@ -884,27 +890,48 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
     if (error || !data) return;
 
-    if (typeof activeUser === "object" && activeUser !== null) {
-      activeUser.balance = Number(data.saldo ?? activeUser.balance ?? 0);
-      if (data.nama) activeUser.nama = data.nama;
-      localStorage.setItem("wph_u20", JSON.stringify(activeUser));
-      localStorage.setItem("wsp_c20", JSON.stringify(activeUser));
+    const newBal = Number(data.saldo ?? (rawUData ? rawUData.balance : 0) ?? 0);
+
+    if (rawUData && rawUData.username === uname) {
+      rawUData.balance = newBal;
+      if (data.nama) rawUData.nama = data.nama;
     }
 
-    ["wph_au20", "wsp_au20"].forEach((k) => {
+    ["wsp_u20", "wph_u20"].forEach((key) => {
+      const rawItem = localStorage.getItem(key);
+      if (rawItem) {
+        try {
+          const obj = JSON.parse(rawItem);
+          if (obj && typeof obj === "object" && obj.username === uname) {
+            obj.balance = newBal;
+            if (data.nama) obj.nama = data.nama;
+            localStorage.setItem(key, JSON.stringify(obj));
+          }
+        } catch (_) {}
+      }
+    });
+
+    ["wsp_au20", "wph_au20"].forEach((k) => {
       const rawAll = localStorage.getItem(k);
       if (!rawAll) return;
       try {
         const parsedAll = JSON.parse(rawAll);
         if (parsedAll && typeof parsedAll === "object" && parsedAll[uname]) {
-          parsedAll[uname].balance = Number(data.saldo ?? parsedAll[uname].balance ?? 0);
+          parsedAll[uname].balance = newBal;
+          if (data.nama) parsedAll[uname].nama = data.nama;
           localStorage.setItem(k, JSON.stringify(parsedAll));
         }
       } catch (_) {}
     });
+
+    if (typeof autoSyncAllIconsAndMenus === "function") {
+      autoSyncAllIconsAndMenus();
+    }
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
   }
+}
+
 }
 
 window.addEventListener("DOMContentLoaded", () => {
