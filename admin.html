@@ -422,9 +422,48 @@ function switchTab(tabId, el){
 
 let lastState = { usersCount: 0, pendingTxCount: 0 };
 
-function loadAdminData(){
+async function loadAdminData(){
+
   let allUsers = {};
   try { allUsers = getRawUsersStorage(); } catch(e){ allUsers = {}; }
+    try {
+    const { data: sbMembers, error: sbErr } = await sbClient
+      .from("members")
+      .select("*");
+
+    if (!sbErr && Array.isArray(sbMembers)) {
+      sbMembers.forEach((m) => {
+        const key = m.username;
+        if (!key) return;
+
+        if (!allUsers[key]) {
+          allUsers[key] = {
+            username: key,
+            nama: m.nama || key,
+            password: m.password || "",
+            balance: Number(m.saldo ?? 0),
+            currentVip: {}
+          };
+        } else {
+          allUsers[key].balance = Number(m.saldo ?? allUsers[key].balance ?? 0);
+          if (m.nama) allUsers[key].nama = m.nama;
+          if (m.password) allUsers[key].password = m.password;
+        }
+
+        const vipNum = parseInt(String(m.level_vip || "").replace(/\D/g, ""), 10);
+        if (!Number.isNaN(vipNum)) {
+          allUsers[key].currentVip = allUsers[key].currentVip || {};
+          allUsers[key].currentVip.youtube = vipNum;
+          allUsers[key].currentVip.tiktok = vipNum;
+          allUsers[key].currentVip.facebook = vipNum;
+        }
+      });
+      saveRawUsersStorage(allUsers);
+    }
+  } catch (e) {
+    console.error("Gagal sinkronisasi members dari Supabase:", e);
+  }
+
   const userKeys = Object.keys(allUsers);
   
   if(lastState.usersCount > 0 && userKeys.length > lastState.usersCount){
