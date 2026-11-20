@@ -871,30 +871,50 @@ async function syncActiveMemberFromSupabase() {
       localStorage.getItem("wph_u20");
     if (!activeRaw) return;
 
-    let uname = "";
+    let phoneOrId = "";
     try {
       const parsed = JSON.parse(activeRaw);
-      uname = typeof parsed === "string"
+      phoneOrId = typeof parsed === "string"
         ? parsed
-        : (parsed.username || parsed.user || parsed.id || "");
+        : (parsed.phone || parsed.noHp || parsed.username || parsed.user || parsed.id || "");
     } catch (_) {
-      uname = String(activeRaw);
+      phoneOrId = String(activeRaw);
     }
-    if (!uname) return;
+    phoneOrId = String(phoneOrId || "").trim();
+    if (!phoneOrId) return;
 
-    const { data, error } = await sbClient
-      .from("members")
-      .select("*")
-      .eq("username", uname)
-      .single();
+    let memberRow = null;
+    for (const col of ["username", "phone", "no_hp"]) {
+      const { data, error } = await sbClient
+        .from("members")
+        .select("*")
+        .eq(col, phoneOrId)
+        .maybeSingle();
+      if (!error && data) {
+        memberRow = data;
+        break;
+      }
+    }
 
-    if (error || !data) return;
+    if (!memberRow) return;
 
-    const newBal = Number(data.saldo ?? (rawUData ? rawUData.balance : 0) ?? 0);
+    const fallbackBal = rawUData && typeof rawUData.balance === "number" ? rawUData.balance : 0;
+    const newBal = (memberRow.saldo !== undefined && memberRow.saldo !== null)
+      ? Number(memberRow.saldo)
+      : fallbackBal;
 
-    if (rawUData && rawUData.username === uname) {
+    const matchUser = (obj) => {
+      if (!obj || typeof obj !== "object") return false;
+      const idVal = obj.phone || obj.noHp || obj.username || obj.user || obj.id;
+      return String(idVal || "").trim() === phoneOrId;
+    };
+
+    if (uData && rawUData && matchUser(rawUData)) {
+      uData.balance = newBal;
+      if (memberRow.nama) uData.nama = memberRow.nama;
+    } else if (rawUData && matchUser(rawUData)) {
       rawUData.balance = newBal;
-      if (data.nama) rawUData.nama = data.nama;
+      if (memberRow.nama) rawUData.nama = memberRow.nama;
     }
 
     ["wsp_u20", "wph_u20"].forEach((key) => {
@@ -902,9 +922,9 @@ async function syncActiveMemberFromSupabase() {
       if (rawItem) {
         try {
           const obj = JSON.parse(rawItem);
-          if (obj && typeof obj === "object" && obj.username === uname) {
+          if (matchUser(obj)) {
             obj.balance = newBal;
-            if (data.nama) obj.nama = data.nama;
+            if (memberRow.nama) obj.nama = memberRow.nama;
             localStorage.setItem(key, JSON.stringify(obj));
           }
         } catch (_) {}
@@ -916,9 +936,9 @@ async function syncActiveMemberFromSupabase() {
       if (!rawAll) return;
       try {
         const parsedAll = JSON.parse(rawAll);
-        if (parsedAll && typeof parsedAll === "object" && parsedAll[uname]) {
-          parsedAll[uname].balance = newBal;
-          if (data.nama) parsedAll[uname].nama = data.nama;
+        if (parsedAll && typeof parsedAll === "object" && parsedAll[phoneOrId]) {
+          parsedAll[phoneOrId].balance = newBal;
+          if (memberRow.nama) parsedAll[phoneOrId].nama = memberRow.nama;
           localStorage.setItem(k, JSON.stringify(parsedAll));
         }
       } catch (_) {}
@@ -931,12 +951,6 @@ async function syncActiveMemberFromSupabase() {
     console.error("Gagal sinkron saldo member:", e);
   }
 }
-
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  syncActiveMemberFromSupabase();
-});
 
 const vipD={
   youtube:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:250000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:750000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1200000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:3000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:6000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:10000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:20000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}],
@@ -1160,7 +1174,7 @@ function doLogin(){
   const au=gAU();if(!au[u]||au[u].password!==p){showErr('Username/Password salah!');return}
   setUDataProxy(au[u]);localStorage.setItem('wsp_c20',u);showOk('Login berhasil!');setTimeout(enterApp,400);
 }
-function doRegister(){const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim();const digits=u.replace(/\D/g,'');if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}if(p!==p2){showErr('Ulangi password tidak sama!');return}const au=gAU();if(au[u]){showErr('Nomor HP sudah terdaftar!');return}const newUser=mkUser(u,p);if(r){const ref=Object.values(au).find(x=>x.inviteCode===r);if(ref){newUser.referredBy=ref.username;if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});au[ref.username]=ref}}au[u]=newUser;svAU(au);setUDataProxy(newUser);localStorage.setItem('wph_u20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400)}
+function doRegister(){const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim();const digits=u.replace(/\D/g,'');if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}if(p!==p2){showErr('Ulangi password tidak sama!');return}const au=gAU();if(au[u]){showErr('Nomor HP sudah terdaftar!');return}const newUser=mkUser(u,p);if(r){const ref=Object.values(au).find(x=>x.inviteCode===r);if(ref){newUser.referredBy=ref.username;if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});au[ref.username]=ref}}au[u]=newUser;svAU(au);setUDataProxy(newUser);localStorage.setItem('wsp_c20',u);localStorage.setItem('wph_u20',u);showOk('Pendaftaran berhasil!');setTimeout(enterApp,400)}
 
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
@@ -1762,19 +1776,23 @@ function copyIC(){navigator.clipboard.writeText(uData.inviteCode);toast('📋 Ko
 
 window.addEventListener('DOMContentLoaded',()=>{
   genStars();ldU();
-  const sv=localStorage.getItem('wsp_c20');
+  const sv=localStorage.getItem('wsp_c20')||localStorage.getItem('wph_u20');
   const au=gAU();
-  if(sv&&au[sv]){setUDataProxy(au[sv]);enterApp()}
+  if(sv&&au[sv]){
+    setUDataProxy(au[sv]);
+    enterApp();
+    syncActiveMemberFromSupabase();
+  }
   loadAdminAnnouncement();
 });
 
-// Polling sinkronisasi pesan chat otomatis setiap 2.5 detik & update pengumuman admin
+// Polling sinkronisasi pesan chat otomatis setiap 2.5 detik, saldo Supabase & update pengumuman admin
 setInterval(() => {
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
   }
   if(rawUData){
-    ldU();
+    syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
 }, 2500);
