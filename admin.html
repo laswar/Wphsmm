@@ -454,306 +454,329 @@ function switchTab(tabId, el){
 }
 
 let lastState = { usersCount: 0, pendingTxCount: 0 };
+let isRefreshingAdmin = false;
 
 async function loadAdminData(showToast = false){
-  let rawUsers = {};
-  try { rawUsers = getRawUsersStorage(); } catch(e){ rawUsers = {}; }
-
-  // Normalisasi dan gabungkan entri lokal berdasarkan nomor HP yang sama agar tidak tampil ganda
-  let allUsers = {};
-  Object.entries(rawUsers || {}).forEach(([k, u]) => {
-    if (!u || typeof u !== 'object') return;
-    const canonKey = normalizePhone(u.username || k);
-    if (!canonKey) return;
-
-    if (!allUsers[canonKey]) {
-      allUsers[canonKey] = { ...u, username: canonKey };
-    } else {
-      const prev = allUsers[canonKey];
-      allUsers[canonKey] = {
-        ...prev,
-        ...u,
-        username: canonKey,
-        password: u.password || prev.password || '',
-        balance: Math.max(Number(prev.balance ?? 0), Number(u.balance ?? 0)),
-        inviteCode: u.inviteCode || prev.inviteCode || '',
-        referredBy: u.referredBy || prev.referredBy || null,
-        personalInfo: {
-          ...(prev.personalInfo || {}),
-          ...(u.personalInfo || {})
-        },
-        currentVip: {
-          ...(prev.currentVip || {}),
-          ...(u.currentVip || {})
-        },
-        transactions: Array.isArray(u.transactions) && u.transactions.length
-          ? u.transactions
-          : (prev.transactions || []),
-        dagangAds: Array.isArray(u.dagangAds) && u.dagangAds.length
-          ? u.dagangAds
-          : (prev.dagangAds || []),
-        completedTasks: Array.isArray(u.completedTasks) && u.completedTasks.length
-          ? u.completedTasks
-          : (prev.completedTasks || []),
-        referrals: u.referrals || prev.referrals || { 1: [], 2: [], 3: [] }
-      };
-    }
-  });
+  if (isRefreshingAdmin) return;
+  isRefreshingAdmin = true;
 
   try {
-    const { data: sbMembers, error: sbErr } = await sbClient
-      .from("members")
-      .select("*");
+    let rawUsers = {};
+    try { rawUsers = getRawUsersStorage(); } catch(e){ rawUsers = {}; }
 
-    if (!sbErr && Array.isArray(sbMembers)) {
-      const sbKeys = new Set();
+    let allUsers = {};
+    Object.entries(rawUsers || {}).forEach(([k, u]) => {
+      if (!u || typeof u !== 'object') return;
+      const canonKey = normalizePhone(u.username || k);
+      if (!canonKey) return;
 
-      sbMembers.forEach((m) => {
-        const key = normalizePhone(m.username);
-        if (!key) return;
-        sbKeys.add(key);
+      if (!allUsers[canonKey]) {
+        allUsers[canonKey] = { ...u, username: canonKey };
+      } else {
+        const prev = allUsers[canonKey];
+        allUsers[canonKey] = {
+          ...prev,
+          ...u,
+          username: canonKey,
+          password: u.password || prev.password || '',
+          balance: Math.max(Number(prev.balance ?? 0), Number(u.balance ?? 0)),
+          inviteCode: u.inviteCode || prev.inviteCode || '',
+          referredBy: u.referredBy || prev.referredBy || null,
+          personalInfo: {
+            ...(prev.personalInfo || {}),
+            ...(u.personalInfo || {})
+          },
+          currentVip: {
+            ...(prev.currentVip || {}),
+            ...(u.currentVip || {})
+          },
+          transactions: Array.isArray(u.transactions) && u.transactions.length
+            ? u.transactions
+            : (prev.transactions || []),
+          dagangAds: Array.isArray(u.dagangAds) && u.dagangAds.length
+            ? u.dagangAds
+            : (prev.dagangAds || []),
+          completedTasks: Array.isArray(u.completedTasks) && u.completedTasks.length
+            ? u.completedTasks
+            : (prev.completedTasks || []),
+          referrals: u.referrals || prev.referrals || { 1: [], 2: [], 3: [] }
+        };
+      }
+    });
 
-        if (!allUsers[key]) {
-          allUsers[key] = {
-            username: key,
-            nama: m.nama || key,
-            password: m.password || "",
-            balance: Number(m.saldo ?? 0),
-            inviteCode: m.invite_code || ('WPH-' + key.substring(0, 4).toUpperCase()),
-            referredBy: m.referred_by ? normalizePhone(m.referred_by) : null,
-            referrals: { 1: [], 2: [], 3: [] },
-            currentVip: {}
-          };
-        } else {
-          allUsers[key].username = key;
-          allUsers[key].balance = Number(m.saldo ?? allUsers[key].balance ?? 0);
-          if (m.nama) allUsers[key].nama = m.nama;
-          if (m.password) allUsers[key].password = m.password;
-          if (m.invite_code) allUsers[key].inviteCode = m.invite_code;
-          if (m.referred_by) allUsers[key].referredBy = normalizePhone(m.referred_by);
-        }
+    try {
+      const { data: sbMembers, error: sbErr } = await sbClient
+        .from("members")
+        .select("*");
 
-        if (m.transaksi_json) {
-          try {
-            const sbTxList = JSON.parse(m.transaksi_json);
-            if (Array.isArray(sbTxList)) {
-              const localTxList = Array.isArray(allUsers[key].transactions) ? allUsers[key].transactions : [];
-              const txMap = new Map();
-              sbTxList.forEach(t => txMap.set(t.id || (t.title + '_' + t.amount + '_' + t.date), t));
-              localTxList.forEach(t => {
-                const k = t.id || (t.title + '_' + t.amount + '_' + t.date);
-                const prev = txMap.get(k);
-                if (!prev || prev.status === 'pending') {
-                  txMap.set(k, t);
-                }
-              });
-              allUsers[key].transactions = Array.from(txMap.values());
-            }
-          } catch (_) {}
-        }
+      if (!sbErr && Array.isArray(sbMembers)) {
+        const sbUniqueMap = new Map();
 
-        const vipNum = parseInt(String(m.level_vip || "").replace(/\D/g, ""), 10);
-        if (!Number.isNaN(vipNum)) {
-          allUsers[key].currentVip = allUsers[key].currentVip || {};
-          allUsers[key].currentVip.youtube = vipNum;
-          allUsers[key].currentVip.tiktok = vipNum;
-          allUsers[key].currentVip.facebook = vipNum;
-        }
-      });
-
-      // Hapus data lokal yang sudah dihapus di Supabase agar otomatis bersih di panel admin
-      Object.keys(allUsers).forEach(k => {
-        const normK = normalizePhone(k);
-        if (!sbKeys.has(normK) && !allUsers[k]?.isLocalOnly) {
-          delete allUsers[k];
-        }
-      });
-
-      Object.values(allUsers).forEach(u => {
-        if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
-      });
-      Object.values(allUsers).forEach(u => {
-        const refKey = u.referredBy ? normalizePhone(u.referredBy) : null;
-        if (refKey && allUsers[refKey]) {
-          const t1List = allUsers[refKey].referrals[1];
-          if (!t1List.some(r => normalizePhone(r.username) === u.username)) {
-            t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
+        sbMembers.forEach((m) => {
+          const key = normalizePhone(m.username);
+          if (!key) return;
+          if (!sbUniqueMap.has(key)) {
+            sbUniqueMap.set(key, m);
           }
-        }
-      });
-      saveRawUsersStorage(allUsers);
+        });
+
+        const sbKeys = new Set(sbUniqueMap.keys());
+
+        sbUniqueMap.forEach((m, key) => {
+          if (!allUsers[key]) {
+            allUsers[key] = {
+              username: key,
+              nama: m.nama || key,
+              password: m.password || "",
+              balance: Number(m.saldo ?? 0),
+              inviteCode: m.invite_code || ('WPH-' + key.substring(0, 4).toUpperCase()),
+              referredBy: m.referred_by ? normalizePhone(m.referred_by) : null,
+              referrals: { 1: [], 2: [], 3: [] },
+              currentVip: {}
+            };
+          } else {
+            allUsers[key].username = key;
+            allUsers[key].balance = Number(m.saldo ?? allUsers[key].balance ?? 0);
+            if (m.nama) allUsers[key].nama = m.nama;
+            if (m.password) allUsers[key].password = m.password;
+            if (m.invite_code) allUsers[key].inviteCode = m.invite_code;
+            if (m.referred_by) allUsers[key].referredBy = normalizePhone(m.referred_by);
+          }
+
+          if (m.transaksi_json) {
+            try {
+              const sbTxList = JSON.parse(m.transaksi_json);
+              if (Array.isArray(sbTxList)) {
+                const localTxList = Array.isArray(allUsers[key].transactions) ? allUsers[key].transactions : [];
+                const txMap = new Map();
+                sbTxList.forEach(t => txMap.set(t.id || (t.title + '_' + t.amount + '_' + t.date), t));
+                localTxList.forEach(t => {
+                  const k = t.id || (t.title + '_' + t.amount + '_' + t.date);
+                  const prev = txMap.get(k);
+                  if (!prev || prev.status === 'pending') {
+                    txMap.set(k, t);
+                  }
+                });
+                allUsers[key].transactions = Array.from(txMap.values());
+              }
+            } catch (_) {}
+          }
+
+          const vipNum = parseInt(String(m.level_vip || "").replace(/\D/g, ""), 10);
+          if (!Number.isNaN(vipNum)) {
+            allUsers[key].currentVip = allUsers[key].currentVip || {};
+            allUsers[key].currentVip.youtube = vipNum;
+            allUsers[key].currentVip.tiktok = vipNum;
+            allUsers[key].currentVip.facebook = vipNum;
+          }
+        });
+
+        Object.keys(allUsers).forEach(k => {
+          const normK = normalizePhone(k);
+          if (!sbKeys.has(normK) && !allUsers[k]?.isLocalOnly) {
+            delete allUsers[k];
+          }
+        });
+
+        Object.values(allUsers).forEach(u => {
+          if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
+        });
+        Object.values(allUsers).forEach(u => {
+          const refKey = u.referredBy ? normalizePhone(u.referredBy) : null;
+          if (refKey && allUsers[refKey]) {
+            const t1List = allUsers[refKey].referrals[1];
+            if (!t1List.some(r => normalizePhone(r.username) === u.username)) {
+              t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
+            }
+          }
+        });
+        saveRawUsersStorage(allUsers);
+      }
+    } catch (e) {
+      console.error("Gagal sinkronisasi members dari Supabase:", e);
     }
-  } catch (e) {
-    console.error("Gagal sinkronisasi members dari Supabase:", e);
-  }
 
-  const userKeys = Object.keys(allUsers);
-  
-  if(lastState.usersCount > 0 && userKeys.length > lastState.usersCount){
-    showAdminNotification(`Ada anggota baru mendaftar: <b>${escapeHtml(userKeys[userKeys.length - 1])}</b>`);
-  }
-  lastState.usersCount = userKeys.length;
+    // Pastikan setiap nomor HP unik tepat 1 entri saat di-render ke panel admin
+    const dedupedUsersMap = new Map();
+    Object.entries(allUsers).forEach(([uname, u]) => {
+      if (!u) return;
+      const canonKey = normalizePhone(u.username || uname);
+      if (!canonKey) return;
+      if (!dedupedUsersMap.has(canonKey)) {
+        dedupedUsersMap.set(canonKey, { ...u, username: canonKey });
+      }
+    });
 
-  let totalBal = 0, pendingCount = 0, totalTasksDone = 0;
-  let txList = [], usersHtml = '', chatSelectOptions = '', dagangHtml = '';
-  let currentPendingCount = 0;
+    const userKeys = Array.from(dedupedUsersMap.keys());
 
-  userKeys.forEach(uname => {
-    const u = allUsers[uname];
-    if(!u) return;
-    const phoneDisplay = normalizePhone(u.username || uname);
-
-    totalBal += (u.balance || 0);
-    totalTasksDone += (u.completedTasks ? u.completedTasks.length : 0);
-
-    if(u.transactions){
-      u.transactions.forEach((tx, idx) => {
-        if(tx.status === 'pending') {
-          pendingCount++;
-          currentPendingCount++;
-        }
-        txList.push({ username: phoneDisplay, txIdx: idx, ...tx });
-      });
+    if(lastState.usersCount > 0 && userKeys.length > lastState.usersCount){
+      showAdminNotification(`Ada anggota baru mendaftar: <b>${escapeHtml(userKeys[userKeys.length - 1])}</b>`);
     }
+    lastState.usersCount = userKeys.length;
 
-    // Rekap Ruang Dagang
-    if(u.dagangAds){
-      u.dagangAds.forEach((ad, adIdx) => {
-        dagangHtml += `
-          <tr>
-            <td><b>${escapeHtml(phoneDisplay)}</b></td>
-            <td><code style="color:var(--cyan)">${escapeHtml((ad.platform || '').toUpperCase())}</code></td>
-            <td>${escapeHtml(ad.title)}</td>
-            <td style="color:var(--gold)">${Number(ad.qty || 0).toLocaleString()} x</td>
-            <td><button class="btn del" onclick="deleteDagangAd('${escapeHtml(uname)}', ${adIdx})">Hapus Iklan</button></td>
-          </tr>
-        `;
-      });
-    }
+    let totalBal = 0, pendingCount = 0, totalTasksDone = 0;
+    let txList = [], usersHtml = '', chatSelectOptions = '', dagangHtml = '';
+    let currentPendingCount = 0;
 
-    const l1 = u.referrals?.[1]?.length || 0;
-    const l2 = u.referrals?.[2]?.length || 0;
-    const l3 = u.referrals?.[3]?.length || 0;
-    const maxVip = Math.max(u.currentVip?.youtube||0, u.currentVip?.tiktok||0, u.currentVip?.facebook||0);
+    userKeys.forEach(phoneDisplay => {
+      const u = dedupedUsersMap.get(phoneDisplay);
+      if(!u) return;
 
-    const pInfo = u.personalInfo || {};
-    const bankMethod = (pInfo.method || '').toUpperCase();
-    const bankNum = pInfo.accountNum || '';
-    const bankName = pInfo.accountName || '';
+      totalBal += (u.balance || 0);
+      totalTasksDone += (u.completedTasks ? u.completedTasks.length : 0);
 
-    const bankSummary = (bankMethod || bankNum || bankName)
-      ? `<div><b style="color:var(--emerald)">${escapeHtml(bankMethod || '-')}</b> · <code>${escapeHtml(bankNum || '-')}</code></div><div class="bank-sub">${escapeHtml(bankName || 'Belum diisi')}</div>`
-      : `<span style="color:var(--dim)">Belum diatur</span>`;
+      if(u.transactions){
+        u.transactions.forEach((tx, idx) => {
+          if(tx.status === 'pending') {
+            pendingCount++;
+            currentPendingCount++;
+          }
+          txList.push({ username: phoneDisplay, txIdx: idx, ...tx });
+        });
+      }
 
-    usersHtml += `
-      <tr>
-        <td><b>${escapeHtml(phoneDisplay)}</b></td>
-        <td><code style="color:var(--cyan)">${escapeHtml(u.password || '-')}</code></td>
-        <td>${bankSummary}</td>
-        <td><code style="color:var(--cyan)">${escapeHtml(u.inviteCode || '-')}</code></td>
-        <td>VIP ${maxVip}</td>
-        <td style="color:var(--gold);font-weight:700">Rp ${(u.balance||0).toLocaleString()}</td>
-        <td>T1: <b>${l1}</b> | T2: <b>${l2}</b> | T3: <b>${l3}</b></td>
-        <td><button class="btn edit" onclick="openEditUserModal('${escapeHtml(uname)}')">✏️ Edit</button></td>
-      </tr>
-    `;
-    chatSelectOptions += `<option value="${escapeHtml(uname)}">${escapeHtml(phoneDisplay)} (Saldo: Rp ${(u.balance||0).toLocaleString()})</option>`;
-  });
+      if(u.dagangAds){
+        u.dagangAds.forEach((ad, adIdx) => {
+          dagangHtml += `
+            <tr>
+              <td><b>${escapeHtml(phoneDisplay)}</b></td>
+              <td><code style="color:var(--cyan)">${escapeHtml((ad.platform || '').toUpperCase())}</code></td>
+              <td>${escapeHtml(ad.title)}</td>
+              <td style="color:var(--gold)">${Number(ad.qty || 0).toLocaleString()} x</td>
+              <td><button class="btn del" onclick="deleteDagangAd('${escapeHtml(phoneDisplay)}', ${adIdx})">Hapus Iklan</button></td>
+            </tr>
+          `;
+        });
+      }
 
-  if(currentPendingCount > lastState.pendingTxCount){
-    showAdminNotification(`Ada <b>${currentPendingCount}</b> pengajuan transaksi (Topup/Withdraw) menunggu tinjauan!`);
-  }
-  lastState.pendingTxCount = currentPendingCount;
+      const l1 = u.referrals?.[1]?.length || 0;
+      const l2 = u.referrals?.[2]?.length || 0;
+      const l3 = u.referrals?.[3]?.length || 0;
+      const maxVip = Math.max(u.currentVip?.youtube||0, u.currentVip?.tiktok||0, u.currentVip?.facebook||0);
 
-  const badgeTx = document.getElementById('badgeTx');
-  if(pendingCount > 0){
-    badgeTx.textContent = pendingCount;
-    badgeTx.style.display = 'inline-block';
-  } else {
-    badgeTx.style.display = 'none';
-  }
+      const pInfo = u.personalInfo || {};
+      const bankMethod = (pInfo.method || '').toUpperCase();
+      const bankNum = pInfo.accountNum || '';
+      const bankName = pInfo.accountName || '';
 
-  let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
-  
-  let activeChatUsersCount = 0;
-  Object.keys(chatHistories).forEach(u => {
-    const msgs = chatHistories[u] || [];
-    if(msgs.length > 0 && msgs[msgs.length-1].sender === 'user'){
-      activeChatUsersCount++;
-    }
-    if(!allUsers[u]){
-      chatSelectOptions += `<option value="${escapeHtml(u)}">[Tamu] ${escapeHtml(u)}</option>`;
-    }
-  });
+      const bankSummary = (bankMethod || bankNum || bankName)
+        ? `<div><b style="color:var(--emerald)">${escapeHtml(bankMethod || '-')}</b> · <code>${escapeHtml(bankNum || '-')}</code></div><div class="bank-sub">${escapeHtml(bankName || 'Belum diisi')}</div>`
+        : `<span style="color:var(--dim)">Belum diatur</span>`;
 
-  const badgeChat = document.getElementById('badgeChat');
-  if(activeChatUsersCount > 0){
-    badgeChat.textContent = activeChatUsersCount;
-    badgeChat.style.display = 'inline-block';
-  } else {
-    badgeChat.style.display = 'none';
-  }
-
-  document.getElementById('stUsers').textContent = userKeys.length;
-  document.getElementById('stBalance').textContent = 'Rp ' + totalBal.toLocaleString();
-  document.getElementById('stPending').textContent = pendingCount + ' Transaksi';
-  document.getElementById('stTasks').textContent = totalTasksDone;
-
-  document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota terdaftar.</td></tr>';
-  document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan Ruang Dagang aktif.</td></tr>';
-
-  const chatSel = document.getElementById('chatUserSelect');
-  const curSelected = chatSel.value;
-  chatSel.innerHTML = chatSelectOptions || '<option value="">Belum ada data chat</option>';
-  if(curSelected && [...chatSel.options].some(o => o.value === curSelected)){
-    chatSel.value = curSelected;
-  }
-
-  let txHtml = '';
-  txList.forEach(t => {
-    let stBadge = `<span style="color:var(--gold)">PENDING</span>`;
-    if(t.status === 'approved') stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
-    if(t.status === 'rejected') stBadge = `<span style="color:var(--err)">REJECTED</span>`;
-
-    let actionBtns = `<span style="color:var(--dim)">-</span>`;
-    if(t.status === 'pending'){
-      actionBtns = `
-        <button class="btn approve" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'approved')">✔ Setuju</button>
-        <button class="btn reject" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'rejected')">✖ Tolak</button>
+      usersHtml += `
+        <tr>
+          <td><b>${escapeHtml(phoneDisplay)}</b></td>
+          <td><code style="color:var(--cyan)">${escapeHtml(u.password || '-')}</code></td>
+          <td>${bankSummary}</td>
+          <td><code style="color:var(--cyan)">${escapeHtml(u.inviteCode || '-')}</code></td>
+          <td>VIP ${maxVip}</td>
+          <td style="color:var(--gold);font-weight:700">Rp ${(u.balance||0).toLocaleString()}</td>
+          <td>T1: <b>${l1}</b> | T2: <b>${l2}</b> | T3: <b>${l3}</b></td>
+          <td><button class="btn edit" onclick="openEditUserModal('${escapeHtml(phoneDisplay)}')">✏️ Edit</button></td>
+        </tr>
       `;
-    }
-    txHtml += `
-      <tr>
-        <td><b>${escapeHtml(t.username)}</b></td>
-        <td>${escapeHtml(t.title)}</td>
-        <td style="color:var(--gold)">Rp ${(t.amount||0).toLocaleString()}</td>
-        <td>${escapeHtml(t.date || '-')}</td>
-        <td>${stBadge}</td>
-        <td>${actionBtns}</td>
-      </tr>
-    `;
-  });
-  document.getElementById('txTableBody').innerHTML = txHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Tidak ada transaksi pending.</td></tr>';
+      chatSelectOptions += `<option value="${escapeHtml(phoneDisplay)}">${escapeHtml(phoneDisplay)} (Saldo: Rp ${(u.balance||0).toLocaleString()})</option>`;
+    });
 
-  loadTasksManager();
-  loadAnnouncementText();
-  renderAdminChat();
-  if (showToast) {
-    showAdminNotification("Data panel admin berhasil disegarkan!");
+    if(currentPendingCount > lastState.pendingTxCount){
+      showAdminNotification(`Ada <b>${currentPendingCount}</b> pengajuan transaksi (Topup/Withdraw) menunggu tinjauan!`);
+    }
+    lastState.pendingTxCount = currentPendingCount;
+
+    const badgeTx = document.getElementById('badgeTx');
+    if(pendingCount > 0){
+      badgeTx.textContent = pendingCount;
+      badgeTx.style.display = 'inline-block';
+    } else {
+      badgeTx.style.display = 'none';
+    }
+
+    let chatHistories = {};
+    try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+    
+    let activeChatUsersCount = 0;
+    Object.keys(chatHistories).forEach(u => {
+      const msgs = chatHistories[u] || [];
+      if(msgs.length > 0 && msgs[msgs.length-1].sender === 'user'){
+        activeChatUsersCount++;
+      }
+      const normChatUser = normalizePhone(u) || u;
+      if(!dedupedUsersMap.has(normChatUser)){
+        chatSelectOptions += `<option value="${escapeHtml(u)}">[Tamu] ${escapeHtml(normChatUser)}</option>`;
+      }
+    });
+
+    const badgeChat = document.getElementById('badgeChat');
+    if(activeChatUsersCount > 0){
+      badgeChat.textContent = activeChatUsersCount;
+      badgeChat.style.display = 'inline-block';
+    } else {
+      badgeChat.style.display = 'none';
+    }
+
+    document.getElementById('stUsers').textContent = userKeys.length;
+    document.getElementById('stBalance').textContent = 'Rp ' + totalBal.toLocaleString();
+    document.getElementById('stPending').textContent = pendingCount + ' Transaksi';
+    document.getElementById('stTasks').textContent = totalTasksDone;
+
+    document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota terdaftar.</td></tr>';
+    document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan Ruang Dagang aktif.</td></tr>';
+
+    const chatSel = document.getElementById('chatUserSelect');
+    const curSelected = chatSel.value;
+    chatSel.innerHTML = chatSelectOptions || '<option value="">Belum ada data chat</option>';
+    if(curSelected && [...chatSel.options].some(o => o.value === curSelected)){
+      chatSel.value = curSelected;
+    }
+
+    let txHtml = '';
+    txList.forEach(t => {
+      let stBadge = `<span style="color:var(--gold)">PENDING</span>`;
+      if(t.status === 'approved') stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
+      if(t.status === 'rejected') stBadge = `<span style="color:var(--err)">REJECTED</span>`;
+
+      let actionBtns = `<span style="color:var(--dim)">-</span>`;
+      if(t.status === 'pending'){
+        actionBtns = `
+          <button class="btn approve" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'approved')">✔ Setuju</button>
+          <button class="btn reject" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'rejected')">✖ Tolak</button>
+        `;
+      }
+      txHtml += `
+        <tr>
+          <td><b>${escapeHtml(t.username)}</b></td>
+          <td>${escapeHtml(t.title)}</td>
+          <td style="color:var(--gold)">Rp ${(t.amount||0).toLocaleString()}</td>
+          <td>${escapeHtml(t.date || '-')}</td>
+          <td>${stBadge}</td>
+          <td>${actionBtns}</td>
+        </tr>
+      `;
+    });
+    document.getElementById('txTableBody').innerHTML = txHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Tidak ada transaksi pending.</td></tr>';
+
+    loadTasksManager();
+    loadAnnouncementText();
+    renderAdminChat();
+    if (showToast) {
+      showAdminNotification("Data panel admin berhasil disegarkan!");
+    }
+  } finally {
+    isRefreshingAdmin = false;
   }
 }
 
 // FITUR EDIT ANGGOTA MODAL
 function openEditUserModal(username){
+  const normKey = normalizePhone(username);
   const allUsers = getRawUsersStorage();
-  const u = allUsers[username];
+  const u = allUsers[normKey] || allUsers[username];
   if(!u) return;
 
   const pInfo = u.personalInfo || {};
 
-  document.getElementById('editTargetUsername').value = username;
-  document.getElementById('modalUsername').value = normalizePhone(u.username || username);
+  document.getElementById('editTargetUsername').value = normKey || username;
+  document.getElementById('modalUsername').value = normKey || normalizePhone(u.username || username);
   document.getElementById('modalPassword').value = u.password || '';
   document.getElementById('modalBalance').value = u.balance ?? 0;
   document.getElementById('modalVipYt').value = u.currentVip?.youtube ?? 0;
@@ -780,12 +803,14 @@ function saveUserEdit(){
   const bankName = document.getElementById('modalBankName').value.trim();
 
   let allUsers = getRawUsersStorage();
-  const targetObj = allUsers[rawUsername] || allUsers[username];
+  const targetObj = allUsers[username] || allUsers[rawUsername];
   if(!targetObj) return;
 
-  if(rawUsername !== username && allUsers[rawUsername]){
-    delete allUsers[rawUsername];
-  }
+  Object.keys(allUsers).forEach((k) => {
+    if (k !== username && normalizePhone(k) === username) {
+      delete allUsers[k];
+    }
+  });
   allUsers[username] = targetObj;
   allUsers[username].username = username;
 
@@ -867,14 +892,16 @@ function saveAnnouncementText(){
 // KELOLA RUANG DAGANG
 function deleteDagangAd(username, adIndex){
   if(!confirm('Hapus iklan ruang dagang ini?')) return;
+  const normKey = normalizePhone(username);
   let allUsers = getRawUsersStorage();
-  if(allUsers[username] && allUsers[username].dagangAds){
-    allUsers[username].dagangAds.splice(adIndex, 1);
+  const target = allUsers[normKey] || allUsers[username];
+  if(target && target.dagangAds){
+    target.dagangAds.splice(adIndex, 1);
     saveRawUsersStorage(allUsers);
     
     const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
-    if(activeLegacy === normalizePhone(username)){
-      localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
+    if(activeLegacy === normKey){
+      localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(target));
     }
 
     showAdminNotification('Iklan ruang dagang berhasil dihapus!');
