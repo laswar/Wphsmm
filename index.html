@@ -1372,6 +1372,118 @@ function getUserMaxVipLevel(user){return Math.max(user?.currentVip?.youtube||0,u
 function getTaskRewardPerTask(level){if(level===0)return 2000;const v=vipD.youtube.find(x=>x.l===level);return v?Math.floor(v.d/v.t):2000}
 function getTaskMaxTasks(level){const v=vipD.youtube.find(x=>x.l===level);return v?v.t:4}
 
+function getUserPlatformVipLevel(userObj, platform = 'youtube'){
+  if(!userObj || !userObj.currentVip) return 0;
+  const p = platform === 'fbshare' ? 'facebook' : platform;
+  const val = Number(userObj.currentVip[p]);
+  if(!Number.isNaN(val)) return val;
+  return getUserMaxVipLevel(userObj);
+}
+
+function getVipEntryForLevel(level, platform = 'youtube'){
+  const p = platform === 'fbshare' ? 'facebook' : platform;
+  const list = vipD[p] || vipD.youtube;
+  return list.find(x => x.l === level) || list[0];
+}
+
+function getBaseAmountByMinVip(uplineObj, downlineObj, sourceType, platform = 'youtube', boughtVipEntry = null){
+  const upLevel = getUserPlatformVipLevel(uplineObj, platform);
+  const downLevel = sourceType === 'vip' && boughtVipEntry
+    ? Number(boughtVipEntry.l || 0)
+    : getUserPlatformVipLevel(downlineObj, platform);
+
+  const minLevel = Math.min(upLevel, downLevel);
+  if(minLevel <= 0){
+    return { minLevel: 0, baseAmount: 0 };
+  }
+
+  if(sourceType === 'vip'){
+    const vipEntry = getVipEntryForLevel(minLevel, platform);
+    return {
+      minLevel,
+      baseAmount: Number(vipEntry?.p || 0)
+    };
+  }
+
+  return {
+    minLevel,
+    baseAmount: Number(getTaskRewardPerTask(minLevel) || 0)
+  };
+}
+
+async function distributeReferralCommission(sourceUser, sourceType, platform = 'youtube', boughtVipEntry = null, sourceLabel = ''){
+  if(!sourceUser) return;
+
+  const rates = { 1: 0.10, 2: 0.05, 3: 0.03 };
+  const au = gAU();
+  let currentRefUsername = sourceUser.referredBy ? String(sourceUser.referredBy).trim() : '';
+  const visited = new Set([String(sourceUser.username || '').trim()]);
+
+  for(let level = 1; level <= 3; level++){
+    if(!currentRefUsername || visited.has(currentRefUsername)) break;
+    visited.add(currentRefUsername);
+
+    let uplineObj = au[currentRefUsername];
+    if(!uplineObj && typeof sbClient !== 'undefined' && sbClient){
+      try {
+        const { data: row } = await sbClient.from('members').select('*').eq('username', currentRefUsername).maybeSingle();
+        if(row){
+          uplineObj = mkUser(row.username, row.password || '');
+          if(row.saldo !== undefined && row.saldo !== null) uplineObj.balance = Number(row.saldo);
+          if(row.invite_code) uplineObj.inviteCode = row.invite_code;
+          if(row.referred_by) uplineObj.referredBy = String(row.referred_by).trim();
+          if(row.transaksi_json){
+            try {
+              const parsedTx = JSON.parse(row.transaksi_json);
+              if(Array.isArray(parsedTx)) uplineObj.transactions = parsedTx;
+            } catch (_) {}
+          }
+          const vipNum = parseInt(String(row.level_vip || '').replace(/\D/g, ''), 10);
+          if(!Number.isNaN(vipNum)){
+            uplineObj.currentVip = { youtube: vipNum, tiktok: vipNum, facebook: vipNum };
+          }
+        }
+      } catch (e) {}
+    }
+
+    if(!uplineObj) break;
+
+    const { minLevel, baseAmount } = getBaseAmountByMinVip(
+      uplineObj,
+      sourceUser,
+      sourceType,
+      platform,
+      boughtVipEntry
+    );
+
+    const commission = baseAmount > 0 ? Math.floor(baseAmount * rates[level]) : 0;
+    if(commission > 0){
+      uplineObj.balance = Number(uplineObj.balance || 0) + commission;
+      if(!Array.isArray(uplineObj.transactions)) uplineObj.transactions = [];
+      const labelText = sourceLabel || (sourceType === 'vip' ? 'Komisi Upgrade VIP' : 'Komisi Laba Tugas');
+      uplineObj.transactions.unshift({
+        title: `🎁 ${labelText} [VIP ${minLevel}] (T${level} dari ${sourceUser.username})`,
+        amount: commission,
+        type: 'plus',
+        status: 'approved',
+        date: new Date().toLocaleDateString('id-ID')
+      });
+
+      au[currentRefUsername] = uplineObj;
+      svAU(au);
+
+      if(rawUData && String(rawUData.username || '').trim() === currentRefUsername){
+        setUDataProxy(uplineObj);
+        svU();
+      }
+
+      await pushMemberToSupabase(uplineObj);
+    }
+
+    currentRefUsername = uplineObj.referredBy ? String(uplineObj.referredBy).trim() : '';
+  }
+}
+
 function gRPT(){return getTaskRewardPerTask(getUserMaxVipLevel(rawUData))}
 function gMT(){return getTaskMaxTasks(getUserMaxVipLevel(rawUData))}
 function gVN(){const ml=getUserMaxVipLevel(rawUData);return ml===0?'VIP 0 (Free)':'VIP '+ml}
@@ -1526,6 +1638,7 @@ function showImgPrev(){
 function submitProof(){
   if(!pUT||!pUI)return;
   const targetId=pUT, targetProof=pUI, rpt=gRPT();
+  const taskPlatform = rawUData?.claimedTasks?.find(t=>t.id===targetId)?.platform || sTP || 'youtube';
   if(!rawUData.completedTasks) rawUData.completedTasks=[];
   rawUData.completedTasks=rawUData.completedTasks.filter(x=>x.id!==targetId);
   rawUData.completedTasks.push({id:targetId,proof:targetProof,status:'pending'});
@@ -1541,6 +1654,7 @@ function submitProof(){
     rawUData.transactions.unshift({title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     setUDataProxy(rawUData);
     svU();
+    await distributeReferralCommission(rawUData, 'task', taskPlatform, null, 'Komisi Laba Tugas');
     await pushMemberToSupabase(rawUData);
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
   },2500);
@@ -1734,14 +1848,21 @@ function openVM(v){
   document.getElementById('vmPr').textContent=v.l===0?'GRATIS':'Rp '+v.p.toLocaleString();
   document.getElementById('vipM').classList.add('on');
 }
-function buyVIP(){
+async function buyVIP(){
   if(!sV||sV.l===0){closeM('vipM');return}
-  if(uData.balance<sV.p){toast('Saldo tidak cukup!');return}
-  uData.balance-=sV.p;uData.currentVip[cPlat]=sV.l;
-  uData.transactions.unshift({title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+  if(rawUData.balance<sV.p){toast('Saldo tidak cukup!');return}
+  const boughtEntry = { ...sV };
+  const boughtPlat = cPlat;
+  rawUData.balance=Number(rawUData.balance||0)-boughtEntry.p;
+  if(!rawUData.currentVip) rawUData.currentVip={youtube:0,tiktok:0,facebook:0};
+  rawUData.currentVip[boughtPlat]=boughtEntry.l;
+  if(!rawUData.transactions) rawUData.transactions=[];
+  rawUData.transactions.unshift({title:'👑 Upgrade VIP '+boughtEntry.l+' '+boughtEntry.n,amount:boughtEntry.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+  setUDataProxy(rawUData);
   svU();
-  pushMemberToSupabase(rawUData);
-  closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
+  await distributeReferralCommission(rawUData, 'vip', boughtPlat, boughtEntry, `Komisi Upgrade VIP ${boughtEntry.l}`);
+  await pushMemberToSupabase(rawUData);
+  closeM('vipM');toast('🎉 Selamat! VIP '+boughtEntry.l+' Berhasil diaktifkan!');
 }
 
 function openLiveChatModal(){
