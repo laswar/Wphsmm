@@ -260,7 +260,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .pic .cb{background:rgba(0,229,255,0.2);border:none;color:var(--cyan);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px}
 .bl{background:rgba(255,51,102,0.2);border:1px solid var(--err);color:var(--err);padding:5px 10px;border-radius:14px;font-size:10px;font-weight:600;cursor:pointer}
 
-/* STYLE LIVE CHAT CS */
 .btn-chat-cs{background:linear-gradient(135deg,var(--emerald),var(--cyan));border:none;color:#030806;padding:6px 12px;border-radius:14px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:'Poppins';display:flex;align-items:center;gap:4px;box-shadow:0 0 10px var(--emerald-glow);transition:all 0.2s}
 .btn-chat-cs:active{transform:scale(0.96)}
 .chat-box-container{height:220px;overflow-y:auto;background:rgba(3,15,10,0.9);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
@@ -361,7 +360,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <button class="btn-sec" id="btnR" style="display:none" onclick="doRegister()">Daftar Akun Baru</button>
     <button class="btn-rst" onclick="doReset()">🗑️ Reset Data</button>
 
-    <!-- LAYANAN PELANGGAN DI HALAMAN LOGIN / REGISTER -->
     <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
       <button class="btn-chat-cs" style="width: 100%; justify-content: center; padding: 10px;" onclick="openPublicLiveChat()">
         💬 Layanan Pelanggan (Live Chat CS)
@@ -386,7 +384,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="slide-nav-btn prev" onclick="changeSlide(-1)">‹</div>
       <div class="slide-nav-btn next" onclick="changeSlide(1)">›</div>
       <div class="slide-track" id="slideTrack">
-                <div class="slide"><img src="./logo-wphsmm.png" alt="Logo WPH SMM"></div>
+        <div class="slide"><img src="./logo-wphsmm.png" alt="Logo WPH SMM"></div>
         <div class="slide"><img src="./komisi-referral.png" alt="Komisi Referral WPH SMM"></div>
         <div class="slide"><img src="./pendapatan-harian.png" alt="Pendapatan Harian WPH SMM"></div>
         <div class="slide"><img src="./solusi-digital.png" alt="Solusi Digital WPH SMM"></div>
@@ -396,11 +394,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         <div class="slide-dot" onclick="goToSlide(1)"></div>
         <div class="slide-dot" onclick="goToSlide(2)"></div>
         <div class="slide-dot" onclick="goToSlide(3)"></div>
-
       </div>
     </div>
 
-    <!-- PENGUMUMAN DISPLAY YANG TERSINKRON DARI ADMIN -->
     <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">Selamat kepada anggota ****2478 rekomendasi platinum, mendapat Rp 300,000 komisi!</span></div></div>
 
 <div class="m3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 12px;">
@@ -1091,7 +1087,6 @@ const dgInfo = {
   }
 };
 
-
 let cPlat='youtube',sTP='youtube',sDG='youtube',sV=null,isLog=true,pUT=null,pUI=null,topupProofImg=null;
 let currentSlide=0;let slideInterval;const totalSlides=4;
 
@@ -1206,6 +1201,22 @@ function autoSyncAllIconsAndMenus(){
   if (typeof renderHT === 'function') renderHT();
   if (typeof renderDagang === 'function') renderDagang();
   if (typeof renderTX === 'function') renderTX();
+  if (typeof renderReferralList === 'function') renderReferralList();
+}
+
+function renderReferralList() {
+  const c = document.getElementById('refL');
+  if (!c || !rawUData) return;
+  const refs = rawUData.referrals || { 1: [], 2: [], 3: [] };
+  const rows = [];
+  [1, 2, 3].forEach((lvl) => {
+    (refs[lvl] || []).forEach((item) => {
+      const uname = typeof item === 'string' ? item : (item.username || 'Anggota');
+      const dt = typeof item === 'object' && item.date ? item.date : '-';
+      rows.push(`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11.5px;font-weight:700;color:#fff">👤 ${uname}</div><div style="font-size:9.5px;color:var(--dim)">Bergabung: ${dt}</div></div><span style="font-size:10px;font-weight:700;color:var(--emerald)">Tingkat ${lvl}</span></div>`);
+    });
+  });
+  c.innerHTML = rows.length ? rows.join('') : '<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px">Belum ada anggota referral yang terdaftar.</div>';
 }
 
 function setText(id, text) {
@@ -1293,7 +1304,6 @@ async function doRegister(){
   setTimeout(enterApp,400);
 }
 
-
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
 function doLogout(){localStorage.removeItem('wsp_c20');localStorage.removeItem('wph_u20');location.reload()}
 
@@ -1310,7 +1320,6 @@ function enterApp(){
   loadAdminAnnouncement();
 }
 
-// Fungsi SINKRONISASI PENGUMUMAN DARI ADMIN
 function loadAdminAnnouncement() {
   const savedAnn = localStorage.getItem('wsp_admin_announcement');
   const annEl = document.getElementById('dynamicAnnouncementText');
@@ -1466,7 +1475,7 @@ function renderTL(){
 function trigUp(tid){pUT=tid;document.getElementById('fIn').click()}
 document.getElementById('fIn').addEventListener('change',function(e){
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=function(ev){pUI=ev.target.result;showImgPrev()};r.readAsDataURL(f);
+  const r=new FileReader();r.onload=function(ev){pUI=ev.target.result;showImgPrev()};r.readAsDataURL(f);e.target.value='';
 });
 
 function showImgPrev(){
@@ -1503,13 +1512,13 @@ document.getElementById('topupProofFile').addEventListener('change',function(e){
     topupProofImg=ev.target.result;
     document.getElementById('topupProofPrev').innerHTML=`<div class="pc"><img src="${topupProofImg}" style="max-height:100px;margin:0 auto"></div>`;
     toast('📷 Bukti transfer siap dikirim!');
-  };r.readAsDataURL(f);
+  };r.readAsDataURL(f);e.target.value='';
 });
 
 function sendProofToWhatsApp(){
   const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
   if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
-  const csPhone="6281234567890";
+  const csPhone="6289688780907";
   const msg=encodeURIComponent(
     `Halo CS WPH SMM,\n\nSaya ingin mengonfirmasi Isi Ulang Topup via QRIS DOUBLE Z ALLSHOP:\n` +
     `👤 Username: ${uData.username}\n` +
@@ -1897,12 +1906,31 @@ function goPage(p){
   if(p==='vip'){renderVC();renderET()}
   if(p==='tugas')updTP();
   if(p==='pendapatan')renderTX();
+  if(p==='referral')renderReferralList();
   window.scrollTo(0,0);
 }
 
 function closeM(id){document.getElementById(id).classList.remove('on')}
 function toast(m){const t=document.getElementById('tst');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-function copyIC(){navigator.clipboard.writeText(uData.inviteCode);toast('📋 Kode referral disalin!')}
+function copyIC(){
+  const code = (rawUData && rawUData.inviteCode) ? rawUData.inviteCode : '';
+  if (!code) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => toast('📋 Kode referral disalin!')).catch(() => fallbackCopy(code));
+  } else {
+    fallbackCopy(code);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('📋 Kode referral disalin!'); } catch(e) {}
+  document.body.removeChild(ta);
+}
 
 window.addEventListener('DOMContentLoaded',async ()=>{
   genStars();ldU();
@@ -1936,7 +1964,6 @@ window.addEventListener('DOMContentLoaded',async ()=>{
   loadAdminAnnouncement();
 });
 
-// Polling sinkronisasi pesan chat otomatis, saldo Supabase & update pengumuman admin setiap 15 detik
 setInterval(() => {
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
