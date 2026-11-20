@@ -1254,28 +1254,40 @@ async function doRegister(){
   if(au[u]){showErr('Nomor HP sudah terdaftar!');return}
 
   let sbRefRow = null;
-  try {
-    if (typeof sbClient !== 'undefined' && sbClient) {
+  if (typeof sbClient !== 'undefined' && sbClient) {
+    try {
       const { data: existingSb, error: existErr } = await sbClient
         .from('members')
         .select('username')
         .eq('username', u)
         .maybeSingle();
-      if (!existErr && existingSb) {
+
+      if (existErr) {
+        showErr('Gagal cek data ke Supabase: ' + existErr.message);
+        return;
+      }
+      if (existingSb) {
         showErr('Nomor HP sudah terdaftar di server!');
         return;
       }
+
       if (r) {
-        const { data: foundRef } = await sbClient
+        const { data: foundRef, error: refErr } = await sbClient
           .from('members')
           .select('*')
           .eq('invite_code', r)
           .maybeSingle();
+
+        if (refErr) {
+          showErr('Gagal cek kode referral ke Supabase: ' + refErr.message);
+          return;
+        }
         if (foundRef) sbRefRow = foundRef;
       }
+    } catch (e) {
+      showErr('Kesalahan koneksi ke Supabase saat pengecekan: ' + (e && e.message ? e.message : e));
+      return;
     }
-  } catch (e) {
-    console.warn('Cek Supabase saat daftar:', e);
   }
 
   let refLocal = r ? Object.values(au).find(x => (x.inviteCode || '').toUpperCase() === r) : null;
@@ -1303,16 +1315,8 @@ async function doRegister(){
     }
   }
 
-  au[u]=newUser;
-  svAU(au);
-  setUDataProxy(newUser);
-  localStorage.setItem('wsp_c20',u);
-  localStorage.setItem('wph_u20',u);
-
-  let sbSavedOk = false;
-  let sbLastErr = '';
-  try {
-    if (typeof sbClient !== 'undefined' && sbClient) {
+  if (typeof sbClient !== 'undefined' && sbClient) {
+    try {
       const fullPayload = {
         username: u,
         password: p,
@@ -1320,33 +1324,35 @@ async function doRegister(){
         invite_code: newUser.inviteCode,
         referred_by: newUser.referredBy || null
       };
+
       const { data: upData, error: insErr } = await sbClient
         .from('members')
         .upsert(fullPayload, { onConflict: 'username' })
         .select();
 
-      if (!insErr && Array.isArray(upData) && upData.length > 0) {
-        sbSavedOk = true;
-      } else {
+      if (insErr || !Array.isArray(upData) || upData.length === 0) {
         const { data: fbData, error: fbErr } = await sbClient
           .from('members')
           .upsert({ username: u, name: u, saldo: newUser.balance || 1000 }, { onConflict: 'username' })
           .select();
-        if (!fbErr && Array.isArray(fbData) && fbData.length > 0) {
-          sbSavedOk = true;
-        } else {
-          sbLastErr = (insErr && insErr.message) || (fbErr && fbErr.message) || 'Akses tulis tabel members ditolak/gagal';
+
+        if (fbErr || !Array.isArray(fbData) || fbData.length === 0) {
+          const detailErr = (insErr && insErr.message) || (fbErr && fbErr.message) || 'Data tidak tersimpan ke tabel members (cek RLS/Policies & nama kolom)';
+          showErr('Gagal simpan akun ke Supabase: ' + detailErr);
+          return;
         }
       }
+    } catch (e) {
+      showErr('Error saat menyimpan ke Supabase: ' + (e && e.message ? e.message : e));
+      return;
     }
-  } catch (e) {
-    sbLastErr = e && e.message ? e.message : String(e);
-    console.error('Gagal simpan member baru ke Supabase:', e);
   }
 
-  if (!sbSavedOk && sbLastErr) {
-    console.warn('Info sinkronisasi Supabase saat daftar:', sbLastErr);
-  }
+  au[u]=newUser;
+  svAU(au);
+  setUDataProxy(newUser);
+  localStorage.setItem('wsp_c20',u);
+  localStorage.setItem('wph_u20',u);
 
   showOk('Pendaftaran berhasil!');
   setTimeout(enterApp,400);
