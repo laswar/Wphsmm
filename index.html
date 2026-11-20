@@ -859,23 +859,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </script>
 
 <script>
-function normalizePhone(phone) {
-  if (!phone) return "";
-  let clean = String(phone).trim().replace(/[^0-9]/g, "");
-  if (clean.startsWith("62")) {
-    clean = "0" + clean.slice(2);
-  } else if (clean.startsWith("8")) {
-    clean = "0" + clean;
-  }
-  return clean;
-}
-
 let _lastSyncedBal = null;
 let _lastLocalBalChangeAt = 0;
 
 async function pushMemberToSupabase(userObj) {
   if (!userObj || !userObj.username || typeof sbClient === 'undefined' || !sbClient) return;
-  const cleanUname = normalizePhone(userObj.username);
+  const cleanUname = String(userObj.username).trim();
   userObj.username = cleanUname;
   const numBal = Number(userObj.balance ?? 0);
   const maxVip = Math.max(userObj.currentVip?.youtube || 0, userObj.currentVip?.tiktok || 0, userObj.currentVip?.facebook || 0);
@@ -887,7 +876,7 @@ async function pushMemberToSupabase(userObj) {
     saldo: numBal,
     level_vip: 'VIP ' + maxVip,
     invite_code: userObj.inviteCode || '',
-    referred_by: userObj.referredBy ? normalizePhone(userObj.referredBy) : null,
+    referred_by: userObj.referredBy ? String(userObj.referredBy).trim() : null,
     transaksi_json: JSON.stringify(Array.isArray(userObj.transactions) ? userObj.transactions : [])
   };
   try {
@@ -910,8 +899,8 @@ async function pushMemberToSupabase(userObj) {
 }
 
 async function pushBalanceToSupabase(username, balance) {
-  const cleanUname = normalizePhone(username);
-  if (rawUData && normalizePhone(rawUData.username) === cleanUname) {
+  const cleanUname = String(username || '').trim();
+  if (rawUData && String(rawUData.username || '').trim() === cleanUname) {
     rawUData.balance = Number(balance);
     await pushMemberToSupabase(rawUData);
     return;
@@ -942,7 +931,7 @@ async function syncActiveMemberFromSupabase() {
     } catch (_) {
       phoneOrId = String(activeRaw);
     }
-    const cleanId = normalizePhone(phoneOrId);
+    const cleanId = String(phoneOrId || "").trim();
     if (!cleanId) return;
 
     let memberRow = null;
@@ -954,7 +943,6 @@ async function syncActiveMemberFromSupabase() {
     if (!error && data) {
       memberRow = data;
     } else if (!error && !data) {
-      // Jika akun sudah dihapus dari Supabase, bersihkan sesi lokal
       const au = gAU();
       if (au[cleanId]) {
         delete au[cleanId];
@@ -976,7 +964,7 @@ async function syncActiveMemberFromSupabase() {
     const matchUser = (obj) => {
       if (!obj || typeof obj !== "object") return false;
       const idVal = obj.phone || obj.noHp || obj.username || obj.user || obj.id;
-      return normalizePhone(idVal || "") === cleanId;
+      return String(idVal || "").trim() === cleanId;
     };
 
     if (rawUData && matchUser(rawUData)) {
@@ -1131,7 +1119,7 @@ const handlerUI = {
 
 function setUDataProxy(data) {
   if (data && data.username) {
-    data.username = normalizePhone(data.username);
+    data.username = String(data.username).trim();
   }
   rawUData = data;
   uData = new Proxy(rawUData, handlerUI);
@@ -1139,7 +1127,7 @@ function setUDataProxy(data) {
 }
 
 function mkUser(u,p){
-  const cleanU = normalizePhone(u);
+  const cleanU = String(u || '').trim();
   return {
     username:cleanU,password:p,balance:1000,
     currentVip:{youtube:0,tiktok:0,facebook:0},
@@ -1156,7 +1144,7 @@ function mkUser(u,p){
 function svU(){
   try{
     if(!rawUData) return;
-    const cleanU = normalizePhone(rawUData.username);
+    const cleanU = String(rawUData.username || '').trim();
     rawUData.username = cleanU;
     localStorage.setItem('wsp_u20',JSON.stringify(rawUData));
     localStorage.setItem('wsp_c20',cleanU);
@@ -1172,17 +1160,17 @@ function ldU(){try{const s=localStorage.getItem('wsp_u20');if(s)setUDataProxy(JS
 function gAU(){
   try{
     const parsed = JSON.parse(localStorage.getItem('wsp_au20')||'{}');
-    const normalized = {};
+    const cleanMap = {};
     Object.keys(parsed || {}).forEach(k => {
-      const cleanK = normalizePhone(k);
+      const cleanK = String(k || '').trim();
       if (cleanK) {
-        normalized[cleanK] = {
+        cleanMap[cleanK] = {
           ...parsed[k],
           username: cleanK
         };
       }
     });
-    return normalized;
+    return cleanMap;
   }catch(e){return{}}
 }
 function svAU(u){try{localStorage.setItem('wsp_au20',JSON.stringify(u))}catch(e){}}
@@ -1255,7 +1243,7 @@ function renderReferralList() {
   const rows = [];
   [1, 2, 3].forEach((lvl) => {
     (refs[lvl] || []).forEach((item) => {
-      const uname = typeof item === 'string' ? normalizePhone(item) : normalizePhone(item.username || 'Anggota');
+      const uname = typeof item === 'string' ? item : (item.username || 'Anggota');
       const dt = typeof item === 'object' && item.date ? item.date : '-';
       rows.push(`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11.5px;font-weight:700;color:#fff">👤 ${uname}</div><div style="font-size:9.5px;color:var(--dim)">Bergabung: ${dt}</div></div><span style="font-size:10px;font-weight:700;color:var(--emerald)">Tingkat ${lvl}</span></div>`);
     });
@@ -1275,12 +1263,11 @@ function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.cl
 function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 
 async function doLogin(){
-  const rawU=document.getElementById('inpU').value.trim();
-  const u=normalizePhone(rawU);
+  const u=document.getElementById('inpU').value.trim();
   const p=document.getElementById('inpP').value.trim();
   if(!u||!p){showErr('Nomor HP dan password harus diisi!');return}
   const au=gAU();
-  let userObj = au[u] || au[rawU];
+  let userObj = au[u];
   if(!userObj && typeof sbClient !== 'undefined' && sbClient){
     try {
       const { data: row } = await sbClient.from('members').select('*').eq('username', u).maybeSingle();
@@ -1288,7 +1275,7 @@ async function doLogin(){
         userObj = mkUser(row.username, row.password || p);
         if(row.saldo !== undefined && row.saldo !== null) userObj.balance = Number(row.saldo);
         if(row.invite_code) userObj.inviteCode = row.invite_code;
-        if(row.referred_by) userObj.referredBy = normalizePhone(row.referred_by);
+        if(row.referred_by) userObj.referredBy = String(row.referred_by).trim();
         if(row.transaksi_json){
           try {
             const txParsed = JSON.parse(row.transaksi_json);
@@ -1312,8 +1299,7 @@ async function doLogin(){
   setTimeout(enterApp,400);
 }
 async function doRegister(){
-  const rawU=document.getElementById('inpU').value.trim();
-  const u=normalizePhone(rawU);
+  const u=document.getElementById('inpU').value.trim();
   const p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim().toUpperCase();
   const digits=u.replace(/\D/g,'');
   if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
@@ -1336,7 +1322,7 @@ async function doRegister(){
   if(r){
     const ref=Object.values(au).find(x=>String(x.inviteCode||'').toUpperCase()===r);
     if(ref){
-      const refUname = normalizePhone(ref.username);
+      const refUname = String(ref.username || '').trim();
       newUser.referredBy=refUname;
       if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
       ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
@@ -1344,7 +1330,7 @@ async function doRegister(){
     } else if(typeof sbClient !== 'undefined' && sbClient){
       try {
         const { data: refRow } = await sbClient.from('members').select('username').eq('invite_code', r).maybeSingle();
-        if(refRow) newUser.referredBy = normalizePhone(refRow.username);
+        if(refRow) newUser.referredBy = String(refRow.username || '').trim();
       } catch(e){}
     }
   }
@@ -1687,7 +1673,7 @@ function openInfoModal(){
 
 function savePersonalInfo(){
   uData.personalInfo={
-    wa:normalizePhone(document.getElementById('infoWa').value.trim()),
+    wa:document.getElementById('infoWa').value.trim(),
     method:document.getElementById('infoMethod').value,
     accountNum:document.getElementById('infoAcc').value.trim(),
     accountName:document.getElementById('infoName').value.trim()
@@ -1775,7 +1761,7 @@ function sendChatMessage(){
   const txt = input.value.trim();
   if(!txt) return;
 
-  const currentUname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  const currentUname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
 
   let chatHistories = {};
   try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
@@ -1789,7 +1775,7 @@ function sendChatMessage(){
 }
 
 function renderMemberChatMessages(){
-  const currentUname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  const currentUname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
   let chatHistories = {};
   try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
   const msgs = chatHistories[currentUname] || [];
@@ -1811,7 +1797,7 @@ function renderMemberChatMessages(){
 
 function openDirectWaCS(){
   const csPhone = "6289688780907";
-  const uname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu';
+  const uname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu';
   const msg = encodeURIComponent(`Halo Admin CS WPH SMM,\nSaya ${uname} ingin berkonsultasi mengenai akun dan layanan.`);
   window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
 }
@@ -1995,7 +1981,7 @@ function fallbackCopy(text) {
 window.addEventListener('DOMContentLoaded',async ()=>{
   genStars();ldU();
   const svRaw=localStorage.getItem('wsp_c20')||localStorage.getItem('wph_u20');
-  const sv=normalizePhone(svRaw);
+  const sv=String(svRaw || '').trim();
   const au=gAU();
   if(sv&&au[sv]){
     setUDataProxy(au[sv]);
@@ -2008,7 +1994,7 @@ window.addEventListener('DOMContentLoaded',async ()=>{
         const restored = mkUser(row.username, row.password || '');
         if (row.saldo !== undefined && row.saldo !== null) restored.balance = Number(row.saldo);
         if (row.invite_code) restored.inviteCode = row.invite_code;
-        if (row.referred_by) restored.referredBy = normalizePhone(row.referred_by);
+        if (row.referred_by) restored.referredBy = String(row.referred_by).trim();
         if (row.transaksi_json) {
           try {
             const txParsed = JSON.parse(row.transaksi_json);
