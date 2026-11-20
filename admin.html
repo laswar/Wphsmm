@@ -188,7 +188,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     <div class="menu-item" onclick="switchTab('chat', this)">💬 Live Chat CS <span class="notif-badge" id="badgeChat">0</span></div>
   </div>
   <div style="font-size:9.5px;color:var(--dim);text-align:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:auto">
-    System Sync v2.5
+    System Sync v2.6
   </div>
 </aside>
 
@@ -373,6 +373,17 @@ const STORAGE_ACTIVE_USER = 'wph_u20';
 const LEGACY_ALL_USERS = 'wsp_au20';
 const LEGACY_ACTIVE_USER = 'wsp_c20';
 
+function normalizePhone(phone) {
+  if (!phone) return "";
+  let clean = String(phone).trim().replace(/[^0-9]/g, "");
+  if (clean.startsWith("62")) {
+    clean = "0" + clean.slice(2);
+  } else if (clean.startsWith("8")) {
+    clean = "0" + clean;
+  }
+  return clean;
+}
+
 function getRawUsersStorage(){
   const primary = localStorage.getItem(STORAGE_ALL_USERS);
   if(primary && primary !== '{}' && primary !== '[]') return JSON.parse(primary);
@@ -448,15 +459,19 @@ async function loadAdminData(showToast = false){
 
   let allUsers = {};
   try { allUsers = getRawUsersStorage(); } catch(e){ allUsers = {}; }
-    try {
+
+  try {
     const { data: sbMembers, error: sbErr } = await sbClient
       .from("members")
       .select("*");
 
     if (!sbErr && Array.isArray(sbMembers)) {
+      const sbKeys = new Set();
+
       sbMembers.forEach((m) => {
-        const key = m.username;
+        const key = normalizePhone(m.username);
         if (!key) return;
+        sbKeys.add(key);
 
         if (!allUsers[key]) {
           allUsers[key] = {
@@ -465,16 +480,17 @@ async function loadAdminData(showToast = false){
             password: m.password || "",
             balance: Number(m.saldo ?? 0),
             inviteCode: m.invite_code || ('WPH-' + key.substring(0, 4).toUpperCase()),
-            referredBy: m.referred_by || null,
+            referredBy: m.referred_by ? normalizePhone(m.referred_by) : null,
             referrals: { 1: [], 2: [], 3: [] },
             currentVip: {}
           };
         } else {
+          allUsers[key].username = key;
           allUsers[key].balance = Number(m.saldo ?? allUsers[key].balance ?? 0);
           if (m.nama) allUsers[key].nama = m.nama;
           if (m.password) allUsers[key].password = m.password;
           if (m.invite_code) allUsers[key].inviteCode = m.invite_code;
-          if (m.referred_by) allUsers[key].referredBy = m.referred_by;
+          if (m.referred_by) allUsers[key].referredBy = normalizePhone(m.referred_by);
         }
 
         if (m.transaksi_json) {
@@ -504,21 +520,22 @@ async function loadAdminData(showToast = false){
           allUsers[key].currentVip.facebook = vipNum;
         }
       });
-      if (!sbErr && sbMembers.length > 0) {
-        const sbKeys = new Set(sbMembers.map(m => m.username).filter(Boolean));
-        Object.keys(allUsers).forEach(k => {
-          if (!sbKeys.has(k) && !allUsers[k]?.isLocalOnly) {
-            // keep local records if not explicitly deleted in Supabase
-          }
-          void sbKeys;
-        });
-      }
+
+      // Hapus data lokal yang sudah dihapus di Supabase agar otomatis bersih di panel admin
+      Object.keys(allUsers).forEach(k => {
+        const normK = normalizePhone(k);
+        if (!sbKeys.has(normK) && !allUsers[k]?.isLocalOnly) {
+          delete allUsers[k];
+        }
+      });
+
       Object.values(allUsers).forEach(u => {
         if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
       });
       Object.values(allUsers).forEach(u => {
-        if (u.referredBy && allUsers[u.referredBy]) {
-          const t1List = allUsers[u.referredBy].referrals[1];
+        const refKey = u.referredBy ? normalizePhone(u.referredBy) : null;
+        if (refKey && allUsers[refKey]) {
+          const t1List = allUsers[refKey].referrals[1];
           if (!t1List.some(r => r.username === u.username)) {
             t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
           }
@@ -544,7 +561,7 @@ async function loadAdminData(showToast = false){
   userKeys.forEach(uname => {
     const u = allUsers[uname];
     if(!u) return;
-    const phoneDisplay = u.username || uname;
+    const phoneDisplay = normalizePhone(u.username || uname);
 
     totalBal += (u.balance || 0);
     totalTasksDone += (u.completedTasks ? u.completedTasks.length : 0);
@@ -696,7 +713,7 @@ function openEditUserModal(username){
   const pInfo = u.personalInfo || {};
 
   document.getElementById('editTargetUsername').value = username;
-  document.getElementById('modalUsername').value = u.username || username;
+  document.getElementById('modalUsername').value = normalizePhone(u.username || username);
   document.getElementById('modalPassword').value = u.password || '';
   document.getElementById('modalBalance').value = u.balance ?? 0;
   document.getElementById('modalVipYt').value = u.currentVip?.youtube ?? 0;
@@ -713,7 +730,8 @@ function closeEditModal(){
 }
 
 function saveUserEdit(){
-  const username = document.getElementById('editTargetUsername').value;
+  const rawUsername = document.getElementById('editTargetUsername').value;
+  const username = normalizePhone(rawUsername);
   const newPass = document.getElementById('modalPassword').value.trim();
   const newBal = parseInt(document.getElementById('modalBalance').value, 10) || 0;
   const newVip = parseInt(document.getElementById('modalVipYt').value, 10) || 0;
@@ -722,7 +740,14 @@ function saveUserEdit(){
   const bankName = document.getElementById('modalBankName').value.trim();
 
   let allUsers = getRawUsersStorage();
-  if(!allUsers[username]) return;
+  const targetObj = allUsers[rawUsername] || allUsers[username];
+  if(!targetObj) return;
+
+  if(rawUsername !== username && allUsers[rawUsername]){
+    delete allUsers[rawUsername];
+  }
+  allUsers[username] = targetObj;
+  allUsers[username].username = username;
 
   if(newPass){
     allUsers[username].password = newPass;
@@ -736,7 +761,7 @@ function saveUserEdit(){
 
   const prevPersonal = allUsers[username].personalInfo || {};
   allUsers[username].personalInfo = {
-    wa: prevPersonal.wa || (allUsers[username].username || username),
+    wa: prevPersonal.wa || username,
     method: bankMethod,
     accountNum: bankNum,
     accountName: bankName
@@ -745,11 +770,24 @@ function saveUserEdit(){
   saveRawUsersStorage(allUsers);
   
   // Sinkronkan jika akun aktif di browser sama
-  const activeLegacy = localStorage.getItem(LEGACY_ACTIVE_USER);
-  const activeCurrent = localStorage.getItem(STORAGE_ACTIVE_USER);
-  if(activeLegacy === username || activeCurrent === username){
-    localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
+  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
+  const activeCurrentRaw = localStorage.getItem(STORAGE_ACTIVE_USER);
+  if(activeLegacy === username){
+    localStorage.setItem(LEGACY_ACTIVE_USER, username);
   }
+  if(activeCurrentRaw){
+    try {
+      const parsedActive = JSON.parse(activeCurrentRaw);
+      if(normalizePhone(parsedActive?.username) === username){
+        localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
+      }
+    } catch (_) {
+      if(normalizePhone(activeCurrentRaw) === username){
+        localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
+      }
+    }
+  }
+
   const memberPayload = {
     nama: allUsers[username].nama || allUsers[username].name || username,
     username: username,
@@ -795,9 +833,8 @@ function deleteDagangAd(username, adIndex){
     allUsers[username].dagangAds.splice(adIndex, 1);
     saveRawUsersStorage(allUsers);
     
-    const activeLegacy = localStorage.getItem(LEGACY_ACTIVE_USER);
-    const activeCurrent = localStorage.getItem(STORAGE_ACTIVE_USER);
-    if(activeLegacy === username || activeCurrent === username){
+    const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
+    if(activeLegacy === normalizePhone(username)){
       localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
     }
 
@@ -807,38 +844,39 @@ function deleteDagangAd(username, adIndex){
 }
 
 function resolveTx(username, txIdx, status){
+  const cleanUname = normalizePhone(username);
   let allUsers = getRawUsersStorage();
-  if(!allUsers[username]) return;
+  const targetUser = allUsers[cleanUname] || allUsers[username];
+  if(!targetUser) return;
 
-  const tx = allUsers[username].transactions[txIdx];
+  const tx = targetUser.transactions[txIdx];
   if(!tx) return;
 
   if(status === 'approved' && tx.status === 'pending' && tx.type === 'topup'){
-    allUsers[username].balance = (allUsers[username].balance || 0) + (tx.amount || 0);
+    targetUser.balance = (targetUser.balance || 0) + (tx.amount || 0);
   } else if(status === 'rejected' && tx.status === 'pending' && tx.type === 'withdraw'){
-    allUsers[username].balance = (allUsers[username].balance || 0) + (tx.amount || 0);
+    targetUser.balance = (targetUser.balance || 0) + (tx.amount || 0);
   }
 
-  allUsers[username].transactions[txIdx].status = status;
+  targetUser.transactions[txIdx].status = status;
   saveRawUsersStorage(allUsers);
 
-  const updatedBal = Number(allUsers[username].balance ?? 0);
-  const updatedTxJson = JSON.stringify(allUsers[username].transactions || []);
+  const updatedBal = Number(targetUser.balance ?? 0);
+  const updatedTxJson = JSON.stringify(targetUser.transactions || []);
   sbClient
     .from("members")
     .update({ saldo: updatedBal, transaksi_json: updatedTxJson })
-    .eq("username", username)
+    .eq("username", cleanUname)
     .then(({ error }) => {
       if (error) console.error("Gagal update saldo transaksi ke Supabase:", error.message);
     });
 
-  const activeLegacy = localStorage.getItem(LEGACY_ACTIVE_USER);
-  const activeCurrent = localStorage.getItem(STORAGE_ACTIVE_USER);
-  if(activeLegacy === username || activeCurrent === username){
-    localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
+  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
+  if(activeLegacy === cleanUname){
+    localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(targetUser));
   }
 
-  showAdminNotification(`Transaksi ${escapeHtml(username)} diubah menjadi: ${status.toUpperCase()}`);
+  showAdminNotification(`Transaksi ${escapeHtml(cleanUname)} diubah menjadi: ${status.toUpperCase()}`);
   loadAdminData();
 }
 
