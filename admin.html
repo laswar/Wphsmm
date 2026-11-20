@@ -338,8 +338,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 </main>
+  
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+const SUPABASE_URL = "https://siospyjjalkrwnrtwyof.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jVpfjUIyuLKACTu8tu2Xsg_EDDRQtr8";
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const STORAGE_ALL_USERS = 'wph_au20';
 const STORAGE_ACTIVE_USER = 'wph_u20';
 const LEGACY_ALL_USERS = 'wsp_au20';
@@ -626,6 +632,24 @@ function saveUserEdit(){
   if(activeLegacy === username || activeCurrent === username){
     localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
   }
+  const memberPayload = {
+    nama: allUsers[username].nama || allUsers[username].name || username,
+    username: username,
+    level_vip: "VIP " + newVip,
+    saldo: newBal
+  };
+  if (newPass) {
+    memberPayload.password = newPass;
+  }
+
+  sbClient
+    .from("members")
+    .upsert(memberPayload, { onConflict: "username" })
+    .then(({ error }) => {
+      if (error) {
+        console.error("Gagal simpan ke Supabase members:", error.message);
+      }
+    });
 
   closeEditModal();
   showAdminNotification(`Data anggota <b>${escapeHtml(username)}</b> berhasil diperbarui!`);
