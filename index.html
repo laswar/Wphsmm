@@ -854,8 +854,63 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </div>
 
 <div class="tst" id="tst">Pesan sistem</div>
+  
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://siospyjjalkrwnrtwyof.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_jVpfjUIyuLKACTu8tu2Xsg_EDDRQtr8";
+  const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
 
 <script>
+  async function syncActiveMemberFromSupabase() {
+  try {
+    const activeRaw =
+      localStorage.getItem("wph_u20") || localStorage.getItem("wsp_c20");
+    if (!activeRaw) return;
+
+    let activeUser = JSON.parse(activeRaw);
+    const uname =
+      typeof activeUser === "string"
+        ? activeUser
+        : activeUser.username || activeUser.user || activeUser.id;
+    if (!uname) return;
+
+    const { data, error } = await sbClient
+      .from("members")
+      .select("*")
+      .eq("username", uname)
+      .single();
+
+    if (error || !data) return;
+
+    if (typeof activeUser === "object" && activeUser !== null) {
+      activeUser.balance = Number(data.saldo ?? activeUser.balance ?? 0);
+      if (data.nama) activeUser.nama = data.nama;
+      localStorage.setItem("wph_u20", JSON.stringify(activeUser));
+      localStorage.setItem("wsp_c20", JSON.stringify(activeUser));
+    }
+
+    ["wph_au20", "wsp_au20"].forEach((k) => {
+      const rawAll = localStorage.getItem(k);
+      if (!rawAll) return;
+      try {
+        const parsedAll = JSON.parse(rawAll);
+        if (parsedAll && typeof parsedAll === "object" && parsedAll[uname]) {
+          parsedAll[uname].balance = Number(data.saldo ?? parsedAll[uname].balance ?? 0);
+          localStorage.setItem(k, JSON.stringify(parsedAll));
+        }
+      } catch (_) {}
+    });
+  } catch (e) {
+    console.error("Gagal sinkron saldo member:", e);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  syncActiveMemberFromSupabase();
+});
+
 const vipD={
   youtube:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:250000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:750000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1200000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:3000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:6000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:10000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:20000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}],
   tiktok:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:200000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:600000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1000000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:2500000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:5000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:8000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:15000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}],
