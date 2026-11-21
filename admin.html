@@ -23,7 +23,6 @@
 }
 body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
 
-/* LAYOUT SIDEBAR KIRI */
 aside{width:260px;background:rgba(3,12,8,0.98);border-right:1px solid var(--border-emerald);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;z-index:100;padding:20px;overflow-y:auto}
 .logo{font-family:'Orbitron';font-size:18px;font-weight:900;background:linear-gradient(135deg,var(--emerald),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
 .admin-badge{background:rgba(255,145,0,0.2);border:1px solid var(--orange);color:var(--orange);padding:4px 8px;border-radius:6px;font-size:9.5px;font-weight:700;font-family:'Orbitron';width:fit-content;margin-bottom:20px}
@@ -33,7 +32,6 @@ aside{width:260px;background:rgba(3,12,8,0.98);border-right:1px solid var(--bord
 .menu-item:hover, .menu-item.active{background:rgba(0,230,118,0.15);color:var(--emerald);border:1px solid var(--border-emerald)}
 .notif-badge{position:absolute;right:10px;background:var(--err);color:#fff;font-size:9px;padding:2px 6px;border-radius:10px;font-weight:800;display:none}
 
-/* KONTEN UTAMA DI KANAN */
 main{margin-left:260px;flex:1;padding:20px;max-width:calc(100vw - 260px);overflow-y:auto}
 header{display:flex;justify-content:space-between;align-items:center;background:rgba(3,12,8,0.95);border:1px solid var(--border-emerald);padding:14px 20px;border-radius:14px;margin-bottom:20px;backdrop-filter:blur(10px)}
 
@@ -66,7 +64,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
 .modal-section-label{font-family:'Orbitron';font-size:10.5px;color:var(--cyan);margin:12px 0 6px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1)}
 .bank-sub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.4}
 
-/* MODAL EDIT ANGGOTA */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px}
 .modal.on{display:flex}
 .modal-content{background:var(--bg);border:1.5px solid var(--emerald);border-radius:14px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
@@ -76,7 +73,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 .chat-admin-box{height:250px;overflow-y:auto;background:rgba(2,8,5,0.9);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
-.c-msg{padding:6px 10px;border-radius:8px;font-size:11px;max-width:80%}
+.c-msg{padding:6px 10px;border-radius:8px;font-size:11px;max-width:80%;word-break:break-word}
 .c-msg.user{background:rgba(255,255,255,0.1);align-self:flex-start}
 .c-msg.admin{background:var(--emerald);color:#000;align-self:flex-end}
 
@@ -86,7 +83,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
   main{margin-left:0;max-width:100vw;padding:14px}
 }
 
-/* ADMIN LOCK OVERLAY */
 .admin-lock-screen{position:fixed;inset:0;z-index:2000;background:radial-gradient(circle at 20% 25%,rgba(0,230,118,0.14),transparent 55%),radial-gradient(circle at 80% 75%,rgba(0,229,255,0.12),transparent 55%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .admin-lock-screen.unlocked{display:none}
 .admin-lock-card{width:100%;max-width:380px;background:var(--bg-card);border:1.5px solid var(--border-emerald);border-radius:16px;padding:24px 20px;box-shadow:0 0 28px rgba(0,230,118,0.18);text-align:center}
@@ -97,7 +93,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
 </head>
 <body>
 
-<!-- LAYAR KUNCI LOGIN ADMIN -->
 <div class="admin-lock-screen" id="adminLockScreen">
   <div class="admin-lock-card">
     <div class="admin-lock-title">🔒 MASTER ADMIN LOCK</div>
@@ -113,7 +108,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
 
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- MODAL EDIT ANGGOTA -->
 <div class="modal" id="editUserModal">
   <div class="modal-content">
     <h3 style="font-family:'Orbitron';font-size:14px;color:var(--emerald);margin-bottom:12px">✏️ Edit Data Anggota</h3>
@@ -172,7 +166,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
   </div>
 </div>
 
-<!-- SIDEBAR SEBELAH KIRI -->
 <aside>
   <div>
     <div class="logo">WPH SMM</div>
@@ -188,21 +181,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     <div class="menu-item" onclick="switchTab('chat', this)">💬 Live Chat CS <span class="notif-badge" id="badgeChat">0</span></div>
   </div>
   <div style="font-size:9.5px;color:var(--dim);text-align:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:auto">
-    System Sync v2.6
+    System Sync v2.8
   </div>
 </aside>
 
-<!-- KONTEN UTAMA KANAN -->
 <main>
   <header>
     <div>
-      <div style="font-family:'Orbitron';font-weight:800;font-size:15px" id="headerTitle">Dashboard & Statistik Platform</div>
+      <div style="font-family:'Orbitron';font-weight:800;font-size:15px" id="headerTitle">Dashboard &amp; Statistik Platform</div>
       <div style="font-size:10.5px;color:var(--dim)">Sinkronisasi Real-Time dengan Web Anggota</div>
     </div>
-    <div style="display:flex;gap:8px"><button class="btn edit" onclick="loadAdminData(true)">🔄 Refresh Data</button><button class="btn del" onclick="lockAdminPanel()">🔒 Kunci</button></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn edit" onclick="loadAdminData(true)">🔄 Refresh Data</button>
+      <button class="btn del" onclick="lockAdminPanel()">🔒 Kunci</button>
+    </div>
   </header>
 
-  <!-- 1. TAB DASHBOARD -->
   <div class="section-box active" id="tab-dashboard">
     <div class="section-title"><span>📊 Ringkasan Umum Sistem</span></div>
     <div class="grid-stats">
@@ -225,9 +219,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 
-  <!-- 2. TAB TRANSAKSI -->
   <div class="section-box" id="tab-transaksi">
-    <div class="section-title"><span>💳 Verifikasi Topup QRIS & Penarikan Dana</span></div>
+    <div class="section-title"><span>💳 Verifikasi Topup QRIS &amp; Penarikan Dana</span></div>
     <div style="overflow-x:auto">
       <table>
         <thead>
@@ -245,12 +238,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 
-  <!-- 3. TAB KELOLA & EDIT TUGAS -->
   <div class="section-box" id="tab-tugas">
     <div class="section-title"><span id="taskFormTitle">➕ Tambah Tugas Baru</span></div>
     <input type="hidden" id="editTaskIndex" value="-1">
     <input type="hidden" id="editTaskPlatform" value="">
-    
+
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:10px">
       <div class="fg">
         <label>Platform Target</label>
@@ -263,7 +255,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
       </div>
       <div class="fg">
         <label>Judul / Instruksi Tugas</label>
-        <input type="text" id="taskTitle" placeholder="Contoh: Like & Subscribe Channel">
+        <input type="text" id="taskTitle" placeholder="Contoh: Like &amp; Subscribe Channel">
       </div>
       <div class="fg">
         <label>Link Tautan Target Video</label>
@@ -293,7 +285,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 
-  <!-- 4. TAB PENGUMUMAN DISPLAY (RUNNING TEXT) -->
   <div class="section-box" id="tab-announcement">
     <div class="section-title"><span>📢 Pengaturan Pengumuman Display (Running Text Berjalan)</span></div>
     <div class="fg">
@@ -303,9 +294,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     <button class="btn add" onclick="saveAnnouncementText()">💾 Perbarui Pengumuman Web</button>
   </div>
 
-  <!-- 5. TAB KELOLA RUANG DAGANG (SMM MARKETPLACE) -->
   <div class="section-box" id="tab-dagang">
-    <div class="section-title"><span>🛒 Kelola Iklan & Promosi Ruang Dagang Anggota</span></div>
+    <div class="section-title"><span>🛒 Kelola Iklan &amp; Promosi Ruang Dagang Anggota</span></div>
     <div style="overflow-x:auto">
       <table>
         <thead>
@@ -322,9 +312,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 
-  <!-- 6. TAB DOWNLINE & TIM -->
   <div class="section-box" id="tab-downline">
-    <div class="section-title"><span>👥 Monitoring Anggota, Password, Data Bank & Edit Akun</span></div>
+    <div class="section-title"><span>👥 Monitoring Anggota, Password, Data Bank &amp; Edit Akun</span></div>
     <div style="overflow-x:auto">
       <table>
         <thead>
@@ -344,7 +333,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 
-  <!-- 7. TAB LIVE CHAT CS -->
   <div class="section-box" id="tab-chat">
     <div class="section-title"><span>💬 Live Chat Customer Service (Pusat Bantuan)</span></div>
     <div class="fg">
@@ -360,50 +348,55 @@ input:focus,select:focus,textarea:focus{border-color:var(--emerald);outline:none
     </div>
   </div>
 </main>
-  
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://siospyjjalkrwnrtwyof.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jVpfjUIyuLKACTu8tu2Xsg_EDDRQtr8";
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const STORAGE_ALL_USERS = 'wph_au20';
-const STORAGE_ACTIVE_USER = 'wph_u20';
-const LEGACY_ALL_USERS = 'wsp_au20';
-const LEGACY_ACTIVE_USER = 'wsp_c20';
+const STORAGE_ALL_USERS = "wph_au20";
+const STORAGE_ACTIVE_USER = "wph_u20";
+const LEGACY_ALL_USERS = "wsp_au20";
+const LEGACY_ACTIVE_USER = "wsp_c20";
 
+// Mempertahankan format nomor persis seperti yang didaftarkan anggota
 function normalizePhone(phone) {
   if (!phone) return "";
-  let clean = String(phone).trim().replace(/[^0-9]/g, "");
-  if (clean.startsWith("62")) {
-    clean = "0" + clean.slice(2);
-  } else if (clean.startsWith("8")) {
-    clean = "0" + clean;
-  }
-  return clean;
+  return String(phone).trim().replace(/[^0-9]/g, "");
 }
 
-function getRawUsersStorage(){
+function getTxKey(tx) {
+  if (!tx) return "";
+  return tx.id || tx.commId || `${tx.title || ""}|${Number(tx.amount || 0)}|${tx.type || ""}|${tx.dateKey || tx.date || ""}`;
+}
+
+function getRawUsersStorage() {
   const primary = localStorage.getItem(STORAGE_ALL_USERS);
-  if(primary && primary !== '{}' && primary !== '[]') return JSON.parse(primary);
+  if (primary && primary !== "{}" && primary !== "[]") return JSON.parse(primary);
   const legacy = localStorage.getItem(LEGACY_ALL_USERS);
-  if(legacy) return JSON.parse(legacy);
+  if (legacy) return JSON.parse(legacy);
   return {};
 }
 
-function saveRawUsersStorage(obj){
+function saveRawUsersStorage(obj) {
   const serialized = JSON.stringify(obj);
   localStorage.setItem(STORAGE_ALL_USERS, serialized);
   localStorage.setItem(LEGACY_ALL_USERS, serialized);
 }
 
-function escapeHtml(str){
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function safeUrl(url) {
+  const trimmed = String(url || "").trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return "#";
 }
 
 function playBeep() {
@@ -411,63 +404,63 @@ function playBeep() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-  } catch(e) {}
+    osc.stop(audioCtx.currentTime + 0.18);
+  } catch (e) {}
 }
 
-function showAdminNotification(message){
+function showAdminNotification(message) {
   playBeep();
-  const container = document.getElementById('toastContainer');
-  const alertBox = document.createElement('div');
-  alertBox.className = 'toast-alert';
+  const container = document.getElementById("toastContainer");
+  const alertBox = document.createElement("div");
+  alertBox.className = "toast-alert";
   alertBox.innerHTML = `<span>🔔</span> <div><b>Aktivitas Masuk!</b><br>${message}</div>`;
   container.appendChild(alertBox);
   setTimeout(() => {
-    alertBox.style.opacity = '0';
+    alertBox.style.opacity = "0";
     setTimeout(() => alertBox.remove(), 300);
   }, 4000);
 }
 
-function switchTab(tabId, el){
-  document.querySelectorAll('.section-box').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-  
-  document.getElementById('tab-' + tabId).classList.add('active');
-  if(el) el.classList.add('active');
+function switchTab(tabId, el) {
+  document.querySelectorAll(".section-box").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".menu-item").forEach(m => m.classList.remove("active"));
+
+  document.getElementById("tab-" + tabId).classList.add("active");
+  if (el) el.classList.add("active");
 
   const titles = {
-    dashboard: 'Dashboard & Statistik Platform',
-    transaksi: 'Verifikasi Transaksi Keuangan',
-    tugas: 'Pengelolaan & Edit Tugas Platform',
-    announcement: 'Pengaturan Teks Pengumuman Display',
-    dagang: 'Kelola Ruang Dagang Konten',
-    downline: 'Monitoring Jaringan Downline & Edit Anggota',
-    chat: 'Pusat Layanan Live Chat CS'
+    dashboard: "Dashboard & Statistik Platform",
+    transaksi: "Verifikasi Transaksi Keuangan",
+    tugas: "Pengelolaan & Edit Tugas Platform",
+    announcement: "Pengaturan Teks Pengumuman Display",
+    dagang: "Kelola Ruang Dagang Konten",
+    downline: "Monitoring Jaringan Downline & Edit Anggota",
+    chat: "Pusat Layanan Live Chat CS"
   };
-  document.getElementById('headerTitle').textContent = titles[tabId];
+  document.getElementById("headerTitle").textContent = titles[tabId];
 }
 
 let lastState = { usersCount: 0, pendingTxCount: 0 };
 let isRefreshingAdmin = false;
 
-async function loadAdminData(showToast = false){
+async function loadAdminData(showToast = false) {
   if (isRefreshingAdmin) return;
   isRefreshingAdmin = true;
 
   try {
     let rawUsers = {};
-    try { rawUsers = getRawUsersStorage(); } catch(e){ rawUsers = {}; }
+    try { rawUsers = getRawUsersStorage(); } catch (e) { rawUsers = {}; }
 
     let allUsers = {};
     Object.entries(rawUsers || {}).forEach(([k, u]) => {
-      if (!u || typeof u !== 'object') return;
-      const canonKey = normalizePhone(u.username || k);
+      if (!u || typeof u !== "object") return;
+      const canonKey = normalizePhone(u.username || k) || String(u.username || k || "").trim();
       if (!canonKey) return;
 
       if (!allUsers[canonKey]) {
@@ -478,9 +471,9 @@ async function loadAdminData(showToast = false){
           ...prev,
           ...u,
           username: canonKey,
-          password: u.password || prev.password || '',
+          password: u.password || prev.password || "",
           balance: Math.max(Number(prev.balance ?? 0), Number(u.balance ?? 0)),
-          inviteCode: u.inviteCode || prev.inviteCode || '',
+          inviteCode: u.inviteCode || prev.inviteCode || "",
           referredBy: u.referredBy || prev.referredBy || null,
           personalInfo: {
             ...(prev.personalInfo || {}),
@@ -513,7 +506,7 @@ async function loadAdminData(showToast = false){
         const sbUniqueMap = new Map();
 
         sbMembers.forEach((m) => {
-          const key = normalizePhone(m.username);
+          const key = normalizePhone(m.username) || String(m.username || "").trim();
           if (!key) return;
           if (!sbUniqueMap.has(key)) {
             sbUniqueMap.set(key, m);
@@ -529,8 +522,8 @@ async function loadAdminData(showToast = false){
               nama: m.nama || key,
               password: m.password || "",
               balance: Number(m.saldo ?? 0),
-              inviteCode: m.invite_code || ('WPH-' + key.substring(0, 4).toUpperCase()),
-              referredBy: m.referred_by ? normalizePhone(m.referred_by) : null,
+              inviteCode: m.invite_code || ("WPH-" + key.substring(0, 4).toUpperCase()),
+              referredBy: m.referred_by ? (normalizePhone(m.referred_by) || String(m.referred_by).trim()) : null,
               referrals: { 1: [], 2: [], 3: [] },
               currentVip: {}
             };
@@ -540,7 +533,7 @@ async function loadAdminData(showToast = false){
             if (m.nama) allUsers[key].nama = m.nama;
             if (m.password) allUsers[key].password = m.password;
             if (m.invite_code) allUsers[key].inviteCode = m.invite_code;
-            if (m.referred_by) allUsers[key].referredBy = normalizePhone(m.referred_by);
+            if (m.referred_by) allUsers[key].referredBy = normalizePhone(m.referred_by) || String(m.referred_by).trim();
           }
 
           if (m.transaksi_json) {
@@ -549,12 +542,12 @@ async function loadAdminData(showToast = false){
               if (Array.isArray(sbTxList)) {
                 const localTxList = Array.isArray(allUsers[key].transactions) ? allUsers[key].transactions : [];
                 const txMap = new Map();
-                sbTxList.forEach(t => txMap.set(t.id || (t.title + '_' + t.amount + '_' + t.date), t));
-                localTxList.forEach(t => {
-                  const k = t.id || (t.title + '_' + t.amount + '_' + t.date);
+                localTxList.forEach(t => txMap.set(getTxKey(t), t));
+                sbTxList.forEach(t => {
+                  const k = getTxKey(t);
                   const prev = txMap.get(k);
-                  if (!prev || prev.status === 'pending') {
-                    txMap.set(k, t);
+                  if (!prev || prev.status === "pending" || t.status !== "pending") {
+                    txMap.set(k, { ...(prev || {}), ...t, id: t.id || prev?.id || k });
                   }
                 });
                 allUsers[key].transactions = Array.from(txMap.values());
@@ -572,7 +565,7 @@ async function loadAdminData(showToast = false){
         });
 
         Object.keys(allUsers).forEach(k => {
-          const normK = normalizePhone(k);
+          const normK = normalizePhone(k) || String(k || "").trim();
           if (!sbKeys.has(normK) && !allUsers[k]?.isLocalOnly) {
             delete allUsers[k];
           }
@@ -582,11 +575,11 @@ async function loadAdminData(showToast = false){
           if (!u.referrals) u.referrals = { 1: [], 2: [], 3: [] };
         });
         Object.values(allUsers).forEach(u => {
-          const refKey = u.referredBy ? normalizePhone(u.referredBy) : null;
+          const refKey = u.referredBy ? (normalizePhone(u.referredBy) || String(u.referredBy).trim()) : null;
           if (refKey && allUsers[refKey]) {
             const t1List = allUsers[refKey].referrals[1];
-            if (!t1List.some(r => normalizePhone(r.username) === u.username)) {
-              t1List.push({ username: u.username, date: new Date().toLocaleDateString('id-ID') });
+            if (!t1List.some(r => (normalizePhone(r.username) || String(r.username || "").trim()) === u.username)) {
+              t1List.push({ username: u.username, date: new Date().toLocaleDateString("id-ID") });
             }
           }
         });
@@ -596,11 +589,10 @@ async function loadAdminData(showToast = false){
       console.error("Gagal sinkronisasi members dari Supabase:", e);
     }
 
-    // Pastikan setiap nomor HP unik tepat 1 entri saat di-render ke panel admin
     const dedupedUsersMap = new Map();
     Object.entries(allUsers).forEach(([uname, u]) => {
       if (!u) return;
-      const canonKey = normalizePhone(u.username || uname);
+      const canonKey = normalizePhone(u.username || uname) || String(u.username || uname || "").trim();
       if (!canonKey) return;
       if (!dedupedUsersMap.has(canonKey)) {
         dedupedUsersMap.set(canonKey, { ...u, username: canonKey });
@@ -609,38 +601,39 @@ async function loadAdminData(showToast = false){
 
     const userKeys = Array.from(dedupedUsersMap.keys());
 
-    if(lastState.usersCount > 0 && userKeys.length > lastState.usersCount){
+    if (lastState.usersCount > 0 && userKeys.length > lastState.usersCount) {
       showAdminNotification(`Ada anggota baru mendaftar: <b>${escapeHtml(userKeys[userKeys.length - 1])}</b>`);
     }
     lastState.usersCount = userKeys.length;
 
     let totalBal = 0, pendingCount = 0, totalTasksDone = 0;
-    let txList = [], usersHtml = '', chatSelectOptions = '', dagangHtml = '';
+    let txList = [], usersHtml = "", chatSelectOptions = "", dagangHtml = "";
     let currentPendingCount = 0;
 
     userKeys.forEach(phoneDisplay => {
       const u = dedupedUsersMap.get(phoneDisplay);
-      if(!u) return;
+      if (!u) return;
 
-      totalBal += (u.balance || 0);
+      totalBal += Number(u.balance || 0);
       totalTasksDone += (u.completedTasks ? u.completedTasks.length : 0);
 
-      if(u.transactions){
-        u.transactions.forEach((tx, idx) => {
-          if(tx.status === 'pending') {
+      if (u.transactions) {
+        u.transactions.forEach((tx) => {
+          const uniqueTxId = getTxKey(tx);
+          if (tx.status === "pending") {
             pendingCount++;
             currentPendingCount++;
           }
-          txList.push({ username: phoneDisplay, txIdx: idx, ...tx });
+          txList.push({ username: phoneDisplay, txId: uniqueTxId, ...tx });
         });
       }
 
-      if(u.dagangAds){
+      if (u.dagangAds) {
         u.dagangAds.forEach((ad, adIdx) => {
           dagangHtml += `
             <tr>
               <td><b>${escapeHtml(phoneDisplay)}</b></td>
-              <td><code style="color:var(--cyan)">${escapeHtml((ad.platform || '').toUpperCase())}</code></td>
+              <td><code style="color:var(--cyan)">${escapeHtml((ad.platform || "").toUpperCase())}</code></td>
               <td>${escapeHtml(ad.title)}</td>
               <td style="color:var(--gold)">${Number(ad.qty || 0).toLocaleString()} x</td>
               <td><button class="btn del" onclick="deleteDagangAd('${escapeHtml(phoneDisplay)}', ${adIdx})">Hapus Iklan</button></td>
@@ -652,108 +645,108 @@ async function loadAdminData(showToast = false){
       const l1 = u.referrals?.[1]?.length || 0;
       const l2 = u.referrals?.[2]?.length || 0;
       const l3 = u.referrals?.[3]?.length || 0;
-      const maxVip = Math.max(u.currentVip?.youtube||0, u.currentVip?.tiktok||0, u.currentVip?.facebook||0);
+      const maxVip = Math.max(u.currentVip?.youtube || 0, u.currentVip?.tiktok || 0, u.currentVip?.facebook || 0);
 
       const pInfo = u.personalInfo || {};
-      const bankMethod = (pInfo.method || '').toUpperCase();
-      const bankNum = pInfo.accountNum || '';
-      const bankName = pInfo.accountName || '';
+      const bankMethod = (pInfo.method || "").toUpperCase();
+      const bankNum = pInfo.accountNum || "";
+      const bankName = pInfo.accountName || "";
 
       const bankSummary = (bankMethod || bankNum || bankName)
-        ? `<div><b style="color:var(--emerald)">${escapeHtml(bankMethod || '-')}</b> · <code>${escapeHtml(bankNum || '-')}</code></div><div class="bank-sub">${escapeHtml(bankName || 'Belum diisi')}</div>`
+        ? `<div><b style="color:var(--emerald)">${escapeHtml(bankMethod || "-")}</b> · <code>${escapeHtml(bankNum || "-")}</code></div><div class="bank-sub">${escapeHtml(bankName || "Belum diisi")}</div>`
         : `<span style="color:var(--dim)">Belum diatur</span>`;
 
       usersHtml += `
         <tr>
           <td><b>${escapeHtml(phoneDisplay)}</b></td>
-          <td><code style="color:var(--cyan)">${escapeHtml(u.password || '-')}</code></td>
+          <td><code style="color:var(--cyan)">${escapeHtml(u.password || "-")}</code></td>
           <td>${bankSummary}</td>
-          <td><code style="color:var(--cyan)">${escapeHtml(u.inviteCode || '-')}</code></td>
+          <td><code style="color:var(--cyan)">${escapeHtml(u.inviteCode || "-")}</code></td>
           <td>VIP ${maxVip}</td>
-          <td style="color:var(--gold);font-weight:700">Rp ${(u.balance||0).toLocaleString()}</td>
+          <td style="color:var(--gold);font-weight:700">Rp ${Number(u.balance || 0).toLocaleString()}</td>
           <td>T1: <b>${l1}</b> | T2: <b>${l2}</b> | T3: <b>${l3}</b></td>
           <td><button class="btn edit" onclick="openEditUserModal('${escapeHtml(phoneDisplay)}')">✏️ Edit</button></td>
         </tr>
       `;
-      chatSelectOptions += `<option value="${escapeHtml(phoneDisplay)}">${escapeHtml(phoneDisplay)} (Saldo: Rp ${(u.balance||0).toLocaleString()})</option>`;
+      chatSelectOptions += `<option value="${escapeHtml(phoneDisplay)}">${escapeHtml(phoneDisplay)} (Saldo: Rp ${Number(u.balance || 0).toLocaleString()})</option>`;
     });
 
-    if(currentPendingCount > lastState.pendingTxCount){
+    if (currentPendingCount > lastState.pendingTxCount) {
       showAdminNotification(`Ada <b>${currentPendingCount}</b> pengajuan transaksi (Topup/Withdraw) menunggu tinjauan!`);
     }
     lastState.pendingTxCount = currentPendingCount;
 
-    const badgeTx = document.getElementById('badgeTx');
-    if(pendingCount > 0){
+    const badgeTx = document.getElementById("badgeTx");
+    if (pendingCount > 0) {
       badgeTx.textContent = pendingCount;
-      badgeTx.style.display = 'inline-block';
+      badgeTx.style.display = "inline-block";
     } else {
-      badgeTx.style.display = 'none';
+      badgeTx.style.display = "none";
     }
 
     let chatHistories = {};
-    try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
-    
+    try { chatHistories = JSON.parse(localStorage.getItem("wsp_chat_histories") || "{}"); } catch (e) {}
+
     let activeChatUsersCount = 0;
     Object.keys(chatHistories).forEach(u => {
       const msgs = chatHistories[u] || [];
-      if(msgs.length > 0 && msgs[msgs.length-1].sender === 'user'){
+      if (msgs.length > 0 && msgs[msgs.length - 1].sender === "user") {
         activeChatUsersCount++;
       }
       const normChatUser = normalizePhone(u) || u;
-      if(!dedupedUsersMap.has(normChatUser)){
+      if (!dedupedUsersMap.has(normChatUser)) {
         chatSelectOptions += `<option value="${escapeHtml(u)}">[Tamu] ${escapeHtml(normChatUser)}</option>`;
       }
     });
 
-    const badgeChat = document.getElementById('badgeChat');
-    if(activeChatUsersCount > 0){
+    const badgeChat = document.getElementById("badgeChat");
+    if (activeChatUsersCount > 0) {
       badgeChat.textContent = activeChatUsersCount;
-      badgeChat.style.display = 'inline-block';
+      badgeChat.style.display = "inline-block";
     } else {
-      badgeChat.style.display = 'none';
+      badgeChat.style.display = "none";
     }
 
-    document.getElementById('stUsers').textContent = userKeys.length;
-    document.getElementById('stBalance').textContent = 'Rp ' + totalBal.toLocaleString();
-    document.getElementById('stPending').textContent = pendingCount + ' Transaksi';
-    document.getElementById('stTasks').textContent = totalTasksDone;
+    document.getElementById("stUsers").textContent = userKeys.length;
+    document.getElementById("stBalance").textContent = "Rp " + totalBal.toLocaleString();
+    document.getElementById("stPending").textContent = pendingCount + " Transaksi";
+    document.getElementById("stTasks").textContent = totalTasksDone;
 
-    document.getElementById('usersTableBody').innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota terdaftar.</td></tr>';
-    document.getElementById('dagangTableBody').innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan Ruang Dagang aktif.</td></tr>';
+    document.getElementById("usersTableBody").innerHTML = usersHtml || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Belum ada anggota terdaftar.</td></tr>';
+    document.getElementById("dagangTableBody").innerHTML = dagangHtml || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada iklan Ruang Dagang aktif.</td></tr>';
 
-    const chatSel = document.getElementById('chatUserSelect');
+    const chatSel = document.getElementById("chatUserSelect");
     const curSelected = chatSel.value;
     chatSel.innerHTML = chatSelectOptions || '<option value="">Belum ada data chat</option>';
-    if(curSelected && [...chatSel.options].some(o => o.value === curSelected)){
+    if (curSelected && [...chatSel.options].some(o => o.value === curSelected)) {
       chatSel.value = curSelected;
     }
 
-    let txHtml = '';
+    let txHtml = "";
     txList.forEach(t => {
       let stBadge = `<span style="color:var(--gold)">PENDING</span>`;
-      if(t.status === 'approved') stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
-      if(t.status === 'rejected') stBadge = `<span style="color:var(--err)">REJECTED</span>`;
+      if (t.status === "approved") stBadge = `<span style="color:var(--emerald)">APPROVED</span>`;
+      if (t.status === "rejected") stBadge = `<span style="color:var(--err)">REJECTED</span>`;
 
       let actionBtns = `<span style="color:var(--dim)">-</span>`;
-      if(t.status === 'pending'){
+      if (t.status === "pending") {
         actionBtns = `
-          <button class="btn approve" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'approved')">✔ Setuju</button>
-          <button class="btn reject" onclick="resolveTx('${escapeHtml(t.username)}', ${t.txIdx}, 'rejected')">✖ Tolak</button>
+          <button class="btn approve" onclick="resolveTx('${escapeHtml(t.username)}', '${escapeHtml(t.txId)}', 'approved')">✔ Setuju</button>
+          <button class="btn reject" onclick="resolveTx('${escapeHtml(t.username)}', '${escapeHtml(t.txId)}', 'rejected')">✖ Tolak</button>
         `;
       }
       txHtml += `
         <tr>
           <td><b>${escapeHtml(t.username)}</b></td>
           <td>${escapeHtml(t.title)}</td>
-          <td style="color:var(--gold)">Rp ${(t.amount||0).toLocaleString()}</td>
-          <td>${escapeHtml(t.date || '-')}</td>
+          <td style="color:var(--gold)">Rp ${Number(t.amount || 0).toLocaleString()}</td>
+          <td>${escapeHtml(t.date || "-")}</td>
           <td>${stBadge}</td>
           <td>${actionBtns}</td>
         </tr>
       `;
     });
-    document.getElementById('txTableBody').innerHTML = txHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Tidak ada transaksi pending.</td></tr>';
+    document.getElementById("txTableBody").innerHTML = txHtml || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Tidak ada transaksi.</td></tr>';
 
     loadTasksManager();
     loadAnnouncementText();
@@ -766,55 +759,54 @@ async function loadAdminData(showToast = false){
   }
 }
 
-// FITUR EDIT ANGGOTA MODAL
-function openEditUserModal(username){
-  const normKey = normalizePhone(username);
+function openEditUserModal(username) {
+  const normKey = normalizePhone(username) || String(username || "").trim();
   const allUsers = getRawUsersStorage();
   const u = allUsers[normKey] || allUsers[username];
-  if(!u) return;
+  if (!u) return;
 
   const pInfo = u.personalInfo || {};
 
-  document.getElementById('editTargetUsername').value = normKey || username;
-  document.getElementById('modalUsername').value = normKey || normalizePhone(u.username || username);
-  document.getElementById('modalPassword').value = u.password || '';
-  document.getElementById('modalBalance').value = u.balance ?? 0;
-  document.getElementById('modalVipYt').value = u.currentVip?.youtube ?? 0;
+  document.getElementById("editTargetUsername").value = normKey || username;
+  document.getElementById("modalUsername").value = normKey || (normalizePhone(u.username || username) || String(u.username || username).trim());
+  document.getElementById("modalPassword").value = u.password || "";
+  document.getElementById("modalBalance").value = u.balance ?? 0;
+  document.getElementById("modalVipYt").value = u.currentVip?.youtube ?? 0;
 
-  document.getElementById('modalBankMethod').value = pInfo.method || '';
-  document.getElementById('modalBankNum').value = pInfo.accountNum || '';
-  document.getElementById('modalBankName').value = pInfo.accountName || '';
+  document.getElementById("modalBankMethod").value = pInfo.method || "";
+  document.getElementById("modalBankNum").value = pInfo.accountNum || "";
+  document.getElementById("modalBankName").value = pInfo.accountName || "";
 
-  document.getElementById('editUserModal').classList.add('on');
+  document.getElementById("editUserModal").classList.add("on");
 }
 
-function closeEditModal(){
-  document.getElementById('editUserModal').classList.remove('on');
+function closeEditModal() {
+  document.getElementById("editUserModal").classList.remove("on");
 }
 
-function saveUserEdit(){
-  const rawUsername = document.getElementById('editTargetUsername').value;
-  const username = normalizePhone(rawUsername);
-  const newPass = document.getElementById('modalPassword').value.trim();
-  const newBal = parseInt(document.getElementById('modalBalance').value, 10) || 0;
-  const newVip = parseInt(document.getElementById('modalVipYt').value, 10) || 0;
-  const bankMethod = document.getElementById('modalBankMethod').value.trim();
-  const bankNum = document.getElementById('modalBankNum').value.trim();
-  const bankName = document.getElementById('modalBankName').value.trim();
+async function saveUserEdit() {
+  const rawUsername = document.getElementById("editTargetUsername").value;
+  const username = normalizePhone(rawUsername) || String(rawUsername || "").trim();
+  const newPass = document.getElementById("modalPassword").value.trim();
+  const newBal = parseInt(document.getElementById("modalBalance").value, 10) || 0;
+  const newVip = parseInt(document.getElementById("modalVipYt").value, 10) || 0;
+  const bankMethod = document.getElementById("modalBankMethod").value.trim();
+  const bankNum = document.getElementById("modalBankNum").value.trim();
+  const bankName = document.getElementById("modalBankName").value.trim();
 
   let allUsers = getRawUsersStorage();
   const targetObj = allUsers[username] || allUsers[rawUsername];
-  if(!targetObj) return;
+  if (!targetObj) return;
 
   Object.keys(allUsers).forEach((k) => {
-    if (k !== username && normalizePhone(k) === username) {
+    if (k !== username && (normalizePhone(k) || String(k || "").trim()) === username) {
       delete allUsers[k];
     }
   });
   allUsers[username] = targetObj;
   allUsers[username].username = username;
 
-  if(newPass){
+  if (newPass) {
     allUsers[username].password = newPass;
   }
 
@@ -833,20 +825,23 @@ function saveUserEdit(){
   };
 
   saveRawUsersStorage(allUsers);
-  
-  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
+
+  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || "") || String(localStorage.getItem(LEGACY_ACTIVE_USER) || "").trim();
   const activeCurrentRaw = localStorage.getItem(STORAGE_ACTIVE_USER);
-  if(activeLegacy === username){
+  if (activeLegacy === username) {
     localStorage.setItem(LEGACY_ACTIVE_USER, username);
+    localStorage.setItem("wsp_u20", JSON.stringify(allUsers[username]));
   }
-  if(activeCurrentRaw){
+  if (activeCurrentRaw) {
     try {
       const parsedActive = JSON.parse(activeCurrentRaw);
-      if(normalizePhone(parsedActive?.username) === username){
+      const parsedU = normalizePhone(parsedActive?.username) || String(parsedActive?.username || "").trim();
+      if (parsedU === username) {
         localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
       }
     } catch (_) {
-      if(normalizePhone(activeCurrentRaw) === username){
+      const rawU = normalizePhone(activeCurrentRaw) || String(activeCurrentRaw).trim();
+      if (rawU === username) {
         localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(allUsers[username]));
       }
     }
@@ -856,109 +851,124 @@ function saveUserEdit(){
     nama: allUsers[username].nama || allUsers[username].name || username,
     username: username,
     level_vip: "VIP " + newVip,
-    saldo: newBal
+    saldo: newBal,
+    transaksi_json: JSON.stringify(allUsers[username].transactions || [])
   };
   if (newPass) {
     memberPayload.password = newPass;
   }
 
-  sbClient
+  const { error } = await sbClient
     .from("members")
-    .upsert(memberPayload, { onConflict: "username" })
-    .then(({ error }) => {
-      if (error) {
-        console.error("Gagal simpan ke Supabase members:", error.message);
-      }
-    });
+    .upsert(memberPayload, { onConflict: "username" });
+  if (error) {
+    console.error("Gagal simpan ke Supabase members:", error.message);
+  }
 
   closeEditModal();
   showAdminNotification(`Data anggota <b>${escapeHtml(username)}</b> berhasil diperbarui!`);
-  loadAdminData();
+  await loadAdminData();
 }
 
-// FITUR PENGUMUMAN DISPLAY (RUNNING TEXT)
-function loadAnnouncementText(){
-  const savedAnn = localStorage.getItem('wsp_admin_announcement') || 'Selamat kepada anggota ****2478 rekomendasi Oscar, mendapat Rp 14.000 komisi!';
-  document.getElementById('announcementInput').value = savedAnn;
+function loadAnnouncementText() {
+  const savedAnn = localStorage.getItem("wsp_admin_announcement") || "Selamat kepada anggota yang aktif menyelesaikan tugas harian dan membangun tim referral WPH SMM!";
+  document.getElementById("announcementInput").value = savedAnn;
 }
 
-function saveAnnouncementText(){
-  const text = document.getElementById('announcementInput').value.trim();
-  if(!text) return;
-  localStorage.setItem('wsp_admin_announcement', text);
-  showAdminNotification('Pengumuman display berhasil diperbarui dan aktif di web anggota!');
+async function saveAnnouncementText() {
+  const text = document.getElementById("announcementInput").value.trim();
+  if (!text) return;
+  localStorage.setItem("wsp_admin_announcement", text);
+  try {
+    await sbClient
+      .from("app_settings")
+      .upsert({ key_name: "announcement", value_text: text, updated_at: new Date().toISOString() }, { onConflict: "key_name" });
+  } catch (_) {}
+  showAdminNotification("Pengumuman display berhasil diperbarui dan aktif di web anggota!");
 }
 
-// KELOLA RUANG DAGANG
-function deleteDagangAd(username, adIndex){
-  if(!confirm('Hapus iklan ruang dagang ini?')) return;
-  const normKey = normalizePhone(username);
+function deleteDagangAd(username, adIndex) {
+  if (!confirm("Hapus iklan ruang dagang ini?")) return;
+  const normKey = normalizePhone(username) || String(username || "").trim();
   let allUsers = getRawUsersStorage();
   const target = allUsers[normKey] || allUsers[username];
-  if(target && target.dagangAds){
+  if (target && target.dagangAds) {
     target.dagangAds.splice(adIndex, 1);
     saveRawUsersStorage(allUsers);
-    
-    const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
-    if(activeLegacy === normKey){
+
+    const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || "") || String(localStorage.getItem(LEGACY_ACTIVE_USER) || "").trim();
+    if (activeLegacy === normKey) {
       localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(target));
+      localStorage.setItem("wsp_u20", JSON.stringify(target));
     }
 
-    showAdminNotification('Iklan ruang dagang berhasil dihapus!');
+    showAdminNotification("Iklan ruang dagang berhasil dihapus!");
     loadAdminData();
   }
 }
 
-function resolveTx(username, txIdx, status){
-  const cleanUname = normalizePhone(username);
+async function resolveTx(username, txId, status) {
+  const cleanUname = normalizePhone(username) || String(username || "").trim();
   let allUsers = getRawUsersStorage();
   const targetUser = allUsers[cleanUname] || allUsers[username];
-  if(!targetUser) return;
+  if (!targetUser || !Array.isArray(targetUser.transactions)) return;
 
-  const tx = targetUser.transactions[txIdx];
-  if(!tx) return;
-
-  if(status === 'approved' && tx.status === 'pending' && tx.type === 'topup'){
-    targetUser.balance = (targetUser.balance || 0) + (tx.amount || 0);
-  } else if(status === 'rejected' && tx.status === 'pending' && tx.type === 'withdraw'){
-    targetUser.balance = (targetUser.balance || 0) + (tx.amount || 0);
+  const txIdx = targetUser.transactions.findIndex(t => getTxKey(t) === txId && t.status === "pending");
+  if (txIdx === -1) {
+    showAdminNotification("Transaksi sudah diproses atau tidak ditemukan.");
+    await loadAdminData();
+    return;
   }
 
-  targetUser.transactions[txIdx].status = status;
+  const tx = targetUser.transactions[txIdx];
+  const amt = Number(tx.amount || 0);
+
+  if (status === "approved" && tx.status === "pending" && tx.type === "topup") {
+    targetUser.balance = Number(targetUser.balance || 0) + amt;
+  } else if (status === "rejected" && tx.status === "pending" && tx.type === "withdraw") {
+    targetUser.balance = Number(targetUser.balance || 0) + amt;
+  }
+
+  targetUser.transactions[txIdx] = {
+    ...tx,
+    id: tx.id || txId,
+    status
+  };
+  allUsers[cleanUname] = targetUser;
   saveRawUsersStorage(allUsers);
 
   const updatedBal = Number(targetUser.balance ?? 0);
   const updatedTxJson = JSON.stringify(targetUser.transactions || []);
-  sbClient
+  const { error } = await sbClient
     .from("members")
     .update({ saldo: updatedBal, transaksi_json: updatedTxJson })
-    .eq("username", cleanUname)
-    .then(({ error }) => {
-      if (error) console.error("Gagal update saldo transaksi ke Supabase:", error.message);
-    });
+    .eq("username", cleanUname);
+  if (error) {
+    console.error("Gagal update saldo transaksi ke Supabase:", error.message);
+  }
 
-  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || '');
-  if(activeLegacy === cleanUname){
+  const activeLegacy = normalizePhone(localStorage.getItem(LEGACY_ACTIVE_USER) || "") || String(localStorage.getItem(LEGACY_ACTIVE_USER) || "").trim();
+  if (activeLegacy === cleanUname) {
     localStorage.setItem(STORAGE_ACTIVE_USER, JSON.stringify(targetUser));
+    localStorage.setItem("wsp_u20", JSON.stringify(targetUser));
   }
 
   showAdminNotification(`Transaksi ${escapeHtml(cleanUname)} diubah menjadi: ${status.toUpperCase()}`);
-  loadAdminData();
+  await loadAdminData();
 }
 
-// TASK MANAGER
-function loadTasksManager(){
+function loadTasksManager() {
   let customTasks = {};
-  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+  try { customTasks = JSON.parse(localStorage.getItem("wsp_custom_tasks") || "{}"); } catch (e) {}
 
-  let html = '';
+  let html = "";
   Object.keys(customTasks).forEach(plat => {
     customTasks[plat].forEach((t, idx) => {
       html += `
         <tr>
           <td><b style="color:var(--cyan)">${escapeHtml(plat.toUpperCase())}</b></td>
           <td>${escapeHtml(t.t)}</td>
-          <td><a href="${escapeHtml(t.l)}" target="_blank" style="color:var(--dim);word-break:break-all">${escapeHtml(t.l)}</a></td>
+          <td><a href="${escapeHtml(safeUrl(t.l))}" target="_blank" rel="noopener noreferrer" style="color:var(--dim);word-break:break-all">${escapeHtml(t.l)}</a></td>
           <td>
             <button class="btn edit" onclick="editTask('${escapeHtml(plat)}', ${idx})">✏️ Edit</button>
             <button class="btn del" onclick="deleteTask('${escapeHtml(plat)}', ${idx})">🗑️ Hapus</button>
@@ -967,181 +977,210 @@ function loadTasksManager(){
       `;
     });
   });
-  document.getElementById('taskTableBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--dim)">Belum ada tugas kustom.</td></tr>';
+  document.getElementById("taskTableBody").innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--dim)">Belum ada tugas kustom.</td></tr>';
 }
 
-function saveTaskData(){
-  const platform = document.getElementById('taskPlatform').value;
-  const title = document.getElementById('taskTitle').value.trim();
-  const link = document.getElementById('taskLink').value.trim();
-  const editIdx = parseInt(document.getElementById('editTaskIndex').value, 10);
-  const oldPlatform = document.getElementById('editTaskPlatform').value;
+function saveTaskData() {
+  const platform = document.getElementById("taskPlatform").value;
+  const title = document.getElementById("taskTitle").value.trim();
+  const link = document.getElementById("taskLink").value.trim();
+  const editIdx = parseInt(document.getElementById("editTaskIndex").value, 10);
+  const oldPlatform = document.getElementById("editTaskPlatform").value;
 
-  if(!title || !link){
-    alert('Judul dan link tautan wajib diisi!');
+  if (!title || !link) {
+    alert("Judul dan link tautan wajib diisi!");
     return;
   }
 
   let customTasks = {};
-  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+  try { customTasks = JSON.parse(localStorage.getItem("wsp_custom_tasks") || "{}"); } catch (e) {}
 
-  if(editIdx > -1){
-    if(oldPlatform !== platform){
+  if (editIdx > -1) {
+    if (oldPlatform !== platform) {
       customTasks[oldPlatform].splice(editIdx, 1);
-      if(!customTasks[platform]) customTasks[platform] = [];
-      customTasks[platform].push({ id: 'custom_' + Date.now(), t: title, l: link });
+      if (!customTasks[platform]) customTasks[platform] = [];
+      customTasks[platform].push({ id: "custom_" + Date.now(), t: title, l: link });
     } else {
       customTasks[platform][editIdx].t = title;
       customTasks[platform][editIdx].l = link;
     }
-    showAdminNotification('Tugas berhasil diperbarui!');
+    showAdminNotification("Tugas berhasil diperbarui!");
   } else {
-    if(!customTasks[platform]) customTasks[platform] = [];
-    customTasks[platform].push({ id: 'custom_' + Date.now(), t: title, l: link });
-    showAdminNotification('Tugas baru berhasil ditambahkan!');
+    if (!customTasks[platform]) customTasks[platform] = [];
+    customTasks[platform].push({ id: "custom_" + Date.now(), t: title, l: link });
+    showAdminNotification("Tugas baru berhasil ditambahkan!");
   }
 
-  localStorage.setItem('wsp_custom_tasks', JSON.stringify(customTasks));
+  localStorage.setItem("wsp_custom_tasks", JSON.stringify(customTasks));
   resetTaskForm();
   loadAdminData();
 }
 
-function editTask(platform, index){
+function editTask(platform, index) {
   let customTasks = {};
-  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
+  try { customTasks = JSON.parse(localStorage.getItem("wsp_custom_tasks") || "{}"); } catch (e) {}
   const task = customTasks[platform]?.[index];
-  if(!task) return;
+  if (!task) return;
 
-  document.getElementById('taskPlatform').value = platform;
-  document.getElementById('taskTitle').value = task.t;
-  document.getElementById('taskLink').value = task.l;
-  document.getElementById('editTaskIndex').value = index;
-  document.getElementById('editTaskPlatform').value = platform;
+  document.getElementById("taskPlatform").value = platform;
+  document.getElementById("taskTitle").value = task.t;
+  document.getElementById("taskLink").value = task.l;
+  document.getElementById("editTaskIndex").value = index;
+  document.getElementById("editTaskPlatform").value = platform;
 
-  document.getElementById('taskFormTitle').textContent = '✏️ Edit Tugas Platform';
-  document.getElementById('btnSaveTask').textContent = '💾 Perbarui Tugas';
-  document.getElementById('btnCancelEdit').style.display = 'block';
+  document.getElementById("taskFormTitle").textContent = "✏️ Edit Tugas Platform";
+  document.getElementById("btnSaveTask").textContent = "💾 Perbarui Tugas";
+  document.getElementById("btnCancelEdit").style.display = "block";
 
-  switchTab('tugas', document.querySelectorAll('.menu-item')[2]);
+  switchTab("tugas", document.querySelectorAll(".menu-item")[2]);
 }
 
-function resetTaskForm(){
-  document.getElementById('taskPlatform').value = 'youtube';
-  document.getElementById('taskTitle').value = '';
-  document.getElementById('taskLink').value = '';
-  document.getElementById('editTaskIndex').value = '-1';
-  document.getElementById('editTaskPlatform').value = '';
+function resetTaskForm() {
+  document.getElementById("taskPlatform").value = "youtube";
+  document.getElementById("taskTitle").value = "";
+  document.getElementById("taskLink").value = "";
+  document.getElementById("editTaskIndex").value = "-1";
+  document.getElementById("editTaskPlatform").value = "";
 
-  document.getElementById('taskFormTitle').textContent = '➕ Tambah Tugas Baru';
-  document.getElementById('btnSaveTask').textContent = '💾 Simpan Tugas';
-  document.getElementById('btnCancelEdit').style.display = 'none';
+  document.getElementById("taskFormTitle").textContent = "➕ Tambah Tugas Baru";
+  document.getElementById("btnSaveTask").textContent = "💾 Simpan Tugas";
+  document.getElementById("btnCancelEdit").style.display = "none";
 }
 
-function deleteTask(platform, index){
-  if(!confirm('Yakin ingin menghapus tugas ini?')) return;
+function deleteTask(platform, index) {
+  if (!confirm("Yakin ingin menghapus tugas ini?")) return;
   let customTasks = {};
-  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e){}
-  if(customTasks[platform]){
+  try { customTasks = JSON.parse(localStorage.getItem("wsp_custom_tasks") || "{}"); } catch (e) {}
+  if (customTasks[platform]) {
     customTasks[platform].splice(index, 1);
-    localStorage.setItem('wsp_custom_tasks', JSON.stringify(customTasks));
-    showAdminNotification('Tugas berhasil dihapus!');
+    localStorage.setItem("wsp_custom_tasks", JSON.stringify(customTasks));
+    showAdminNotification("Tugas berhasil dihapus!");
     loadAdminData();
   }
 }
 
-function renderAdminChat(){
-  const uname = document.getElementById('chatUserSelect').value;
-  const box = document.getElementById('adminChatBox');
-  if(!uname){
+function renderAdminChat() {
+  const uname = document.getElementById("chatUserSelect").value;
+  const box = document.getElementById("adminChatBox");
+  if (!uname) {
     box.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px">Tidak ada data chat.</div>';
     return;
   }
 
   let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  try { chatHistories = JSON.parse(localStorage.getItem("wsp_chat_histories") || "{}"); } catch (e) {}
   const msgs = chatHistories[uname] || [];
 
-  if(msgs.length === 0){
+  if (msgs.length === 0) {
     box.innerHTML = `<div style="color:var(--dim);text-align:center;padding:20px">Belum ada pesan dari <b>${escapeHtml(uname)}</b>.</div>`;
     return;
   }
 
-  let html = '';
+  let html = "";
   msgs.forEach(m => {
-    const isUser = m.sender === 'user';
-    html += `<div class="c-msg ${isUser ? 'user' : 'admin'}"><b>${isUser ? escapeHtml(uname) : 'Admin CS'}:</b> ${escapeHtml(m.text)}</div>`;
+    const isUser = m.sender === "user";
+    html += `<div class="c-msg ${isUser ? "user" : "admin"}"><b>${isUser ? escapeHtml(uname) : "Admin CS"}:</b> ${escapeHtml(m.text)}</div>`;
   });
   box.innerHTML = html;
   box.scrollTop = box.scrollHeight;
 }
 
-function sendAdminChat(){
-  const uname = document.getElementById('chatUserSelect').value;
-  const input = document.getElementById('adminChatInput');
+async function sendAdminChat() {
+  const uname = document.getElementById("chatUserSelect").value;
+  const input = document.getElementById("adminChatInput");
   const text = input.value.trim();
-  if(!uname || !text) return;
+  if (!uname || !text) return;
 
   let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
-  if(!chatHistories[uname]) chatHistories[uname] = [];
+  try { chatHistories = JSON.parse(localStorage.getItem("wsp_chat_histories") || "{}"); } catch (e) {}
+  if (!Array.isArray(chatHistories[uname])) chatHistories[uname] = [];
 
-  chatHistories[uname].push({ sender: 'admin', text: text });
-  localStorage.setItem('wsp_chat_histories', JSON.stringify(chatHistories));
+  chatHistories[uname].push({ sender: "admin", text: text, ts: Date.now() });
+  localStorage.setItem("wsp_chat_histories", JSON.stringify(chatHistories));
 
-  input.value = '';
+  try {
+    await sbClient
+      .from("support_chats")
+      .upsert({
+        chat_key: normalizePhone(uname) || uname,
+        messages_json: JSON.stringify(chatHistories[uname].slice(-80)),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "chat_key" });
+  } catch (_) {}
+
+  input.value = "";
   renderAdminChat();
-  showAdminNotification('Balasan chat terkirim!');
+  showAdminNotification("Balasan chat terkirim!");
 }
 
 const ADMIN_PIN_CODE = "2026";
 const ADMIN_SESSION_KEY = "wph_admin_unlocked_v1";
+const ADMIN_SESSION_TTL_MS = 4 * 60 * 60 * 1000;
 
-function unlockAdminPanel(){
-  const inp = document.getElementById("adminPinInput");
-  const errEl = document.getElementById("adminLockErr");
-  const val = (inp ? inp.value : "").trim();
-  if(val === ADMIN_PIN_CODE){
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-    document.getElementById("adminLockScreen").classList.add("unlocked");
-    if(errEl) errEl.textContent = "";
-    showAdminNotification("Akses Master Admin berhasil dibuka!");
-    loadAdminData(true);
-  } else {
-    if(errEl) errEl.textContent = "PIN admin salah! Silakan coba lagi.";
+function isAdminSessionValid() {
+  try {
+    const raw = sessionStorage.getItem(ADMIN_SESSION_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed && parsed.unlocked && (Date.now() - Number(parsed.at || 0) < ADMIN_SESSION_TTL_MS));
+  } catch (_) {
+    return false;
   }
 }
 
-function lockAdminPanel(){
+function unlockAdminPanel() {
+  const inp = document.getElementById("adminPinInput");
+  const errEl = document.getElementById("adminLockErr");
+  const val = (inp ? inp.value : "").trim();
+  if (val === ADMIN_PIN_CODE) {
+    sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ unlocked: true, at: Date.now() }));
+    document.getElementById("adminLockScreen").classList.add("unlocked");
+    if (errEl) errEl.textContent = "";
+    showAdminNotification("Akses Master Admin berhasil dibuka!");
+    loadAdminData(true);
+  } else {
+    if (errEl) errEl.textContent = "PIN admin salah! Silakan coba lagi.";
+  }
+}
+
+function lockAdminPanel() {
   sessionStorage.removeItem(ADMIN_SESSION_KEY);
   const lockEl = document.getElementById("adminLockScreen");
   const inp = document.getElementById("adminPinInput");
-  if(inp) inp.value = "";
-  if(lockEl) lockEl.classList.remove("unlocked");
+  if (inp) inp.value = "";
+  if (lockEl) lockEl.classList.remove("unlocked");
 }
 
-function initAdminLockState(){
+function initAdminLockState() {
   const lockEl = document.getElementById("adminLockScreen");
-  if(!lockEl) return;
-  if(sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"){
+  if (!lockEl) return;
+  if (isAdminSessionValid()) {
     lockEl.classList.add("unlocked");
   } else {
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
     lockEl.classList.remove("unlocked");
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener("DOMContentLoaded", () => {
   initAdminLockState();
   const allUsers = getRawUsersStorage();
   lastState.usersCount = Object.keys(allUsers).length;
-  
+
   let pCount = 0;
   Object.values(allUsers).forEach(u => {
-    if(u && u.transactions) u.transactions.forEach(t => { if(t.status === 'pending') pCount++; });
+    if (u && u.transactions) u.transactions.forEach(t => { if (t.status === "pending") pCount++; });
   });
   lastState.pendingTxCount = pCount;
 
   loadAdminData();
-  setInterval(loadAdminData, 3000);
+  setInterval(() => {
+    if (!isAdminSessionValid()) {
+      lockAdminPanel();
+      return;
+    }
+    loadAdminData();
+  }, 5000);
 });
 </script>
 </body>
