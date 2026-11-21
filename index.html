@@ -745,7 +745,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
     <div class="fg"><label>Nomor Rekening / HP E-Wallet</label><input type="text" id="infoAcc" placeholder="Masukkan nomor akun"></div>
     <div class="fg"><label>Nama Pemilik Rekening</label><input type="text" id="infoName" placeholder="Nama lengkap pemilik akun"></div>
-    <button class="bm pr" onclick="savePersonalInfo()">💾 Simpan Informasi Rekening</button>
+    <button class="bm pr" id="btnSavePersonalInfo" onclick="savePersonalInfo()">💾 Simpan Informasi Rekening</button>
     <button class="bm cn" onclick="closeM('infoM')">Batal</button>
   </div>
 </div>
@@ -905,6 +905,22 @@ function normalizeVipMap(levelVip, existingVip) {
   return base;
 }
 
+function mergeBankInfoFromRow(memberRow, existingInfo, fallbackWa) {
+  const base = existingInfo || { wa: fallbackWa || "", method: "dana", accountNum: "", accountName: "" };
+  return {
+    wa: base.wa || fallbackWa || "",
+    method: (memberRow?.bank_method !== undefined && memberRow?.bank_method !== null && String(memberRow.bank_method).trim() !== "")
+      ? String(memberRow.bank_method).trim()
+      : (base.method || "dana"),
+    accountNum: (memberRow?.bank_account !== undefined && memberRow?.bank_account !== null)
+      ? String(memberRow.bank_account).trim()
+      : (base.accountNum || ""),
+    accountName: (memberRow?.bank_holder !== undefined && memberRow?.bank_holder !== null)
+      ? String(memberRow.bank_holder).trim()
+      : (base.accountName || "")
+  };
+}
+
 function getCandidateIds(phoneOrId) {
   const s = new Set();
   const raw = String(phoneOrId || "").trim();
@@ -939,6 +955,7 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   if (rawUData && matchUser(rawUData)) {
     rawUData.balance = newBal;
     rawUData.currentVip = nextVip;
+    rawUData.personalInfo = mergeBankInfoFromRow(memberRow, rawUData.personalInfo, rawUData.username);
     if (memberRow.nama) rawUData.nama = memberRow.nama;
     if (memberRow.invite_code) rawUData.inviteCode = memberRow.invite_code;
     if (memberRow.referred_by) rawUData.referredBy = memberRow.referred_by;
@@ -958,6 +975,7 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
         if (matchUser(obj)) {
           obj.balance = newBal;
           obj.currentVip = nextVip;
+          obj.personalInfo = mergeBankInfoFromRow(memberRow, obj.personalInfo, obj.username);
           if (memberRow.nama) obj.nama = memberRow.nama;
           if (memberRow.invite_code) obj.inviteCode = memberRow.invite_code;
           if (memberRow.referred_by) obj.referredBy = memberRow.referred_by;
@@ -983,6 +1001,7 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
         if (lookupKey) {
           parsedAll[lookupKey].balance = newBal;
           parsedAll[lookupKey].currentVip = nextVip;
+          parsedAll[lookupKey].personalInfo = mergeBankInfoFromRow(memberRow, parsedAll[lookupKey].personalInfo, parsedAll[lookupKey].username);
           if (memberRow.nama) parsedAll[lookupKey].nama = memberRow.nama;
           if (memberRow.invite_code) parsedAll[lookupKey].inviteCode = memberRow.invite_code;
           if (memberRow.referred_by) parsedAll[lookupKey].referredBy = memberRow.referred_by;
@@ -1014,6 +1033,7 @@ async function persistMemberToSupabase(userObj) {
       safeInt(userObj.currentVip?.tiktok, 0),
       safeInt(userObj.currentVip?.facebook, 0)
     );
+    const pInfo = userObj.personalInfo || {};
 
     const payload = {
       username: cleanUsername,
@@ -1023,7 +1043,10 @@ async function persistMemberToSupabase(userObj) {
       saldo: safeInt(userObj.balance, 0),
       invite_code: userObj.inviteCode || "",
       referred_by: userObj.referredBy || null,
-      transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions : []
+      transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions : [],
+      bank_method: String(pInfo.method || "").trim(),
+      bank_account: String(pInfo.accountNum || "").trim(),
+      bank_holder: String(pInfo.accountName || "").trim()
     };
 
     const existing = await fetchMemberRowFromSupabase(cleanUsername);
@@ -1194,6 +1217,7 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
           currentVip: { youtube: lvl, tiktok: lvl, facebook: lvl },
           inviteCode: remoteRow.invite_code || "",
           referredBy: remoteRow.referred_by || null,
+          personalInfo: mergeBankInfoFromRow(remoteRow, null, remoteRow.username),
           transactions: normalizeTransactions(remoteRow.transaksi_json),
           referrals: { 1: [], 2: [], 3: [] }
         };
@@ -1223,6 +1247,7 @@ async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
         ...uplineObj,
         username: latestRemote.username || uplineObj.username,
         balance: safeInt(latestRemote.saldo ?? uplineObj.balance, 0),
+        personalInfo: mergeBankInfoFromRow(latestRemote, uplineObj.personalInfo, latestRemote.username || uplineObj.username),
         transactions: normalizeTransactions(latestRemote.transaksi_json)
       }
     : {
@@ -1572,6 +1597,7 @@ async function doLogin(){
       baseAccount.password = p;
       baseAccount.balance = safeInt(remoteRow.saldo ?? baseAccount.balance, 0);
       baseAccount.currentVip = normalizeVipMap(remoteRow.level_vip, baseAccount.currentVip);
+      baseAccount.personalInfo = mergeBankInfoFromRow(remoteRow, baseAccount.personalInfo, canonUsername);
       if(remoteRow.invite_code) baseAccount.inviteCode = remoteRow.invite_code;
       if(remoteRow.referred_by) baseAccount.referredBy = remoteRow.referred_by;
       if(remoteRow.transaksi_json !== undefined) {
@@ -2001,24 +2027,43 @@ async function submitWithdraw(){
   }
 }
 
-function openInfoModal(){
-  document.getElementById('infoU').value=uData.username;
-  document.getElementById('infoWa').value=uData.personalInfo.wa||'';
-  document.getElementById('infoMethod').value=uData.personalInfo.method||'dana';
-  document.getElementById('infoAcc').value=uData.personalInfo.accountNum||'';
-  document.getElementById('infoName').value=uData.personalInfo.accountName||'';
+async function openInfoModal(){
+  if (!rawUData) return;
+  try {
+    const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
+    if (remoteRow) {
+      applyMemberRowToLocalState(remoteRow, rawUData.username);
+    }
+  } catch (_) {}
+
+  const pInfoObj = rawUData.personalInfo || {};
+  document.getElementById('infoU').value=rawUData.username || '';
+  document.getElementById('infoWa').value=pInfoObj.wa||'';
+  document.getElementById('infoMethod').value=pInfoObj.method||'dana';
+  document.getElementById('infoAcc').value=pInfoObj.accountNum||'';
+  document.getElementById('infoName').value=pInfoObj.accountName||'';
   document.getElementById('infoM').classList.add('on');
 }
 
 async function savePersonalInfo(){
-  uData.personalInfo={
-    wa:document.getElementById('infoWa').value.trim(),
-    method:document.getElementById('infoMethod').value,
-    accountNum:document.getElementById('infoAcc').value.trim(),
-    accountName:document.getElementById('infoName').value.trim()
-  };
-  await persistMemberToSupabase(rawUData);
-  closeM('infoM');toast('💾 Informasi pribadi berhasil disimpan!');
+  if (!rawUData) return;
+  const btn = document.getElementById('btnSavePersonalInfo');
+  if (btn) btn.disabled = true;
+  try {
+    rawUData.personalInfo={
+      wa:document.getElementById('infoWa').value.trim(),
+      method:document.getElementById('infoMethod').value,
+      accountNum:document.getElementById('infoAcc').value.trim(),
+      accountName:document.getElementById('infoName').value.trim()
+    };
+    svU();
+    autoSyncAllIconsAndMenus();
+    const synced = await persistMemberToSupabase(rawUData);
+    closeM('infoM');
+    toast(synced ? '💾 Informasi rekening tersinkron ke server!' : '💾 Tersimpan lokal (cek koneksi Supabase)');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function renderDagang(){
