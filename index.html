@@ -944,6 +944,9 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
     if (memberRow.referred_by) rawUData.referredBy = memberRow.referred_by;
     if (memberRow.transaksi_json !== undefined) {
       rawUData.transactions = serverTx;
+      if (serverTx.some(t => String(t.title || "").includes("Upgrade VIP"))) {
+        rawUData.firstVipPurchased = true;
+      }
     }
   }
 
@@ -960,6 +963,9 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
           if (memberRow.referred_by) obj.referredBy = memberRow.referred_by;
           if (memberRow.transaksi_json !== undefined) {
             obj.transactions = serverTx;
+            if (serverTx.some(t => String(t.title || "").includes("Upgrade VIP"))) {
+              obj.firstVipPurchased = true;
+            }
           }
           localStorage.setItem(key, JSON.stringify(obj));
         }
@@ -982,6 +988,9 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
           if (memberRow.referred_by) parsedAll[lookupKey].referredBy = memberRow.referred_by;
           if (memberRow.transaksi_json !== undefined) {
             parsedAll[lookupKey].transactions = serverTx;
+            if (serverTx.some(t => String(t.title || "").includes("Upgrade VIP"))) {
+              parsedAll[lookupKey].firstVipPurchased = true;
+            }
           }
           localStorage.setItem(k, JSON.stringify(parsedAll));
         }
@@ -1127,6 +1136,198 @@ const vipD={
   facebook:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:250000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:750000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1200000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:3000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:6000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:10000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:20000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}]
 };
 
+const REFERRAL_RATES = [0.10, 0.05, 0.03]; // Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%
+
+function getVipPackageByLevel(level) {
+  const cleanLvl = Math.max(0, Math.min(7, safeInt(level, 0)));
+  return vipD.youtube.find(x => x.l === cleanLvl) || vipD.youtube[0];
+}
+
+async function getUplineChain(startMemberObj, maxDepth = 3) {
+  const chain = [];
+  if (!startMemberObj) return chain;
+  const au = gAU();
+  let currentRefId = String(startMemberObj.referredBy || startMemberObj.referred_by || "").trim();
+  const visited = new Set([String(startMemberObj.username || "").trim()]);
+
+  for (let depth = 0; depth < maxDepth; depth++) {
+    if (!currentRefId || visited.has(currentRefId)) break;
+    visited.add(currentRefId);
+
+    let uplineObj = au[currentRefId] || Object.values(au).find(u => u.username === currentRefId || u.inviteCode === currentRefId);
+    let remoteRow = null;
+
+    if (!uplineObj) {
+      remoteRow = await fetchMemberRowFromSupabase(currentRefId);
+      if (remoteRow && remoteRow.username) {
+        const lvl = safeInt(remoteRow.level_vip, 0);
+        uplineObj = {
+          username: remoteRow.username,
+          password: remoteRow.password || "",
+          nama: remoteRow.nama || remoteRow.username,
+          balance: safeInt(remoteRow.saldo, 0),
+          currentVip: { youtube: lvl, tiktok: lvl, facebook: lvl },
+          inviteCode: remoteRow.invite_code || "",
+          referredBy: remoteRow.referred_by || null,
+          transactions: normalizeTransactions(remoteRow.transaksi_json),
+          referrals: { 1: [], 2: [], 3: [] }
+        };
+      }
+    }
+
+    if (!uplineObj) break;
+    chain.push({
+      levelStep: depth + 1,
+      rate: REFERRAL_RATES[depth] || 0,
+      uplineObj
+    });
+
+    currentRefId = String(uplineObj.referredBy || uplineObj.referred_by || "").trim();
+  }
+  return chain;
+}
+
+async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
+  if (!uplineObj || !uplineObj.username || commissionAmount <= 0) return;
+  const cleanAmt = safeInt(commissionAmount, 0);
+  const todayStr = new Date().toLocaleDateString("id-ID");
+
+  const latestRemote = await fetchMemberRowFromSupabase(uplineObj.username);
+  const baseObj = latestRemote
+    ? {
+        ...uplineObj,
+        balance: safeInt(latestRemote.saldo ?? uplineObj.balance, 0),
+        transactions: normalizeTransactions(latestRemote.transaksi_json)
+      }
+    : {
+        ...uplineObj,
+        balance: safeInt(uplineObj.balance, 0),
+        transactions: normalizeTransactions(uplineObj.transactions)
+      };
+
+  baseObj.balance = safeInt(baseObj.balance, 0) + cleanAmt;
+  baseObj.transactions.unshift({
+    id: "tx_comm_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    title: txTitle,
+    amount: cleanAmt,
+    type: "plus",
+    status: "approved",
+    date: todayStr
+  });
+
+  const au = gAU();
+  au[baseObj.username] = baseObj;
+  svAU(au);
+
+  if (rawUData && rawUData.username === baseObj.username) {
+    rawUData.balance = baseObj.balance;
+    rawUData.transactions = baseObj.transactions;
+    setUDataProxy(rawUData);
+  }
+
+  await persistMemberToSupabase(baseObj);
+}
+
+/**
+ * Komisi Upgrade VIP:
+ * - Hanya didapat 1x saat pembelian/upgrade pertama downline (tidak berulang saat upgrade ke VIP lebih tinggi lagi).
+ * - Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%.
+ * - VIP 0 tidak mendapat komisi.
+ * - Mengikuti level VIP terendah antara upline dan downline.
+ */
+async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg) {
+  if (!downlineUser || !purchasedVipPkg || safeInt(purchasedVipPkg.l, 0) <= 0) return;
+
+  const alreadyClaimedFirstVip = Boolean(
+    downlineUser.firstVipPurchased ||
+    normalizeTransactions(downlineUser.transactions).some(t => String(t.title || "").includes("Upgrade VIP"))
+  );
+  if (alreadyClaimedFirstVip) {
+    return;
+  }
+
+  const downlineVipLvl = Math.max(1, safeInt(purchasedVipPkg.l, 1));
+  const chain = await getUplineChain(downlineUser, 3);
+
+  for (const item of chain) {
+    const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
+    if (uplineVipLvl <= 0) continue; // VIP 0 tidak mendapat komisi
+
+    const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
+    if (lowestVipLvl <= 0) continue;
+
+    const lowestPkg = getVipPackageByLevel(lowestVipLvl);
+    const basisAmount = Math.min(safeInt(purchasedVipPkg.p, 0), safeInt(lowestPkg.p, 0));
+    const commission = Math.floor(basisAmount * item.rate);
+
+    if (commission > 0) {
+      const pctLabel = Math.round(item.rate * 100);
+      await creditUplineObj(
+        item.uplineObj,
+        commission,
+        `🪙 Komisi VIP T${item.levelStep} (${pctLabel}%, min VIP ${lowestVipLvl}) dari ${downlineUser.username}`
+      );
+    }
+  }
+}
+
+/**
+ * Komisi Laba Harian (dari penyelesaian tugas VIP 1-7):
+ * - Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%.
+ * - VIP 0 tidak mendapat komisi.
+ * - Mengikuti level VIP terendah antara upline dan downline (termasuk batas laba harian VIP terendah).
+ * - Langsung tersinkron ke saldo & riwayat transaksi upline di Supabase.
+ */
+async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
+  if (!downlineUser || safeInt(taskRewardAmount, 0) <= 0) return;
+  const downlineVipLvl = getUserMaxVipLevel(downlineUser);
+  if (downlineVipLvl < 1 || downlineVipLvl > 7) return;
+
+  const todayStr = new Date().toLocaleDateString("id-ID");
+  const chain = await getUplineChain(downlineUser, 3);
+
+  for (const item of chain) {
+    const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
+    if (uplineVipLvl <= 0) continue; // VIP 0 tidak mendapat komisi
+
+    const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
+    if (lowestVipLvl <= 0) continue;
+
+    const lowestPkg = getVipPackageByLevel(lowestVipLvl);
+    const lowestRewardPerTask = getTaskRewardPerTask(lowestVipLvl);
+    const maxDailyCommissionForUpline = Math.floor(safeInt(lowestPkg.d, 0) * item.rate);
+    const rawTaskCommission = Math.floor(Math.min(safeInt(taskRewardAmount, 0), safeInt(lowestRewardPerTask, 0)) * item.rate);
+
+    if (rawTaskCommission <= 0 || maxDailyCommissionForUpline <= 0) continue;
+
+    const latestRemote = await fetchMemberRowFromSupabase(item.uplineObj.username);
+    const currentTxs = latestRemote
+      ? normalizeTransactions(latestRemote.transaksi_json)
+      : normalizeTransactions(item.uplineObj.transactions);
+
+    const earnedTodayFromDownline = currentTxs
+      .filter(t =>
+        t.date === todayStr &&
+        t.status === "approved" &&
+        String(t.title || "").includes(`Komisi Tugas T${item.levelStep}`) &&
+        String(t.title || "").includes(`dari ${downlineUser.username}`)
+      )
+      .reduce((sum, t) => sum + safeInt(t.amount, 0), 0);
+
+    const remainingDailyCap = Math.max(0, maxDailyCommissionForUpline - earnedTodayFromDownline);
+    const commission = Math.min(rawTaskCommission, remainingDailyCap);
+
+    if (commission > 0) {
+      const pctLabel = Math.round(item.rate * 100);
+      await creditUplineObj(
+        item.uplineObj,
+        commission,
+        `📈 Komisi Tugas T${item.levelStep} (${pctLabel}%, min VIP ${lowestVipLvl}) dari ${downlineUser.username}`
+      );
+    }
+  }
+}
+
 const defaultPlatformTasks = {
   youtube: [
     {id:'yt1', t:'Like & Subscribe Channel Gaming WPH SMM', l:'https://youtube.com/watch?v=dQw4w9WgXcQ'},
@@ -1240,6 +1441,7 @@ function mkUser(u,p){
   return {
     username:u,password:p,balance:1000,
     currentVip:{youtube:0,tiktok:0,facebook:0},
+    firstVipPurchased:false,
     vipStart:null,vipExp:null,
     inviteCode:'WPH-'+u.substring(0,4).toUpperCase()+Math.floor(100+Math.random()*900),
     referredBy:null,referrals:{1:[],2:[],3:[]},
@@ -1629,9 +1831,12 @@ function submitProof(){
   closeM('imgM');toast('⏳ Bukti dikirim, memverifikasi...');
   setTimeout(async ()=>{
     const ct=uData.completedTasks.find(x=>x.id===tid);if(ct)ct.status='verified';
-    uData.balance=safeInt(uData.balance,0)+rpt;
-    uData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    rawUData.balance=safeInt(rawUData.balance,0)+rpt;
+    rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    svU();
+    autoSyncAllIconsAndMenus();
     await persistMemberToSupabase(rawUData);
+    await distributeDailyTaskCommissions(rawUData, rpt);
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
   },2500);
 }
@@ -1854,12 +2059,25 @@ async function buyVIP(){
   try {
     if(!sV||sV.l===0){closeM('vipM');return}
     if(safeInt(rawUData.balance,0)<safeInt(sV.p,0)){toast('Saldo tidak cukup!');return}
+
+    const hadPurchasedBefore = Boolean(
+      rawUData.firstVipPurchased ||
+      normalizeTransactions(rawUData.transactions).some(t => String(t.title || "").includes("Upgrade VIP"))
+    );
+
     rawUData.balance=safeInt(rawUData.balance,0)-safeInt(sV.p,0);
     rawUData.currentVip[cPlat]=sV.l;
     rawUData.transactions.unshift({id:'tx_vip_'+Date.now(),title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
     autoSyncAllIconsAndMenus();
     await persistMemberToSupabase(rawUData);
+
+    if (!hadPurchasedBefore) {
+      await distributeVipUpgradeCommissions(rawUData, sV);
+      rawUData.firstVipPurchased = true;
+      svU();
+    }
+
     closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
   } finally {
     if (btn) btn.disabled = false;
