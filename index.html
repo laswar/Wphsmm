@@ -1102,6 +1102,7 @@ function setupMemberRealtimeSync(phoneOrId) {
         const latestRow = payload.new || payload.record;
         if (latestRow) {
           applyMemberRowToLocalState(latestRow, cleanId);
+          syncReferralTeamFromSupabase();
         } else {
           syncActiveMemberFromSupabase();
         }
@@ -1133,9 +1134,10 @@ async function syncActiveMemberFromSupabase() {
     setupMemberRealtimeSync(phoneOrId);
 
     const memberRow = await fetchMemberRowFromSupabase(phoneOrId);
-    if (!memberRow) return;
-
-    applyMemberRowToLocalState(memberRow, phoneOrId);
+    if (memberRow) {
+      applyMemberRowToLocalState(memberRow, phoneOrId);
+    }
+    await syncReferralTeamFromSupabase();
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
   }
@@ -1147,7 +1149,7 @@ const vipD={
   facebook:[{l:0,n:'Free',p:0,t:4,d:8000,c:'v0',i:'🆓',dur:3},{l:1,n:'Bronze',p:250000,t:5,d:10000,c:'vb',i:'👑',dur:90},{l:2,n:'Silver',p:750000,t:10,d:31250,c:'vs2',i:'👑',dur:90},{l:3,n:'Gold',p:1200000,t:20,d:50000,c:'vg2',i:'👑',dur:90},{l:4,n:'Platinum',p:3000000,t:30,d:150000,c:'vp',i:'👑',dur:90},{l:5,n:'Diamond',p:6000000,t:40,d:350000,c:'vd',i:'💎',dur:90},{l:6,n:'Sapphire',p:10000000,t:50,d:625000,c:'vsa',i:'💎',dur:90},{l:7,n:'Ruby',p:20000000,t:60,d:1300000,c:'vr',i:'💎',dur:90}]
 };
 
-const REFERRAL_RATES = [0.10, 0.05, 0.03]; // Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%
+const REFERRAL_RATES = [0.10, 0.05, 0.03];
 
 function getVipPackageByLevel(level) {
   const cleanLvl = Math.max(0, Math.min(7, safeInt(level, 0)));
@@ -1257,13 +1259,6 @@ async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
   return true;
 }
 
-/**
- * Komisi Upgrade VIP:
- * - Hanya didapat 1x saat pembelian/upgrade pertama downline (tidak berulang saat upgrade ke VIP lebih tinggi lagi).
- * - Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%.
- * - VIP 0 tidak mendapat komisi.
- * - Mengikuti level VIP terendah antara upline dan downline.
- */
 async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, isFirstVipPurchase = false) {
   if (!downlineUser || !purchasedVipPkg || safeInt(purchasedVipPkg.l, 0) <= 0) return;
 
@@ -1279,7 +1274,7 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
 
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    if (uplineVipLvl <= 0) continue; // VIP 0 tidak mendapat komisi
+    if (uplineVipLvl <= 0) continue;
 
     const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
     if (lowestVipLvl <= 0) continue;
@@ -1299,13 +1294,6 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
   }
 }
 
-/**
- * Komisi Laba Harian (dari penyelesaian tugas VIP 1-7):
- * - Tingkat 1 = 10%, Tingkat 2 = 5%, Tingkat 3 = 3%.
- * - VIP 0 tidak mendapat komisi.
- * - Mengikuti level VIP terendah antara upline dan downline (termasuk batas laba harian VIP terendah).
- * - Langsung tersinkron ke saldo & riwayat transaksi upline di Supabase.
- */
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
   if (!downlineUser || safeInt(taskRewardAmount, 0) <= 0) return;
   const downlineVipLvl = getUserMaxVipLevel(downlineUser);
@@ -1316,7 +1304,7 @@ async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
 
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    if (uplineVipLvl <= 0) continue; // VIP 0 tidak mendapat komisi
+    if (uplineVipLvl <= 0) continue;
 
     const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
     if (lowestVipLvl <= 0) continue;
@@ -2326,6 +2314,145 @@ function renderTX(){
   });
 }
 
+function buildReferralKeys(memberRow) {
+  const keys = new Set();
+  if (!memberRow) return keys;
+
+  const rawUsername = String(memberRow.username || "").trim();
+  const rawInvite = String(memberRow.invite_code || memberRow.inviteCode || "").trim();
+
+  if (rawUsername) {
+    keys.add(rawUsername.toLowerCase());
+    getCandidateIds(rawUsername).forEach((c) => keys.add(String(c).trim().toLowerCase()));
+  }
+  if (rawInvite) {
+    keys.add(rawInvite.toLowerCase());
+  }
+  return keys;
+}
+
+function getDownlineLevelsForMember(targetMember, allMembers) {
+  const list = Array.isArray(allMembers) ? allMembers : [];
+  if (!targetMember) return { t1: [], t2: [], t3: [] };
+
+  const targetKeys = buildReferralKeys(targetMember);
+  const visited = new Set(targetKeys);
+
+  const matchParentRef = (memberRow, parentKeys) => {
+    if (!memberRow) return false;
+    const mKeys = buildReferralKeys(memberRow);
+    if (Array.from(mKeys).some((k) => parentKeys.has(k))) return false;
+
+    const refVal = String(memberRow.referred_by || memberRow.referredBy || "").trim().toLowerCase();
+    if (!refVal) return false;
+
+    const refAliases = new Set([refVal]);
+    const digits = refVal.replace(/\D/g, "");
+    if (digits) {
+      refAliases.add(digits);
+      if (digits.startsWith("62")) refAliases.add("0" + digits.slice(2));
+      if (digits.startsWith("0")) refAliases.add("62" + digits.slice(1));
+    }
+    return Array.from(refAliases).some((alias) => parentKeys.has(alias));
+  };
+
+  const t1 = list.filter((m) => {
+    const matched = matchParentRef(m, targetKeys);
+    if (matched) buildReferralKeys(m).forEach((k) => visited.add(k));
+    return matched;
+  });
+
+  const t2 = [];
+  for (const memberT1 of t1) {
+    const t1Keys = buildReferralKeys(memberT1);
+    for (const child of list.filter((m) => matchParentRef(m, t1Keys))) {
+      const cKeys = buildReferralKeys(child);
+      if (!Array.from(cKeys).some((k) => visited.has(k))) {
+        cKeys.forEach((k) => visited.add(k));
+        t2.push(child);
+      }
+    }
+  }
+
+  const t3 = [];
+  for (const memberT2 of t2) {
+    const t2Keys = buildReferralKeys(memberT2);
+    for (const child of list.filter((m) => matchParentRef(m, t2Keys))) {
+      const cKeys = buildReferralKeys(child);
+      if (!Array.from(cKeys).some((k) => visited.has(k))) {
+        cKeys.forEach((k) => visited.add(k));
+        t3.push(child);
+      }
+    }
+  }
+
+  return { t1, t2, t3 };
+}
+
+async function syncReferralTeamFromSupabase() {
+  if (!rawUData || !rawUData.username) return;
+  try {
+    const { data: allMembers, error } = await sbClient
+      .from("members")
+      .select("username, nama, level_vip, invite_code, referred_by");
+
+    if (error || !Array.isArray(allMembers)) return;
+
+    const myKeys = buildReferralKeys({
+      username: rawUData.username,
+      invite_code: rawUData.inviteCode
+    });
+
+    const currentRow =
+      allMembers.find((m) => Array.from(myKeys).some((k) => buildReferralKeys(m).has(k))) || {
+        username: rawUData.username,
+        invite_code: rawUData.inviteCode
+      };
+
+    const { t1, t2, t3 } = getDownlineLevelsForMember(currentRow, allMembers);
+
+    const mapItem = (row) => ({
+      username: row.username,
+      vipLevel: safeInt(row.level_vip, 0)
+    });
+
+    rawUData.referrals = {
+      1: t1.map(mapItem),
+      2: t2.map(mapItem),
+      3: t3.map(mapItem)
+    };
+
+    svU();
+    autoSyncAllIconsAndMenus();
+
+    const refContainer = document.getElementById("refL");
+    if (refContainer) {
+      const allInvited = [
+        ...t1.map((x) => ({ ...x, tier: 1 })),
+        ...t2.map((x) => ({ ...x, tier: 2 })),
+        ...t3.map((x) => ({ ...x, tier: 3 }))
+      ];
+      refContainer.innerHTML =
+        allInvited.length === 0
+          ? '<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px">Belum ada anggota referral yang terdaftar.</div>'
+          : allInvited
+              .map(
+                (m) => `
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-size:11.5px;font-weight:700;color:#fff">${escapeHtml(m.username)}</div>
+                    <div style="font-size:9.5px;color:var(--dim)">Tingkat ${m.tier}</div>
+                  </div>
+                  <div style="font-size:10.5px;font-weight:800;color:var(--gold);font-family:'Orbitron'">VIP ${safeInt(m.vipLevel, 0)}</div>
+                </div>`
+              )
+              .join("");
+    }
+  } catch (e) {
+    console.error("Gagal sinkron tim referral:", e);
+  }
+}
+
 function goPage(p){
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('act'));
@@ -2335,7 +2462,10 @@ function goPage(p){
   if(p==='vip'){renderVC();renderET()}
   if(p==='tugas')updTP();
   if(p==='pendapatan'){renderTX();syncActiveMemberFromSupabase();}
-  if(p==='profil' || p==='referral' || p==='laporanTim'){syncActiveMemberFromSupabase();}
+  if(p==='profil' || p==='referral' || p==='laporanTim'){
+    syncActiveMemberFromSupabase();
+    syncReferralTeamFromSupabase();
+  }
   window.scrollTo(0,0);
 }
 
