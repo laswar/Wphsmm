@@ -41,6 +41,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .login-card input:focus,.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--emerald);box-shadow:0 0 10px var(--emerald-glow)}
 .btn-main{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Orbitron';letter-spacing:1px;box-shadow:0 4px 15px var(--emerald-glow);transition:all 0.2s}
 .btn-main:active{transform:scale(0.98)}
+.btn-main:disabled{opacity:0.65;cursor:not-allowed}
 .btn-sec{width:100%;padding:11px;border:1.5px solid var(--cyan);border-radius:10px;background:transparent;color:var(--cyan);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;font-family:'Poppins'}
 .btn-rst{width:100%;padding:8px;border:1px solid rgba(255,51,102,0.4);border-radius:8px;background:rgba(255,51,102,0.1);color:var(--err);font-size:11px;cursor:pointer;margin-top:8px}
 .btn-wa{width:100%;padding:11px;border:none;border-radius:10px;background:#25D366;color:#fff;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Poppins';display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(37,211,102,0.3)}
@@ -339,12 +340,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="msg ok" id="okM"></div>
  <div class="fg" id="fgPhone">
   <label>Nomor HP</label>
-  <input type="tel" id="inpU" placeholder="Masukkan nomor HP (contoh: 081234567890)" autocomplete="tel">
+  <input type="tel" id="inpU" placeholder="Masukkan nomor HP (contoh: 081234567890)" autocomplete="tel" onkeypress="if(event.key==='Enter'&&isLog)doLogin()">
 </div>
 
 <div class="fg">
   <label>Password</label>
-  <input type="password" id="inpP" placeholder="Masukkan password" autocomplete="new-password">
+  <input type="password" id="inpP" placeholder="Masukkan password" autocomplete="current-password" onkeypress="if(event.key==='Enter'&&isLog)doLogin()">
 </div>
 
 <div class="fg" id="fgPass2" style="display:none;">
@@ -859,12 +860,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </script>
 
 <script>
+function normalizePhone(phone) {
+  if (!phone) return "";
+  let clean = String(phone).trim().replace(/[^0-9]/g, "");
+  if (clean.startsWith("62")) {
+    clean = "0" + clean.slice(2);
+  } else if (clean.startsWith("8")) {
+    clean = "0" + clean;
+  }
+  return clean;
+}
+
 let _lastSyncedBal = null;
 let _lastLocalBalChangeAt = 0;
+let _isAuthBusy = false;
 
 async function pushMemberToSupabase(userObj) {
   if (!userObj || !userObj.username || typeof sbClient === 'undefined' || !sbClient) return;
-  const cleanUname = String(userObj.username).trim();
+  const cleanUname = normalizePhone(userObj.username);
+  if (!cleanUname) return;
   userObj.username = cleanUname;
   const numBal = Number(userObj.balance ?? 0);
   const maxVip = Math.max(userObj.currentVip?.youtube || 0, userObj.currentVip?.tiktok || 0, userObj.currentVip?.facebook || 0);
@@ -876,7 +890,7 @@ async function pushMemberToSupabase(userObj) {
     saldo: numBal,
     level_vip: 'VIP ' + maxVip,
     invite_code: userObj.inviteCode || '',
-    referred_by: userObj.referredBy ? String(userObj.referredBy).trim() : null,
+    referred_by: userObj.referredBy ? normalizePhone(userObj.referredBy) : null,
     transaksi_json: JSON.stringify(Array.isArray(userObj.transactions) ? userObj.transactions : [])
   };
   try {
@@ -899,8 +913,8 @@ async function pushMemberToSupabase(userObj) {
 }
 
 async function pushBalanceToSupabase(username, balance) {
-  const cleanUname = String(username || '').trim();
-  if (rawUData && String(rawUData.username || '').trim() === cleanUname) {
+  const cleanUname = normalizePhone(username);
+  if (rawUData && normalizePhone(rawUData.username) === cleanUname) {
     rawUData.balance = Number(balance);
     await pushMemberToSupabase(rawUData);
     return;
@@ -914,6 +928,7 @@ async function pushBalanceToSupabase(username, balance) {
 }
 
 async function syncActiveMemberFromSupabase() {
+  if (_isAuthBusy) return;
   if (Date.now() - _lastLocalBalChangeAt < 15000) return;
   try {
     const activeRaw =
@@ -931,31 +946,18 @@ async function syncActiveMemberFromSupabase() {
     } catch (_) {
       phoneOrId = String(activeRaw);
     }
-    const cleanId = String(phoneOrId || "").trim();
+    const cleanId = normalizePhone(phoneOrId);
     if (!cleanId) return;
 
-    let memberRow = null;
     const { data, error } = await sbClient
       .from("members")
       .select("*")
       .eq("username", cleanId)
       .maybeSingle();
-    if (!error && data) {
-      memberRow = data;
-    } else if (!error && !data) {
-      const au = gAU();
-      if (au[cleanId]) {
-        delete au[cleanId];
-        svAU(au);
-      }
-      localStorage.removeItem("wsp_c20");
-      localStorage.removeItem("wph_u20");
-      localStorage.removeItem("wsp_u20");
-      return;
-    }
 
-    if (!memberRow) return;
+    if (error || !data) return;
 
+    const memberRow = data;
     const fallbackBal = rawUData && typeof rawUData.balance === "number" ? rawUData.balance : 0;
     const newBal = (memberRow.saldo !== undefined && memberRow.saldo !== null)
       ? Number(memberRow.saldo)
@@ -964,7 +966,7 @@ async function syncActiveMemberFromSupabase() {
     const matchUser = (obj) => {
       if (!obj || typeof obj !== "object") return false;
       const idVal = obj.phone || obj.noHp || obj.username || obj.user || obj.id;
-      return String(idVal || "").trim() === cleanId;
+      return normalizePhone(idVal) === cleanId;
     };
 
     if (rawUData && matchUser(rawUData)) {
@@ -972,6 +974,8 @@ async function syncActiveMemberFromSupabase() {
       rawUData.balance = newBal;
       if (memberRow.nama) rawUData.nama = memberRow.nama;
       if (memberRow.password) rawUData.password = memberRow.password;
+      if (memberRow.invite_code) rawUData.inviteCode = memberRow.invite_code;
+      if (memberRow.referred_by) rawUData.referredBy = normalizePhone(memberRow.referred_by);
       const vipNum = parseInt(String(memberRow.level_vip || "").replace(/\D/g, ""), 10);
       if (!Number.isNaN(vipNum)) {
         rawUData.currentVip = { youtube: vipNum, tiktok: vipNum, facebook: vipNum };
@@ -990,12 +994,19 @@ async function syncActiveMemberFromSupabase() {
       if (!rawAll) return;
       try {
         const parsedAll = JSON.parse(rawAll);
-        if (parsedAll && typeof parsedAll === "object" && parsedAll[cleanId]) {
-          parsedAll[cleanId].username = cleanId;
-          parsedAll[cleanId].balance = newBal;
-          if (memberRow.nama) parsedAll[cleanId].nama = memberRow.nama;
-          if (memberRow.password) parsedAll[cleanId].password = memberRow.password;
-          localStorage.setItem(k, JSON.stringify(parsedAll));
+        if (parsedAll && typeof parsedAll === "object") {
+          const targetKey = parsedAll[cleanId] ? cleanId : Object.keys(parsedAll).find(keyItem => normalizePhone(keyItem) === cleanId);
+          if (targetKey && parsedAll[targetKey]) {
+            parsedAll[targetKey].username = cleanId;
+            parsedAll[targetKey].balance = newBal;
+            if (memberRow.nama) parsedAll[targetKey].nama = memberRow.nama;
+            if (memberRow.password) parsedAll[targetKey].password = memberRow.password;
+            if (targetKey !== cleanId) {
+              parsedAll[cleanId] = parsedAll[targetKey];
+              delete parsedAll[targetKey];
+            }
+            localStorage.setItem(k, JSON.stringify(parsedAll));
+          }
         }
       } catch (_) {}
     });
@@ -1119,7 +1130,7 @@ const handlerUI = {
 
 function setUDataProxy(data) {
   if (data && data.username) {
-    data.username = String(data.username).trim();
+    data.username = normalizePhone(data.username) || String(data.username).trim();
   }
   rawUData = data;
   uData = new Proxy(rawUData, handlerUI);
@@ -1127,7 +1138,7 @@ function setUDataProxy(data) {
 }
 
 function mkUser(u,p){
-  const cleanU = String(u || '').trim();
+  const cleanU = normalizePhone(u) || String(u || '').trim();
   return {
     username:cleanU,password:p,balance:1000,
     currentVip:{youtube:0,tiktok:0,facebook:0},
@@ -1144,7 +1155,7 @@ function mkUser(u,p){
 function svU(){
   try{
     if(!rawUData) return;
-    const cleanU = String(rawUData.username || '').trim();
+    const cleanU = normalizePhone(rawUData.username) || String(rawUData.username || '').trim();
     rawUData.username = cleanU;
     localStorage.setItem('wsp_u20',JSON.stringify(rawUData));
     localStorage.setItem('wsp_c20',cleanU);
@@ -1162,10 +1173,12 @@ function gAU(){
     const parsed = JSON.parse(localStorage.getItem('wsp_au20')||'{}');
     const cleanMap = {};
     Object.keys(parsed || {}).forEach(k => {
-      const cleanK = String(k || '').trim();
+      const item = parsed[k];
+      if (!item || typeof item !== 'object') return;
+      const cleanK = normalizePhone(item.username || k) || String(k || '').trim();
       if (cleanK) {
         cleanMap[cleanK] = {
-          ...parsed[k],
+          ...item,
           username: cleanK
         };
       }
@@ -1262,92 +1275,175 @@ function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textConten
 function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 
-async function doLogin(){
-  const u=document.getElementById('inpU').value.trim();
-  const p=document.getElementById('inpP').value.trim();
-  if(!u||!p){showErr('Nomor HP dan password harus diisi!');return}
-  const au=gAU();
-  let userObj = au[u];
-  if(!userObj && typeof sbClient !== 'undefined' && sbClient){
-    try {
-      const { data: row } = await sbClient.from('members').select('*').eq('username', u).maybeSingle();
-      if(row && (!row.password || row.password === p)){
-        userObj = mkUser(row.username, row.password || p);
-        if(row.saldo !== undefined && row.saldo !== null) userObj.balance = Number(row.saldo);
-        if(row.invite_code) userObj.inviteCode = row.invite_code;
-        if(row.referred_by) userObj.referredBy = String(row.referred_by).trim();
-        if(row.transaksi_json){
-          try {
-            const txParsed = JSON.parse(row.transaksi_json);
-            if(Array.isArray(txParsed)) userObj.transactions = txParsed;
-          } catch (_) {}
-        }
-        const vipNum = parseInt(String(row.level_vip || '').replace(/\D/g, ''), 10);
-        if(!Number.isNaN(vipNum)){
-          userObj.currentVip = { youtube: vipNum, tiktok: vipNum, facebook: vipNum };
-        }
-        au[u] = userObj;
-        svAU(au);
-      }
-    } catch(e){ console.warn('Login Supabase check error:', e); }
+function setAuthButtonsBusy(busy) {
+  _isAuthBusy = busy;
+  const btnL = document.getElementById('btnL');
+  const btnR = document.getElementById('btnR');
+  if (btnL) {
+    btnL.disabled = busy;
+    btnL.textContent = busy ? 'Memproses...' : 'Masuk Akun';
   }
-  if(!userObj || userObj.password!==p){showErr('Nomor HP atau Password salah!');return}
-  userObj.username = u;
-  setUDataProxy(userObj);
-  svU();
-  showOk('Login berhasil!');
-  setTimeout(enterApp,400);
+  if (btnR) {
+    btnR.disabled = busy;
+    btnR.textContent = busy ? 'Memproses...' : 'Daftar Akun Baru';
+  }
 }
-async function doRegister(){
-  const u=document.getElementById('inpU').value.trim();
-  const p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim().toUpperCase();
-  const digits=u.replace(/\D/g,'');
-  if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
-  if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}
-  if(p!==p2){showErr('Ulangi password tidak sama!');return}
-  const au=gAU();
-  if(au[u]){showErr('Nomor HP sudah terdaftar!');return}
 
-  if(typeof sbClient !== 'undefined' && sbClient){
-    try {
-      const { data: existingRow } = await sbClient.from('members').select('username').eq('username', u).maybeSingle();
-      if(existingRow){
-        showErr('Nomor HP sudah terdaftar di database!');
-        return;
-      }
-    } catch(e){ console.warn('Cek member Supabase gagal:', e); }
-  }
+async function doLogin(){
+  if (_isAuthBusy) return;
+  const rawInputU = document.getElementById('inpU').value.trim();
+  const u = normalizePhone(rawInputU) || rawInputU;
+  const p = document.getElementById('inpP').value.trim();
+  if(!u || !p){showErr('Nomor HP dan password harus diisi!');return}
 
-  const newUser=mkUser(u,p);
-  if(r){
-    const ref=Object.values(au).find(x=>String(x.inviteCode||'').toUpperCase()===r);
-    if(ref){
-      const refUname = String(ref.username || '').trim();
-      newUser.referredBy=refUname;
-      if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
-      ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
-      au[refUname]=ref;
-    } else if(typeof sbClient !== 'undefined' && sbClient){
+  setAuthButtonsBusy(true);
+  try {
+    const au = gAU();
+    let userObj = au[u] || au[rawInputU];
+
+    if(!userObj && typeof sbClient !== 'undefined' && sbClient){
       try {
-        const { data: refRow } = await sbClient.from('members').select('username').eq('invite_code', r).maybeSingle();
-        if(refRow) newUser.referredBy = String(refRow.username || '').trim();
-      } catch(e){}
+        const { data: row } = await sbClient.from('members').select('*').eq('username', u).maybeSingle();
+        if(row && (!row.password || row.password === p)){
+          userObj = mkUser(row.username, row.password || p);
+          if(row.saldo !== undefined && row.saldo !== null) userObj.balance = Number(row.saldo);
+          if(row.invite_code) userObj.inviteCode = row.invite_code;
+          if(row.referred_by) userObj.referredBy = normalizePhone(row.referred_by);
+          if(row.transaksi_json){
+            try {
+              const txParsed = JSON.parse(row.transaksi_json);
+              if(Array.isArray(txParsed)) userObj.transactions = txParsed;
+            } catch (_) {}
+          }
+          const vipNum = parseInt(String(row.level_vip || '').replace(/\D/g, ''), 10);
+          if(!Number.isNaN(vipNum)){
+            userObj.currentVip = { youtube: vipNum, tiktok: vipNum, facebook: vipNum };
+          }
+          au[u] = userObj;
+          svAU(au);
+        }
+      } catch(e){ console.warn('Login Supabase check error:', e); }
     }
-  }
 
-  au[u]=newUser;
-  svAU(au);
-  setUDataProxy(newUser);
-  svU();
-  await pushMemberToSupabase(newUser);
-  showOk('Pendaftaran berhasil!');
-  setTimeout(enterApp,400);
+    if(!userObj || userObj.password !== p){
+      showErr('Nomor HP atau Password salah!');
+      setAuthButtonsBusy(false);
+      return;
+    }
+
+    userObj.username = u;
+    au[u] = userObj;
+    svAU(au);
+    setUDataProxy(userObj);
+    svU();
+    _lastLocalBalChangeAt = Date.now();
+    showOk('Login berhasil!');
+    setTimeout(() => {
+      setAuthButtonsBusy(false);
+      enterApp();
+    }, 250);
+  } catch (err) {
+    console.warn('doLogin error:', err);
+    showErr('Terjadi kesalahan saat masuk. Coba lagi.');
+    setAuthButtonsBusy(false);
+  }
+}
+
+async function doRegister(){
+  if (_isAuthBusy) return;
+  const rawInputU = document.getElementById('inpU').value.trim();
+  const u = normalizePhone(rawInputU) || rawInputU;
+  const p = document.getElementById('inpP').value.trim();
+  const p2 = document.getElementById('inpP2').value.trim();
+  const r = document.getElementById('inpRef').value.trim().toUpperCase();
+  const digits = u.replace(/\D/g,'');
+  if(!u || digits.length < 8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
+  if(!p || p.length < 4){showErr('Password minimal 4 karakter!');return}
+  if(p !== p2){showErr('Ulangi password tidak sama!');return}
+
+  setAuthButtonsBusy(true);
+  try {
+    const au = gAU();
+    if(au[u]){
+      showErr('Nomor HP sudah terdaftar!');
+      setAuthButtonsBusy(false);
+      return;
+    }
+
+    if(typeof sbClient !== 'undefined' && sbClient){
+      try {
+        const { data: existingRow } = await sbClient.from('members').select('username').eq('username', u).maybeSingle();
+        if(existingRow){
+          showErr('Nomor HP sudah terdaftar di database!');
+          setAuthButtonsBusy(false);
+          return;
+        }
+      } catch(e){ console.warn('Cek member Supabase gagal:', e); }
+    }
+
+    const newUser = mkUser(u, p);
+    if(r){
+      const ref = Object.values(au).find(x => String(x.inviteCode || '').toUpperCase() === r);
+      if(ref){
+        const refUname = normalizePhone(ref.username) || String(ref.username || '').trim();
+        newUser.referredBy = refUname;
+        if(!ref.referrals) ref.referrals = {1:[],2:[],3:[]};
+        if(!ref.referrals[1].some(item => normalizePhone(item.username) === u)){
+          ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
+        }
+        au[refUname] = ref;
+      } else if(typeof sbClient !== 'undefined' && sbClient){
+        try {
+          const { data: refRow } = await sbClient.from('members').select('*').eq('invite_code', r).maybeSingle();
+          if(refRow) {
+            const refUname = normalizePhone(refRow.username) || String(refRow.username || '').trim();
+            newUser.referredBy = refUname;
+          }
+        } catch(e){}
+      }
+    }
+
+    au[u] = newUser;
+    svAU(au);
+    setUDataProxy(newUser);
+    svU();
+    await pushMemberToSupabase(newUser);
+    showOk('Pendaftaran berhasil!');
+    setTimeout(() => {
+      setAuthButtonsBusy(false);
+      enterApp();
+    }, 250);
+  } catch (err) {
+    console.warn('doRegister error:', err);
+    showErr('Terjadi kesalahan saat mendaftar. Coba lagi.');
+    setAuthButtonsBusy(false);
+  }
 }
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
-function doLogout(){localStorage.removeItem('wsp_c20');localStorage.removeItem('wph_u20');localStorage.removeItem('wsp_u20');location.reload()}
+
+function doLogout(){
+  _isAuthBusy = true;
+  clearInterval(slideInterval);
+  localStorage.removeItem('wsp_c20');
+  localStorage.removeItem('wph_u20');
+  localStorage.removeItem('wsp_u20');
+  rawUData = null;
+  uData = null;
+  document.getElementById('appC').classList.remove('on');
+  document.getElementById('loginPg').style.display = 'flex';
+  document.getElementById('inpU').value = '';
+  document.getElementById('inpP').value = '';
+  document.getElementById('inpP2').value = '';
+  document.getElementById('inpRef').value = '';
+  if(!isLog){
+    togAuth();
+  }
+  setAuthButtonsBusy(false);
+}
 
 function enterApp(){
+  if(!rawUData) return;
   document.getElementById('loginPg').style.display='none';
   document.getElementById('appC').classList.add('on');
   if(!rawUData.claimedTasks)rawUData.claimedTasks=[];
@@ -1416,8 +1512,8 @@ async function distributeReferralCommission(sourceUser, sourceType, platform = '
 
   const rates = { 1: 0.10, 2: 0.05, 3: 0.03 };
   const au = gAU();
-  let currentRefUsername = sourceUser.referredBy ? String(sourceUser.referredBy).trim() : '';
-  const visited = new Set([String(sourceUser.username || '').trim()]);
+  let currentRefUsername = sourceUser.referredBy ? normalizePhone(sourceUser.referredBy) : '';
+  const visited = new Set([normalizePhone(sourceUser.username)]);
 
   for(let level = 1; level <= 3; level++){
     if(!currentRefUsername || visited.has(currentRefUsername)) break;
@@ -1431,7 +1527,7 @@ async function distributeReferralCommission(sourceUser, sourceType, platform = '
           uplineObj = mkUser(row.username, row.password || '');
           if(row.saldo !== undefined && row.saldo !== null) uplineObj.balance = Number(row.saldo);
           if(row.invite_code) uplineObj.inviteCode = row.invite_code;
-          if(row.referred_by) uplineObj.referredBy = String(row.referred_by).trim();
+          if(row.referred_by) uplineObj.referredBy = normalizePhone(row.referred_by);
           if(row.transaksi_json){
             try {
               const parsedTx = JSON.parse(row.transaksi_json);
@@ -1472,7 +1568,7 @@ async function distributeReferralCommission(sourceUser, sourceType, platform = '
       au[currentRefUsername] = uplineObj;
       svAU(au);
 
-      if(rawUData && String(rawUData.username || '').trim() === currentRefUsername){
+      if(rawUData && normalizePhone(rawUData.username) === currentRefUsername){
         setUDataProxy(uplineObj);
         svU();
       }
@@ -1480,7 +1576,7 @@ async function distributeReferralCommission(sourceUser, sourceType, platform = '
       await pushMemberToSupabase(uplineObj);
     }
 
-    currentRefUsername = uplineObj.referredBy ? String(uplineObj.referredBy).trim() : '';
+    currentRefUsername = uplineObj.referredBy ? normalizePhone(uplineObj.referredBy) : '';
   }
 }
 
@@ -1510,6 +1606,7 @@ function goToSlide(n){
 }
 
 function startSlideshow(){
+  clearInterval(slideInterval);
   slideInterval = setInterval(() => {
     let next = (currentSlide + 1) % totalSlides;
     showSlide(next);
@@ -1882,7 +1979,7 @@ function sendChatMessage(){
   const txt = input.value.trim();
   if(!txt) return;
 
-  const currentUname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  const currentUname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
 
   let chatHistories = {};
   try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
@@ -1896,7 +1993,7 @@ function sendChatMessage(){
 }
 
 function renderMemberChatMessages(){
-  const currentUname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  const currentUname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
   let chatHistories = {};
   try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
   const msgs = chatHistories[currentUname] || [];
@@ -1918,7 +2015,7 @@ function renderMemberChatMessages(){
 
 function openDirectWaCS(){
   const csPhone = "6289688780907";
-  const uname = (rawUData && rawUData.username) ? String(rawUData.username).trim() : 'Tamu';
+  const uname = (rawUData && rawUData.username) ? normalizePhone(rawUData.username) : 'Tamu';
   const msg = encodeURIComponent(`Halo Admin CS WPH SMM,\nSaya ${uname} ingin berkonsultasi mengenai akun dan layanan.`);
   window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
 }
@@ -2102,7 +2199,7 @@ function fallbackCopy(text) {
 window.addEventListener('DOMContentLoaded',async ()=>{
   genStars();ldU();
   const svRaw=localStorage.getItem('wsp_c20')||localStorage.getItem('wph_u20');
-  const sv=String(svRaw || '').trim();
+  const sv=normalizePhone(svRaw) || String(svRaw || '').trim();
   const au=gAU();
   if(sv&&au[sv]){
     setUDataProxy(au[sv]);
@@ -2115,7 +2212,7 @@ window.addEventListener('DOMContentLoaded',async ()=>{
         const restored = mkUser(row.username, row.password || '');
         if (row.saldo !== undefined && row.saldo !== null) restored.balance = Number(row.saldo);
         if (row.invite_code) restored.inviteCode = row.invite_code;
-        if (row.referred_by) restored.referredBy = String(row.referred_by).trim();
+        if (row.referred_by) restored.referredBy = normalizePhone(row.referred_by);
         if (row.transaksi_json) {
           try {
             const txParsed = JSON.parse(row.transaksi_json);
