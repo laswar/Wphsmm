@@ -260,11 +260,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .pic .cb{background:rgba(0,229,255,0.2);border:none;color:var(--cyan);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px}
 .bl{background:rgba(255,51,102,0.2);border:1px solid var(--err);color:var(--err);padding:5px 10px;border-radius:14px;font-size:10px;font-weight:600;cursor:pointer}
 
-/* STYLE LIVE CHAT CS */
 .btn-chat-cs{background:linear-gradient(135deg,var(--emerald),var(--cyan));border:none;color:#030806;padding:6px 12px;border-radius:14px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:'Poppins';display:flex;align-items:center;gap:4px;box-shadow:0 0 10px var(--emerald-glow);transition:all 0.2s}
 .btn-chat-cs:active{transform:scale(0.96)}
 .chat-box-container{height:220px;overflow-y:auto;background:rgba(3,15,10,0.9);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
-.chat-msg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:11px;line-height:1.4}
+.chat-msg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:11px;line-height:1.4;word-break:break-word}
 .chat-msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806;font-weight:600;border-bottom-right-radius:2px}
 .chat-msg.cs{align-self:flex-start;background:rgba(255,255,255,0.1);color:#fff;border-bottom-left-radius:2px;border:1px solid var(--border)}
 
@@ -301,6 +300,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .mh{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 14px}
 .mc h3{font-size:16px;margin-bottom:12px;font-family:'Orbitron';color:var(--emerald);text-align:center}
 .bm{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;font-family:'Orbitron'}
+.bm:disabled{opacity:0.5;cursor:not-allowed}
 .bm.pr{background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#030806}
 .bm.cn{background:rgba(255,255,255,0.1);color:#fff}
 .bm.orange{background:linear-gradient(135deg,#ff9100,var(--emerald));color:#000}
@@ -330,7 +330,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <body>
 <div class="stars" id="starsC"></div>
 
-<!-- LOGIN / REGISTER -->
 <div class="login-page" id="loginPg">
   <div class="login-logo">WPH SMM</div>
   <div class="login-sub">WPH SOCIAL MEDIA MARKETING - THE DIGITAL GALAXY</div>
@@ -338,30 +337,29 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <h2 id="loginTitle">Masuk</h2>
     <div class="msg err" id="errM"></div>
     <div class="msg ok" id="okM"></div>
- <div class="fg" id="fgPhone">
-  <label>Nomor HP</label>
-  <input type="tel" id="inpU" placeholder="Masukkan nomor HP (contoh: 081234567890)" autocomplete="tel">
-</div>
+    <div class="fg" id="fgPhone">
+      <label>Nomor HP</label>
+      <input type="tel" id="inpU" placeholder="Masukkan nomor HP (contoh: 081234567890)" autocomplete="tel">
+    </div>
 
-<div class="fg">
-  <label>Password</label>
-  <input type="password" id="inpP" placeholder="Masukkan password" autocomplete="new-password">
-</div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="inpP" placeholder="Masukkan password" autocomplete="current-password">
+    </div>
 
-<div class="fg" id="fgPass2" style="display:none;">
-  <label>Ulangi Password</label>
-  <input type="password" id="inpP2" placeholder="Masukkan ulang password" autocomplete="new-password">
-</div>
+    <div class="fg" id="fgPass2" style="display:none;">
+      <label>Ulangi Password</label>
+      <input type="password" id="inpP2" placeholder="Masukkan ulang password" autocomplete="new-password">
+    </div>
 
-<div class="fg" id="ref6" style="display:none;">
-  <label>Kode Referral</label>
-  <input type="text" id="inpRef" placeholder="Masukkan kode referral">
-</div>
-   <button class="btn-main" id="btnL" onclick="doLogin()">Masuk Akun</button>
+    <div class="fg" id="ref6" style="display:none;">
+      <label>Kode Referral</label>
+      <input type="text" id="inpRef" placeholder="Masukkan kode referral">
+    </div>
+    <button class="btn-main" id="btnL" onclick="doLogin()">Masuk Akun</button>
     <button class="btn-sec" id="btnR" style="display:none" onclick="doRegister()">Daftar Akun Baru</button>
     <button class="btn-rst" onclick="doReset()">🗑️ Reset Data</button>
 
-    <!-- LAYANAN PELANGGAN DI HALAMAN LOGIN / REGISTER -->
     <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
       <button class="btn-chat-cs" style="width: 100%; justify-content: center; padding: 10px;" onclick="openPublicLiveChat()">
         💬 Layanan Pelanggan (Live Chat CS)
@@ -372,7 +370,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   </div>
 </div>
 
-<!-- MAIN APP CONTAINER -->
 <div class="app" id="appC">
   <div class="hdr">
     <div class="hdr-r" onclick="openNodeModal()">🌐 Ubah Rute</div>
@@ -380,7 +377,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="hdr-r" onclick="toast('Bahasa: Indonesia')">🇮🇩 Indonesia</div>
   </div>
 
-  <!-- HOME PAGE -->
   <div class="pg on" id="pgHome">
     <div class="slideshow-container">
       <div class="slide-nav-btn prev" onclick="changeSlide(-1)">‹</div>
@@ -399,25 +395,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       </div>
     </div>
 
-    <!-- PENGUMUMAN DISPLAY YANG TERSINKRON DARI ADMIN -->
     <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">Selamat kepada anggota ****2478 rekomendasi platinum, mendapat Rp 300,000 komisi!</span></div></div>
 
-<div class="m3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 12px;">
-  <div onclick="goPage('vip')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
-    <img src="./icon-ruang-vip.jpg" alt="Ruang VIP" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
-    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ruang<br>VIP</div>
-  </div>
+    <div class="m3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 12px;">
+      <div onclick="goPage('vip')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+        <img src="./icon-ruang-vip.jpg" alt="Ruang VIP" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ruang<br>VIP</div>
+      </div>
 
-  <div onclick="goPage('pendapatan')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
-    <img src="./icon-penghasilan-harian.jpg" alt="Penghasilan Harian" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
-    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Penghasilan<br>Harian</div>
-  </div>
+      <div onclick="goPage('pendapatan')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+        <img src="./icon-penghasilan-harian.jpg" alt="Penghasilan Harian" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Penghasilan<br>Harian</div>
+      </div>
 
-  <div onclick="goPage('referral')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
-    <img src="./icon-ganjaran-promosi.jpg" alt="Ganjaran Promosi" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
-    <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ganjaran<br>Promosi</div>
-  </div>
-</div>
+      <div onclick="goPage('referral')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
+        <img src="./icon-ganjaran-promosi.jpg" alt="Ganjaran Promosi" style="width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,255,170,0.35);display:block;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;line-height:1.2;color:#e0f2fe;word-break:break-word;">Ganjaran<br>Promosi</div>
+      </div>
+    </div>
 
     <div class="inv" onclick="goPage('referral')"><div class="sd">✦</div><div class="lt">⚡</div><h3>Undang Anggota Baru (Bonus Komisi)</h3></div>
 
@@ -439,7 +434,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
   </div>
 
-  <!-- TUGAS PAGE -->
   <div class="pg" id="pgTugas">
     <div class="tib">
       <div><div class="tlb">Tugas Hari Ini</div><div class="tlv"><span id="tC">0</span> / <span id="tM">4</span></div></div>
@@ -453,7 +447,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="tl3" id="tL"></div>
   </div>
 
-  <!-- VIP PAGE -->
   <div class="pg" id="pgVIP">
     <div class="vc">
       <div class="cvi">
@@ -489,7 +482,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
   </div>
 
-  <!-- PENDAPATAN PAGE -->
   <div class="pg" id="pgPendapatan">
     <div class="wc">
       <div class="wg">
@@ -503,7 +495,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div id="txL" style="padding:0 12px"></div>
   </div>
 
-  <!-- PROFIL PAGE (MILIKKU) -->
   <div class="pg" id="pgProfil">
     <div class="phs">
       <div class="ptop">
@@ -572,7 +563,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
   </div>
 
-  <!-- REFERRAL PAGE -->
   <div class="pg" id="pgReferral">
     <div class="lh"><div class="bb" onclick="goPage('profil')">&lt;</div><h2>Program Referral</h2></div>
     <div class="rh">
@@ -597,7 +587,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="rls" id="refL" style="padding:0 12px"></div>
   </div>
 
-  <!-- LAPORAN TIM PAGE -->
   <div class="pg" id="pgLaporanTim">
     <div class="lh"><div class="bb" onclick="goPage('profil')">&lt;</div><h2>Laporan Tim</h2></div>
     <div class="st" style="font-size:14px">📊 Statistik Tim Saya</div>
@@ -611,7 +600,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
   </div>
 
-  <!-- BOTTOM NAVIGATION -->
   <div class="bnav">
     <div class="ni act" onclick="goPage('home')" data-p="home"><div class="nic">🏠</div><div class="nl">Halaman</div></div>
     <div class="ni" onclick="goPage('tugas')" data-p="tugas"><div class="nic">📋</div><div class="nl">Tugas</div></div>
@@ -624,7 +612,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <input type="file" id="fIn" class="hfi" accept="image/*">
 <input type="file" id="topupProofFile" class="hfi" accept="image/*">
 
-<!-- MODAL PILIH TAUTAN VIDEO TUGAS PLATFORM -->
 <div class="mo" id="availableTasksM">
   <div class="mc">
     <div class="mh"></div>
@@ -637,7 +624,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   </div>
 </div>
 
-<!-- MODAL DOMPET & TOPUP QRIS / WITHDRAW -->
 <div class="mo" id="walletM">
   <div class="mc">
     <div class="mh"></div>
@@ -647,7 +633,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="modal-tab-btn" id="tabWdBtn" onclick="switchWalletTab('wd')">💸 Tarik Dana</div>
     </div>
 
-    <!-- TAB TOPUP QRIS -->
     <div id="wTabTopup">
       <div class="bank-info-box">
         📲 <b>Isi Ulang Barcode QRIS Resmi</b><br>
@@ -691,11 +676,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         <button class="btn-wa" onclick="sendProofToWhatsApp()">
           <span style="font-size:16px">💬</span> Kirim Bukti ke CS (WhatsApp)
         </button>
-        <button class="bm pr" style="margin-top:6px" onclick="confirmQrisPay()">✅ Konfirmasi & Kirim ke Admin</button>
+        <button class="bm pr" id="btnConfirmQris" style="margin-top:6px" onclick="confirmQrisPay()">✅ Konfirmasi & Kirim ke Admin</button>
       </div>
     </div>
 
-    <!-- TAB PENARIKAN -->
     <div id="wTabWd" style="display:none">
       <div class="bank-info-box">
         📋 <b>Ketentuan Penarikan Dana (Verifikasi Admin)</b><br>
@@ -725,14 +709,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         <label>Jumlah Penarikan (IDR)</label>
         <input type="number" id="wdAmountInp" placeholder="Masukkan jumlah">
       </div>
-      <button class="bm pr" onclick="submitWithdraw()">🚀 Ajukan Penarikan Dana</button>
+      <button class="bm pr" id="btnSubmitWd" onclick="submitWithdraw()">🚀 Ajukan Penarikan Dana</button>
     </div>
 
     <button class="bm cn" onclick="closeM('walletM')">Tutup</button>
   </div>
 </div>
 
-<!-- MODAL INFORMASI PRIBADI -->
 <div class="mo" id="infoM">
   <div class="mc">
     <div class="mh"></div>
@@ -767,7 +750,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   </div>
 </div>
 
-<!-- MODAL UPGRADE VIP -->
 <div class="mo" id="vipM">
   <div class="mc">
     <div class="mh"></div>
@@ -778,12 +760,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Masa Aktif</span><span style="font-weight:700;color:var(--emerald);font-size:11px" id="vmDur">-</span></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--dim);font-size:11px">Harga Upgrade</span><span style="font-weight:800;color:var(--gold);font-size:14px" id="vmPr">-</span></div>
     </div>
-    <button class="bm pr" onclick="buyVIP()">Konfirmasi Pembelian VIP</button>
+    <button class="bm pr" id="btnBuyVip" onclick="buyVIP()">Konfirmasi Pembelian VIP</button>
     <button class="bm cn" onclick="closeM('vipM')">Batal</button>
   </div>
 </div>
 
-<!-- MODAL UPLOAD BUKTI TUGAS -->
 <div class="mo" id="imgM">
   <div class="mc">
     <div class="mh"></div>
@@ -794,7 +775,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   </div>
 </div>
 
-<!-- MODAL PASANG IKLAN RUANG DAGANG -->
 <div class="mo" id="pasangM">
   <div class="mc">
     <div class="mh"></div>
@@ -806,12 +786,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="fg"><label>Link Target Konten</label><input type="text" id="dgLink" placeholder="https://..."></div>
     <div class="fg"><label>Jumlah Iklan (min. 1000)</label><input type="number" id="dgQty" value="1000" onchange="calcDgCost()"></div>
     <div class="bank-info-box">💰 Total Pengeluaran: <b id="dgTotal">Rp 500.000</b></div>
-    <button class="bm orange" onclick="submitDagang()">🚀 Bayar & Tayangkan Iklan</button>
+    <button class="bm orange" id="btnSubmitDagang" onclick="submitDagang()">🚀 Bayar & Tayangkan Iklan</button>
     <button class="bm cn" onclick="closeM('pasangM')">Batal</button>
   </div>
 </div>
 
-<!-- MODAL LIVE CHAT CS (REALTIME DENGAN ADMIN) -->
 <div class="mo" id="liveChatM">
   <div class="mc">
     <div class="mh"></div>
@@ -842,7 +821,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   </div>
 </div>
 
-<!-- MODAL INFORMASI UMUM -->
 <div class="mo" id="simpleMsgM">
   <div class="mc">
     <div class="mh"></div>
@@ -865,6 +843,29 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 let memberRealtimeChannel = null;
 let subscribedUsername = "";
 
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isSafeUrl(urlStr) {
+  try {
+    const u = new URL(String(urlStr || "").trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch (_) {
+    return false;
+  }
+}
+
+function safeInt(val, fallback = 0) {
+  const num = Number(val);
+  return Number.isFinite(num) ? Math.floor(num) : fallback;
+}
+
 function normalizeTransactions(rawTx) {
   if (!rawTx) return [];
   if (Array.isArray(rawTx)) return rawTx;
@@ -881,19 +882,19 @@ function normalizeTransactions(rawTx) {
 
 function normalizeVipMap(levelVip, existingVip) {
   const base = {
-    youtube: Number(existingVip?.youtube || 0),
-    tiktok: Number(existingVip?.tiktok || 0),
-    facebook: Number(existingVip?.facebook || 0)
+    youtube: safeInt(existingVip?.youtube, 0),
+    tiktok: safeInt(existingVip?.tiktok, 0),
+    facebook: safeInt(existingVip?.facebook, 0)
   };
   if (levelVip !== undefined && levelVip !== null && levelVip !== "") {
     if (typeof levelVip === "object") {
       return {
-        youtube: Number(levelVip.youtube ?? base.youtube ?? 0),
-        tiktok: Number(levelVip.tiktok ?? base.tiktok ?? 0),
-        facebook: Number(levelVip.facebook ?? base.facebook ?? 0)
+        youtube: safeInt(levelVip.youtube ?? base.youtube, 0),
+        tiktok: safeInt(levelVip.tiktok ?? base.tiktok, 0),
+        facebook: safeInt(levelVip.facebook ?? base.facebook, 0)
       };
     }
-    const parsedNum = Number(levelVip);
+    const parsedNum = parseInt(String(levelVip).replace(/\D/g, ""), 10);
     if (!Number.isNaN(parsedNum)) {
       const maxCurrent = Math.max(base.youtube, base.tiktok, base.facebook);
       if (parsedNum >= maxCurrent) {
@@ -904,19 +905,32 @@ function normalizeVipMap(levelVip, existingVip) {
   return base;
 }
 
+function getCandidateIds(phoneOrId) {
+  const s = new Set();
+  const raw = String(phoneOrId || "").trim();
+  if (raw) s.add(raw);
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (digits) {
+    s.add(digits);
+    if (digits.startsWith("62")) s.add("0" + digits.slice(2));
+    if (digits.startsWith("0")) s.add("62" + digits.slice(1));
+  }
+  return Array.from(s);
+}
+
 function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   if (!memberRow) return;
 
-  const fallbackBal = rawUData && typeof rawUData.balance === "number" ? rawUData.balance : 0;
-  const newBal = (memberRow.saldo !== undefined && memberRow.saldo !== null && !Number.isNaN(Number(memberRow.saldo)))
-    ? Number(memberRow.saldo)
+  const fallbackBal = rawUData && typeof rawUData.balance === "number" ? safeInt(rawUData.balance, 0) : 0;
+  const newBal = (memberRow.saldo !== undefined && memberRow.saldo !== null && Number.isFinite(Number(memberRow.saldo)))
+    ? safeInt(memberRow.saldo, fallbackBal)
     : fallbackBal;
 
-  const idKey = String(memberRow.username || memberRow.phone || memberRow.no_hp || targetPhoneOrId || "").trim();
+  const candidateList = getCandidateIds(memberRow.username || memberRow.phone || memberRow.no_hp || targetPhoneOrId);
   const matchUser = (obj) => {
     if (!obj || typeof obj !== "object") return false;
-    const idVal = obj.phone || obj.noHp || obj.username || obj.user || obj.id;
-    return String(idVal || "").trim() === idKey || String(idVal || "").trim() === String(targetPhoneOrId || "").trim();
+    const idVal = String(obj.phone || obj.noHp || obj.username || obj.user || obj.id || "").trim();
+    return candidateList.includes(idVal) || idVal === String(targetPhoneOrId || "").trim();
   };
 
   const serverTx = normalizeTransactions(memberRow.transaksi_json);
@@ -959,7 +973,7 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
     try {
       const parsedAll = JSON.parse(rawAll);
       if (parsedAll && typeof parsedAll === "object") {
-        const lookupKey = parsedAll[idKey] ? idKey : (parsedAll[targetPhoneOrId] ? targetPhoneOrId : null);
+        const lookupKey = candidateList.find((c) => Object.prototype.hasOwnProperty.call(parsedAll, c));
         if (lookupKey) {
           parsedAll[lookupKey].balance = newBal;
           parsedAll[lookupKey].currentVip = nextVip;
@@ -985,30 +999,28 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
 async function persistMemberToSupabase(userObj) {
   if (!userObj || !userObj.username) return;
   try {
+    const cleanUsername = String(userObj.username).trim();
     const maxVip = Math.max(
-      Number(userObj.currentVip?.youtube || 0),
-      Number(userObj.currentVip?.tiktok || 0),
-      Number(userObj.currentVip?.facebook || 0)
+      safeInt(userObj.currentVip?.youtube, 0),
+      safeInt(userObj.currentVip?.tiktok, 0),
+      safeInt(userObj.currentVip?.facebook, 0)
     );
 
     const payload = {
-      username: String(userObj.username).trim(),
+      username: cleanUsername,
       password: userObj.password || "",
-      nama: userObj.nama || String(userObj.username).trim(),
+      nama: userObj.nama || cleanUsername,
       level_vip: maxVip,
-      saldo: Number(userObj.balance || 0),
+      saldo: safeInt(userObj.balance, 0),
       invite_code: userObj.inviteCode || "",
       referred_by: userObj.referredBy || null,
       transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions : []
     };
 
-    const { data: existing } = await sbClient
-      .from("members")
-      .select("id")
-      .eq("username", payload.username)
-      .maybeSingle();
+    const existing = await fetchMemberRowFromSupabase(cleanUsername);
 
     if (existing && existing.id) {
+      payload.username = existing.username || cleanUsername;
       await sbClient
         .from("members")
         .update(payload)
@@ -1024,14 +1036,20 @@ async function persistMemberToSupabase(userObj) {
 }
 
 async function fetchMemberRowFromSupabase(phoneOrId) {
+  const candidates = getCandidateIds(phoneOrId);
   for (const col of ["username", "phone", "no_hp"]) {
-    const { data, error } = await sbClient
-      .from("members")
-      .select("*")
-      .eq(col, phoneOrId)
-      .maybeSingle();
-    if (!error && data) {
-      return data;
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const { data, error } = await sbClient
+        .from("members")
+        .select("*")
+        .eq(col, candidate)
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!error && data) {
+        return data;
+      }
     }
   }
   return null;
@@ -1141,8 +1159,8 @@ const defaultPlatformTasks = {
 function getCombinedPlatformTasks(platform) {
   const defaults = defaultPlatformTasks[platform] || [];
   let customTasks = {};
-  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(e) {}
-  const customs = customTasks[platform] || [];
+  try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch(_){}
+  const customs = Array.isArray(customTasks[platform]) ? customTasks[platform] : [];
   return [...defaults, ...customs];
 }
 
@@ -1191,7 +1209,6 @@ const dgInfo = {
   }
 };
 
-
 let cPlat='youtube',sTP='youtube',sDG='youtube',sV=null,isLog=true,pUT=null,pUI=null,topupProofImg=null;
 let currentSlide=0;let slideInterval;const totalSlides=4;
 
@@ -1229,7 +1246,7 @@ function mkUser(u,p){
     claimedTasks:[],completedTasks:[],
     dagangAds:[],withdrawCount:0,
     personalInfo:{wa:'',method:'dana',accountNum:'',accountName:''},
-    transactions:[{title:'🎁 Bonus Registrasi Akun',amount:1000,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')}]
+    transactions:[{id:'tx_init_'+Date.now(),title:'🎁 Bonus Registrasi Akun',amount:1000,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')}]
   }
 }
 
@@ -1237,16 +1254,17 @@ function svU(){
   try{
     if(!rawUData) return;
     localStorage.setItem('wsp_u20',JSON.stringify(rawUData));
+    localStorage.setItem('wph_u20',JSON.stringify(rawUData));
     const au=gAU();
     if(rawUData.username){
       au[rawUData.username]=rawUData;
       svAU(au);
     }
-  }catch(e){}
+  }catch(_){}
 }
-function ldU(){try{const s=localStorage.getItem('wsp_u20');if(s)setUDataProxy(JSON.parse(s))}catch(e){}}
-function gAU(){try{return JSON.parse(localStorage.getItem('wsp_au20')||'{}')}catch(e){return{}}}
-function svAU(u){try{localStorage.setItem('wsp_au20',JSON.stringify(u))}catch(e){}}
+function ldU(){try{const s=localStorage.getItem('wsp_u20')||localStorage.getItem('wph_u20');if(s){const p=JSON.parse(s);if(p && typeof p==='object' && p.username)setUDataProxy(p)}}catch(_){}}
+function gAU(){try{return JSON.parse(localStorage.getItem('wsp_au20')||localStorage.getItem('wph_au20')||'{}')}catch(_){return{}}}
+function svAU(u){try{const ser=JSON.stringify(u);localStorage.setItem('wsp_au20',ser);localStorage.setItem('wph_au20',ser)}catch(_){}}
 
 function autoSyncAllIconsAndMenus(){
   if(!rawUData) return;
@@ -1254,8 +1272,8 @@ function autoSyncAllIconsAndMenus(){
   const todayStr = new Date().toLocaleDateString('id-ID');
 
   let todayInc = 0, commInc = 0, totalInc = 0;
-  (rawUData.transactions || []).forEach(t => {
-    const amt = Number(t.amount || 0);
+  normalizeTransactions(rawUData.transactions).forEach(t => {
+    const amt = Math.max(0, safeInt(t.amount, 0));
     if (t.type === 'plus' && t.status === 'approved') {
       totalInc += amt;
       if (t.date === todayStr && !String(t.title || '').includes('Bonus Registrasi') && !String(t.title || '').includes('Topup')) {
@@ -1267,7 +1285,7 @@ function autoSyncAllIconsAndMenus(){
     }
   });
 
-  const safeBalance = Number(rawUData.balance || 0);
+  const safeBalance = safeInt(rawUData.balance, 0);
   const formattedBal = 'Rp ' + safeBalance.toLocaleString('id-ID');
 
   setText('pN', rawUData.username);
@@ -1285,7 +1303,7 @@ function autoSyncAllIconsAndMenus(){
 
   setText('mToday', 'Rp ' + todayInc.toLocaleString('id-ID'));
   setText('mCommission', 'Rp ' + commInc.toLocaleString('id-ID'));
-  setText('mRebate', 'Rp ' + (commInc * 0.5).toLocaleString('id-ID'));
+  setText('mRebate', 'Rp ' + Math.floor(commInc * 0.5).toLocaleString('id-ID'));
   setText('mYesterday', 'Rp 0');
   setText('mWeek', 'Rp ' + totalInc.toLocaleString('id-ID'));
   setText('mMonth', 'Rp ' + totalInc.toLocaleString('id-ID'));
@@ -1315,7 +1333,7 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-function genStars(){const c=document.getElementById('starsC');c.innerHTML='';for(let i=0;i<40;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*3)+'s');c.appendChild(s)}}
+function genStars(){const c=document.getElementById('starsC');if(!c)return;c.innerHTML='';for(let i=0;i<40;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.setProperty('--d',(2+Math.random()*3)+'s');c.appendChild(s)}}
 function togAuth(){isLog=!isLog;document.getElementById('loginTitle').textContent=isLog?'Masuk':'Daftar Akun Baru';document.getElementById('btnL').style.display=isLog?'block':'none';document.getElementById('btnR').style.display=isLog?'none':'block';document.getElementById('fgPass2').style.display=isLog?'none':'block';document.getElementById('ref6').style.display=isLog?'none':'block';document.getElementById('togT').innerHTML=isLog?'Belum punya akun? <b>Daftar</b>':'Sudah punya akun? <b>Masuk</b>';if(isLog){document.getElementById('inpP2').value='';document.getElementById('inpRef').value='';}}
 
 function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
@@ -1330,16 +1348,18 @@ async function doLogin(){
   if(!localMatch || localMatch.password !== p){
     const remoteRow = await fetchMemberRowFromSupabase(u);
     if(remoteRow && (!remoteRow.password || remoteRow.password === p)){
-      const baseAccount = localMatch || mkUser(u, p);
+      const canonUsername = remoteRow.username || u;
+      const baseAccount = localMatch || mkUser(canonUsername, p);
+      baseAccount.username = canonUsername;
       baseAccount.password = p;
-      baseAccount.balance = Number(remoteRow.saldo ?? baseAccount.balance ?? 0);
+      baseAccount.balance = safeInt(remoteRow.saldo ?? baseAccount.balance, 0);
       baseAccount.currentVip = normalizeVipMap(remoteRow.level_vip, baseAccount.currentVip);
       if(remoteRow.invite_code) baseAccount.inviteCode = remoteRow.invite_code;
       if(remoteRow.referred_by) baseAccount.referredBy = remoteRow.referred_by;
       if(remoteRow.transaksi_json !== undefined) {
         baseAccount.transactions = normalizeTransactions(remoteRow.transaksi_json);
       }
-      au[u] = baseAccount;
+      au[canonUsername] = baseAccount;
       svAU(au);
       localMatch = baseAccount;
     }
@@ -1347,8 +1367,8 @@ async function doLogin(){
 
   if(!localMatch || localMatch.password!==p){showErr('Username/Password salah!');return}
   setUDataProxy(localMatch);
-  localStorage.setItem('wsp_c20',u);
-  localStorage.setItem('wph_u20',u);
+  localStorage.setItem('wsp_c20',localMatch.username);
+  localStorage.setItem('wph_u20',localMatch.username);
   showOk('Login berhasil!');
   setTimeout(async ()=>{
     enterApp();
@@ -1399,7 +1419,6 @@ async function doRegister(){
   },400);
 }
 
-
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
 function doLogout(){
   if(memberRealtimeChannel){
@@ -1422,7 +1441,7 @@ function enterApp(){
   if(!rawUData.claimedTasks)rawUData.claimedTasks=[];
   if(!rawUData.completedTasks)rawUData.completedTasks=[];
   if(!rawUData.dagangAds)rawUData.dagangAds=[];
-  if(!rawUData.transactions)rawUData.transactions=[];
+  rawUData.transactions = normalizeTransactions(rawUData.transactions);
   if(!rawUData.personalInfo)rawUData.personalInfo={wa:'',method:'dana',accountNum:'',accountName:''};
   
   setUDataProxy(rawUData);
@@ -1430,7 +1449,6 @@ function enterApp(){
   loadAdminAnnouncement();
 }
 
-// Fungsi SINKRONISASI PENGUMUMAN DARI ADMIN
 function loadAdminAnnouncement() {
   const savedAnn = localStorage.getItem('wsp_admin_announcement');
   const annEl = document.getElementById('dynamicAnnouncementText');
@@ -1439,7 +1457,7 @@ function loadAdminAnnouncement() {
   }
 }
 
-function getUserMaxVipLevel(user){return Math.max(user?.currentVip?.youtube||0,user?.currentVip?.tiktok||0,user?.currentVip?.facebook||0)}
+function getUserMaxVipLevel(user){return Math.max(safeInt(user?.currentVip?.youtube,0),safeInt(user?.currentVip?.tiktok,0),safeInt(user?.currentVip?.facebook,0))}
 function getTaskRewardPerTask(level){if(level===0)return 2000;const v=vipD.youtube.find(x=>x.l===level);return v?Math.floor(v.d/v.t):2000}
 function getTaskMaxTasks(level){const v=vipD.youtube.find(x=>x.l===level);return v?v.t:4}
 
@@ -1469,6 +1487,7 @@ function goToSlide(n){
 }
 
 function startSlideshow(){
+  if (slideInterval) clearInterval(slideInterval);
   slideInterval = setInterval(() => {
     let next = (currentSlide + 1) % totalSlides;
     showSlide(next);
@@ -1476,7 +1495,6 @@ function startSlideshow(){
 }
 
 function resetAutoSlide() {
-  clearInterval(slideInterval);
   startSlideshow();
 }
 
@@ -1485,16 +1503,17 @@ function renderHT(){
   g.innerHTML='';
   ['youtube','tiktok','facebook','fbshare'].forEach(p=>{
     const i=pInfo[p];const rpt=gRPT();
-    g.innerHTML+=`<div class="tc2" onclick="openPlatformTaskModal('${p}')"><div class="ti"><div class="tn">${i.n}</div><div class="tr">Klik Lihat Pilihan Tautan Video<br>Rp ${rpt.toLocaleString()}/tugas</div></div><div class="tl ${p}">${i.lh}</div></div>`
+    g.innerHTML+=`<div class="tc2" onclick="openPlatformTaskModal('${p}')"><div class="ti"><div class="tn">${escapeHtml(i.n)}</div><div class="tr">Klik Lihat Pilihan Tautan Video<br>Rp ${rpt.toLocaleString()}/tugas</div></div><div class="tl ${p}">${i.lh}</div></div>`
   });
 }
 
 function openPlatformTaskModal(platform){
   const info=pInfo[platform];
+  if (!info) return;
   const tasks=getCombinedPlatformTasks(platform);
   const rpt=gRPT();
 
-  document.getElementById('avTaskTitle').innerHTML=`${info.i} Pilih Tugas Video ${info.n}`;
+  document.getElementById('avTaskTitle').innerHTML=`${info.i} Pilih Tugas Video ${escapeHtml(info.n)}`;
   const listContainer=document.getElementById('avTaskList');
   listContainer.innerHTML='';
 
@@ -1510,14 +1529,14 @@ function openPlatformTaskModal(platform){
               ${info.i}
             </div>
             <div style="flex:1">
-              <div style="font-size:11.5px;font-weight:700;color:#fff">${t.t}</div>
+              <div style="font-size:11.5px;font-weight:700;color:#fff">${escapeHtml(t.t)}</div>
               <div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">Komisi: Rp ${rpt.toLocaleString('id-ID')}</div>
             </div>
           </div>
-          <div style="font-size:9.5px;color:var(--dim);word-break:break-all;margin-bottom:8px">🔗 ${t.l}</div>
+          <div style="font-size:9.5px;color:var(--dim);word-break:break-all;margin-bottom:8px">🔗 ${escapeHtml(t.l)}</div>
           ${isAlreadyClaimed ? 
             `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil</button>` :
-            `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${platform}', '${t.id}')">➕ Ambil Tugas Ini</button>`
+            `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${escapeHtml(platform)}', '${escapeHtml(t.id)}')">➕ Ambil Tugas Ini</button>`
           }
         </div>
       `;
@@ -1562,10 +1581,18 @@ function renderTPT(){
   const t=document.getElementById('tPT');if(!t)return;t.innerHTML='';
   ['youtube','tiktok','facebook','fbshare'].forEach(p=>{
     const i=pInfo[p];const act=sTP===p;
-    t.innerHTML+=`<div class="tptb ${act?'act':''}" onclick="selTP('${p}')"><div class="ti2">${i.i}</div><div class="tn2">${i.n}</div></div>`
+    t.innerHTML+=`<div class="tptb ${act?'act':''}" onclick="selTP('${p}')"><div class="ti2">${i.i}</div><div class="tn2">${escapeHtml(i.n)}</div></div>`
   });
 }
 function selTP(p){sTP=p;renderTPT();renderTL()}
+
+function openSafeTaskLink(urlStr) {
+  if (!isSafeUrl(urlStr)) {
+    toast("⚠️ Tautan tugas tidak valid.");
+    return;
+  }
+  window.open(String(urlStr).trim(), "_blank", "noopener,noreferrer");
+}
 
 function renderTL(){
   const c=document.getElementById('tL');if(!c)return;
@@ -1576,10 +1603,10 @@ function renderTL(){
     const ct=uData.completedTasks.find(x=>x.id===t.id);
     const isDone=ct&&ct.status==='verified';const isPending=ct&&ct.status==='pending';
     let stHtml='',actHtml='',pvHtml='';
-    if(isDone){stHtml='<div class="ti-s vr">✓ Diverifikasi</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${ct.proof}"></div>`}
-    else if(isPending){stHtml='<div class="ti-s pn">⏳ Verifikasi...</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${ct.proof}"></div>`}
-    else{stHtml='<div class="ti-s av">🔓 Siap Dikerjakan</div>';actHtml=`<div class="ta"><button class="bt ol" onclick="window.open('${t.link}')">🔗 Buka Link Video</button><button class="bt pr" onclick="trigUp('${t.id}')">📸 Upload Bukti</button></div>`}
-    c.innerHTML+=`<div class="ti3"><div class="ti3-h"><div class="ti-ic" style="background:${pInfo[sTP].c};color:#fff">${pInfo[sTP].i}</div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-r">Rp ${rpt.toLocaleString()}</div></div>${stHtml}</div>${pvHtml}${actHtml}</div>`
+    if(isDone){stHtml='<div class="ti-s vr">✓ Diverifikasi</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${escapeHtml(ct.proof)}"></div>`}
+    else if(isPending){stHtml='<div class="ti-s pn">⏳ Verifikasi...</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${escapeHtml(ct.proof)}"></div>`}
+    else{stHtml='<div class="ti-s av">🔓 Siap Dikerjakan</div>';actHtml=`<div class="ta"><button class="bt ol" onclick="openSafeTaskLink('${escapeHtml(t.link)}')">🔗 Buka Link Video</button><button class="bt pr" onclick="trigUp('${escapeHtml(t.id)}')">📸 Upload Bukti</button></div>`}
+    c.innerHTML+=`<div class="ti3"><div class="ti3-h"><div class="ti-ic" style="background:${pInfo[sTP].c};color:#fff">${pInfo[sTP].i}</div><div class="ti-inf"><div class="ti-t">${escapeHtml(t.title)}</div><div class="ti-r">Rp ${rpt.toLocaleString()}</div></div>${stHtml}</div>${pvHtml}${actHtml}</div>`
   });
 }
 
@@ -1590,19 +1617,20 @@ document.getElementById('fIn').addEventListener('change',function(e){
 });
 
 function showImgPrev(){
-  document.getElementById('imgC').innerHTML=`<div class="pc"><img src="${pUI}"></div>`;
+  document.getElementById('imgC').innerHTML=`<div class="pc"><img src="${escapeHtml(pUI)}"></div>`;
   document.getElementById('imgM').classList.add('on');
 }
 
 function submitProof(){
   if(!pUT||!pUI)return;
+  const tid = pUT;
   const rpt=gRPT();
-  uData.completedTasks.push({id:pUT,proof:pUI,status:'pending'});
+  uData.completedTasks.push({id:tid,proof:pUI,status:'pending'});
   closeM('imgM');toast('⏳ Bukti dikirim, memverifikasi...');
   setTimeout(async ()=>{
-    const ct=uData.completedTasks.find(x=>x.id===pUT);if(ct)ct.status='verified';
-    uData.balance=Number(uData.balance||0)+rpt;
-    uData.transactions.unshift({title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    const ct=uData.completedTasks.find(x=>x.id===tid);if(ct)ct.status='verified';
+    uData.balance=safeInt(uData.balance,0)+rpt;
+    uData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     await persistMemberToSupabase(rawUData);
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
   },2500);
@@ -1612,13 +1640,13 @@ document.getElementById('topupProofFile').addEventListener('change',function(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();r.onload=function(ev){
     topupProofImg=ev.target.result;
-    document.getElementById('topupProofPrev').innerHTML=`<div class="pc"><img src="${topupProofImg}" style="max-height:100px;margin:0 auto"></div>`;
+    document.getElementById('topupProofPrev').innerHTML=`<div class="pc"><img src="${escapeHtml(topupProofImg)}" style="max-height:100px;margin:0 auto"></div>`;
     toast('📷 Bukti transfer siap dikirim!');
   };r.readAsDataURL(f);
 });
 
 function sendProofToWhatsApp(){
-  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
+  const a=safeInt(document.getElementById('qrisAmtInp').value,0);
   if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
   const csPhone="6281234567890";
   const msg=encodeURIComponent(
@@ -1629,7 +1657,7 @@ function sendProofToWhatsApp(){
     `📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}\n\n` +
     `Mohon segera memproses verifikasi saldo akun saya. Terima kasih!`
   );
-  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
+  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank', 'noopener,noreferrer');
   toast('📱 Mengarahkan ke CS WhatsApp...');
 }
 
@@ -1655,36 +1683,45 @@ function setQrisAmt(a,el){
 }
 
 function generateQris(){
-  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
+  const a=safeInt(document.getElementById('qrisAmtInp').value,0);
   if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
   document.getElementById('qrisAmtTxt').textContent='Total Pembayaran: Rp '+a.toLocaleString();
   document.getElementById('qrisArea').style.display='block';
 }
 
 async function confirmQrisPay(){
-  const a=parseInt(document.getElementById('qrisAmtInp').value)||0;
-  if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
-  if(!uData.transactions) uData.transactions = [];
-  
-  uData.transactions.unshift({
-    title: 'Topup via QRIS Allshop',
-    amount: a,
-    type: 'topup',
-    status: 'pending',
-    date: new Date().toLocaleDateString('id-ID')
-  });
+  const btn = document.getElementById('btnConfirmQris');
+  if (btn) btn.disabled = true;
+  try {
+    const a=safeInt(document.getElementById('qrisAmtInp').value,0);
+    if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
+    if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+    
+    rawUData.transactions.unshift({
+      id: 'tx_topup_' + Date.now(),
+      title: 'Topup via QRIS Allshop',
+      amount: a,
+      type: 'topup',
+      status: 'pending',
+      date: new Date().toLocaleDateString('id-ID')
+    });
 
-  await persistMemberToSupabase(rawUData);
-  closeM('walletM');
-  toast('⏳ Pengajuan topup dikirim ke Admin untuk diverifikasi!');
-  document.getElementById('qrisArea').style.display='none';
+    svU();
+    autoSyncAllIconsAndMenus();
+    await persistMemberToSupabase(rawUData);
+    closeM('walletM');
+    toast('⏳ Pengajuan topup dikirim ke Admin untuk diverifikasi!');
+    document.getElementById('qrisArea').style.display='none';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function updateWdMethods(){
   const cat=document.getElementById('wdCategory').value,p=document.getElementById('wdProvider');p.innerHTML='';
   if(cat==='ewallet'){
     const ewallets=['DANA','GoPay','OVO','ShopeePay','LinkAja','iSaku'];
-    ewallets.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${x}</option>`);
+    ewallets.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
   }else{
     const indonesianBanks=[
       'Bank BCA','Bank Mandiri','Bank BRI','Bank BNI','Bank BSI (Syariah Indonesia)',
@@ -1692,35 +1729,44 @@ function updateWdMethods(){
       'Bank Panin','Maybank Indonesia','Bank OCBC NISP','SeaBank','Bank Jago',
       'Blu by BCA Digital','Bank Neo Commerce (BNC)','Jenius / Bank BTPN'
     ];
-    indonesianBanks.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${x}</option>`);
+    indonesianBanks.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
   }
 }
 
 async function submitWithdraw(){
-  const amt=parseInt(document.getElementById('wdAmountInp').value)||0;
-  const num=document.getElementById('wdAccountNum').value.trim();
-  const name=document.getElementById('wdAccountName').value.trim();
-  const minW=uData.withdrawCount===0?20000:50000;
-  if(amt<minW){toast('Minimal penarikan Rp '+minW.toLocaleString());return}
-  if(!num||!name){toast('Lengkapi nomor & nama rekening!');return}
-  if(Number(uData.balance||0)<amt){toast('Saldo tidak mencukupi!');return}
+  const btn = document.getElementById('btnSubmitWd');
+  if (btn) btn.disabled = true;
+  try {
+    const amt=safeInt(document.getElementById('wdAmountInp').value,0);
+    const num=document.getElementById('wdAccountNum').value.trim();
+    const name=document.getElementById('wdAccountName').value.trim();
+    const minW=safeInt(rawUData.withdrawCount,0)===0?20000:50000;
+    if(amt<minW){toast('Minimal penarikan Rp '+minW.toLocaleString());return}
+    if(!num||!name){toast('Lengkapi nomor & nama rekening!');return}
+    if(safeInt(rawUData.balance,0)<amt){toast('Saldo tidak mencukupi!');return}
 
-  uData.balance=Number(uData.balance||0)-amt;
-  uData.withdrawCount=Number(uData.withdrawCount||0)+1;
-  const provName=document.getElementById('wdProvider').value.toUpperCase();
+    rawUData.balance=safeInt(rawUData.balance,0)-amt;
+    rawUData.withdrawCount=safeInt(rawUData.withdrawCount,0)+1;
+    const provName=document.getElementById('wdProvider').value.toUpperCase();
 
-  if(!uData.transactions) uData.transactions = [];
-  uData.transactions.unshift({
-    title: 'Penarikan ke ' + provName + ' (' + num + ' a.n ' + name + ')',
-    amount: amt,
-    type: 'withdraw',
-    status: 'pending',
-    date: new Date().toLocaleDateString('id-ID')
-  });
+    if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+    rawUData.transactions.unshift({
+      id: 'tx_wd_' + Date.now(),
+      title: 'Penarikan ke ' + provName + ' (' + num + ' a.n ' + name + ')',
+      amount: amt,
+      type: 'withdraw',
+      status: 'pending',
+      date: new Date().toLocaleDateString('id-ID')
+    });
 
-  await persistMemberToSupabase(rawUData);
-  closeM('walletM');
-  toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
+    svU();
+    autoSyncAllIconsAndMenus();
+    await persistMemberToSupabase(rawUData);
+    closeM('walletM');
+    toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function openInfoModal(){
@@ -1732,13 +1778,14 @@ function openInfoModal(){
   document.getElementById('infoM').classList.add('on');
 }
 
-function savePersonalInfo(){
+async function savePersonalInfo(){
   uData.personalInfo={
     wa:document.getElementById('infoWa').value.trim(),
     method:document.getElementById('infoMethod').value,
     accountNum:document.getElementById('infoAcc').value.trim(),
     accountName:document.getElementById('infoName').value.trim()
   };
+  await persistMemberToSupabase(rawUData);
   closeM('infoM');toast('💾 Informasi pribadi berhasil disimpan!');
 }
 
@@ -1746,28 +1793,36 @@ function renderDagang(){
   const tabs=document.getElementById('dagangTabs');if(!tabs)return;tabs.innerHTML='';
   ['youtube','tiktok','facebook'].forEach(p=>{
     const count=uData.dagangAds.filter(a=>a.platform===p).length;const act=sDG===p;
-    tabs.innerHTML+=`<div class="dagang-tab ${act?'act':''}" onclick="sDG='${p}';renderDagang()"><div class="dt-i">${dgInfo[p].i}</div><div class="dt-n">${dgInfo[p].n}</div><div class="dt-c">${count} iklan</div></div>`
+    tabs.innerHTML+=`<div class="dagang-tab ${act?'act':''}" onclick="sDG='${p}';renderDagang()"><div class="dt-i">${dgInfo[p].i}</div><div class="dt-n">${escapeHtml(dgInfo[p].n)}</div><div class="dt-c">${count} iklan</div></div>`
   });
   const my=uData.dagangAds.filter(a=>a.platform===sDG);
   const di=document.getElementById('dagangInfo');
-  if(di) di.innerHTML=`<div class="di-r"><span class="di-l">Platform Active</span><span class="di-v">${dgInfo[sDG].n}</span></div><div class="di-r"><span class="di-l">Total Tayangan</span><span class="di-v">${my.reduce((a,b)=>a+b.qty,0).toLocaleString()}</span></div>`;
+  if(di) di.innerHTML=`<div class="di-r"><span class="di-l">Platform Active</span><span class="di-v">${escapeHtml(dgInfo[sDG].n)}</span></div><div class="di-r"><span class="di-l">Total Tayangan</span><span class="di-v">${my.reduce((a,b)=>a+safeInt(b.qty,0),0).toLocaleString()}</span></div>`;
   const l=document.getElementById('dagangList');if(!l)return;l.innerHTML='';
   if(my.length===0){l.innerHTML='<div style="text-align:center;padding:15px;color:var(--dim);font-size:10px">Belum ada iklan dipasang di platform ini.</div>';return}
   my.forEach(a=>{
-    l.innerHTML+=`<div class="dagang-item"><div class="di-h"><div class="di-ic" style="background:${dgInfo[a.platform].c};color:#fff">${dgInfo[a.platform].i}</div><div class="di-inf"><div class="di-t">${a.title}</div><div class="di-d">${a.qty.toLocaleString()} tayangan • Aktif 7 Hari</div></div></div></div>`
+    l.innerHTML+=`<div class="dagang-item"><div class="di-h"><div class="di-ic" style="background:${dgInfo[a.platform].c};color:#fff">${dgInfo[a.platform].i}</div><div class="di-inf"><div class="di-t">${escapeHtml(a.title)}</div><div class="di-d">${safeInt(a.qty,0).toLocaleString()} tayangan • Aktif 7 Hari</div></div></div></div>`
   });
 }
 function openPasangModal(){document.getElementById('pasangM').classList.add('on');calcDgCost()}
-function calcDgCost(){const q=parseInt(document.getElementById('dgQty').value)||0;document.getElementById('dgTotal').textContent='Rp '+(q*500).toLocaleString()}
+function calcDgCost(){const q=Math.max(0,safeInt(document.getElementById('dgQty').value,0));document.getElementById('dgTotal').textContent='Rp '+(q*500).toLocaleString()}
 async function submitDagang(){
-  const t=document.getElementById('dgTitle').value.trim(),d=document.getElementById('dgDesc').value.trim(),q=parseInt(document.getElementById('dgQty').value)||0;
-  if(!t||!d||q<1000){toast('Lengkapi data (min 1000 iklan)!');return}
-  const tot=q*500;if(Number(uData.balance||0)<tot){toast('Saldo tidak cukup!');return}
-  uData.balance=Number(uData.balance||0)-tot;
-  uData.dagangAds.push({id:'ad_'+Date.now(),platform:document.getElementById('dgPlat').value,title:t,qty:q});
-  uData.transactions.unshift({title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
-  await persistMemberToSupabase(rawUData);
-  closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
+  const btn = document.getElementById('btnSubmitDagang');
+  if (btn) btn.disabled = true;
+  try {
+    const t=document.getElementById('dgTitle').value.trim(),d=document.getElementById('dgDesc').value.trim(),q=safeInt(document.getElementById('dgQty').value,0);
+    if(!t||!d||q<1000){toast('Lengkapi data (min 1000 iklan)!');return}
+    const tot=q*500;if(safeInt(rawUData.balance,0)<tot){toast('Saldo tidak cukup!');return}
+    rawUData.balance=safeInt(rawUData.balance,0)-tot;
+    rawUData.dagangAds.push({id:'ad_'+Date.now(),platform:document.getElementById('dgPlat').value,title:t,qty:q});
+    rawUData.transactions.unshift({id:'tx_ad_'+Date.now(),title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    svU();
+    autoSyncAllIconsAndMenus();
+    await persistMemberToSupabase(rawUData);
+    closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function swPlat(p,el){cPlat=p;document.querySelectorAll('.vt').forEach(t=>t.classList.remove('act'));el.classList.add('act');renderVC();renderET()}
@@ -1775,7 +1830,7 @@ function renderVC(){
   const g=document.getElementById('vG');if(!g)return;g.innerHTML='';
   vipD[cPlat].forEach(v2=>{
     const cd=document.createElement('div');cd.className='vcd '+v2.c;
-    cd.innerHTML=`<div class="vcd-h"><div class="vbd">${v2.i}</div><div class="vcd-t"><h3>VIP ${v2.l}</h3><div class="vn">${v2.n}</div></div></div><div class="vcd-f"><div class="vpr">${v2.l===0?'FREE':'Rp '+v2.p.toLocaleString()}</div><div class="vtk">${v2.t} tugas/hr</div></div>`;
+    cd.innerHTML=`<div class="vcd-h"><div class="vbd">${escapeHtml(v2.i)}</div><div class="vcd-t"><h3>VIP ${v2.l}</h3><div class="vn">${escapeHtml(v2.n)}</div></div></div><div class="vcd-f"><div class="vpr">${v2.l===0?'FREE':'Rp '+v2.p.toLocaleString()}</div><div class="vtk">${v2.t} tugas/hr</div></div>`;
     cd.onclick=()=>openVM(v2);g.appendChild(cd);
   });
 }
@@ -1783,7 +1838,7 @@ function renderET(){
   const tb=document.getElementById('eTB');if(!tb)return;tb.innerHTML='';
   const ml=getUserMaxVipLevel(uData);
   vipD.youtube.forEach(v=>{
-    tb.innerHTML+=`<tr class="${v.l===ml?'active-row':''}"><td>${v.i} VIP ${v.l} (${v.dur}hr)</td><td class="ev">Rp ${v.d.toLocaleString()} / hari</td></tr>`
+    tb.innerHTML+=`<tr class="${v.l===ml?'active-row':''}"><td>${escapeHtml(v.i)} VIP ${v.l} (${v.dur}hr)</td><td class="ev">Rp ${v.d.toLocaleString()} / hari</td></tr>`
   });
 }
 function openVM(v){
@@ -1794,12 +1849,21 @@ function openVM(v){
   document.getElementById('vipM').classList.add('on');
 }
 async function buyVIP(){
-  if(!sV||sV.l===0){closeM('vipM');return}
-  if(Number(uData.balance||0)<sV.p){toast('Saldo tidak cukup!');return}
-  uData.balance=Number(uData.balance||0)-sV.p;uData.currentVip[cPlat]=sV.l;
-  uData.transactions.unshift({title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
-  await persistMemberToSupabase(rawUData);
-  closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
+  const btn = document.getElementById('btnBuyVip');
+  if (btn) btn.disabled = true;
+  try {
+    if(!sV||sV.l===0){closeM('vipM');return}
+    if(safeInt(rawUData.balance,0)<safeInt(sV.p,0)){toast('Saldo tidak cukup!');return}
+    rawUData.balance=safeInt(rawUData.balance,0)-safeInt(sV.p,0);
+    rawUData.currentVip[cPlat]=sV.l;
+    rawUData.transactions.unshift({id:'tx_vip_'+Date.now(),title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    svU();
+    autoSyncAllIconsAndMenus();
+    await persistMemberToSupabase(rawUData);
+    closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function openLiveChatModal(){
@@ -1822,7 +1886,7 @@ function sendChatMessage(){
   const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
 
   let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
   if(!chatHistories[currentUname]) chatHistories[currentUname] = [];
 
   chatHistories[currentUname].push({ sender: 'user', text: txt });
@@ -1835,20 +1899,20 @@ function sendChatMessage(){
 function renderMemberChatMessages(){
   const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
   let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(e){}
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
   const msgs = chatHistories[currentUname] || [];
 
   const box = document.getElementById('chatBox');
   box.innerHTML = `
     <div class="chat-msg cs">
-      Halo <b><span class="chat-uname">${currentUname}</span></b>! Selamat datang di Layanan Pelanggan WPH SMM. Ada yang bisa kami bantu?
+      Halo <b><span class="chat-uname">${escapeHtml(currentUname)}</span></b>! Selamat datang di Layanan Pelanggan WPH SMM. Ada yang bisa kami bantu?
     </div>
   `;
 
   msgs.forEach(m => {
     const cls = m.sender === 'user' ? 'user' : 'cs';
     const prefix = m.sender === 'admin' ? '<b>Admin CS:</b> ' : '';
-    box.innerHTML += `<div class="chat-msg ${cls}">${prefix}${m.text}</div>`;
+    box.innerHTML += `<div class="chat-msg ${cls}">${prefix}${escapeHtml(m.text)}</div>`;
   });
   box.scrollTop = box.scrollHeight;
 }
@@ -1857,7 +1921,7 @@ function openDirectWaCS(){
   const csPhone = "6289688780907";
   const uname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu';
   const msg = encodeURIComponent(`Halo Admin CS WPH SMM,\nSaya ${uname} ingin berkonsultasi mengenai akun dan layanan.`);
-  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank');
+  window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank', 'noopener,noreferrer');
 }
 
 function openCreditModal() {
@@ -1868,7 +1932,7 @@ function openCreditModal() {
 
   showSimpleModal(
     '⭐ Pusat Kredit Anggota',
-    `🛡️ <b>Skor Kepatuhan Akun (${uData.username}):</b><br><br>` +
+    `🛡️ <b>Skor Kepatuhan Akun (${escapeHtml(uData.username)}):</b><br><br>` +
     `• Skor Kredit: <b style="color:var(--gold);font-size:14px">${creditScore} / 100</b> (${statusBadge})<br>` +
     `• Total Tugas Diunggah: <b>${totalCompleted} tugas</b><br>` +
     `• Tugas Lolos Verifikasi: <b>${verifiedCount} tugas</b><br><br>` +
@@ -1877,14 +1941,14 @@ function openCreditModal() {
 }
 
 function openPesanModal() {
-  const pendingWd = uData.transactions.filter(t => String(t.title || '').includes('Penarikan') && t.status === 'pending').length;
+  const pendingWd = normalizeTransactions(uData.transactions).filter(t => String(t.title || '').includes('Penarikan') && t.status === 'pending').length;
   const maxTasks = gMT();
-  const sisaKuota = maxTasks - uData.claimedTasks.length;
+  const sisaKuota = Math.max(0, maxTasks - uData.claimedTasks.length);
 
   showSimpleModal(
     '💬 Sentro ng Mensahe',
     `🔔 <b>Pemberitahuan Sistem & Aktivitas Akun:</b><br><br>` +
-    `• <b>Status VIP:</b> Anda berada di <b>${gVN()}</b>.<br>` +
+    `• <b>Status VIP:</b> Anda berada di <b>${escapeHtml(gVN())}</b>.<br>` +
     `• <b>Kuota Tugas:</b> Tersisa <b>${sisaKuota} tugas</b> lagi untuk dikerjakan hari ini.<br>` +
     `• <b>Penarikan Menunggu:</b> <b>${pendingWd}x penarikan</b> dalam antrean admin.<br>` +
     `• <b>Promosi Iklan:</b> <b>${uData.dagangAds.length} iklan aktif</b> di Ruang Dagang.<br>` +
@@ -1901,8 +1965,8 @@ function openRilisModal() {
     uData.dagangAds.forEach((ad, idx) => {
       content += `
         <div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10.5px">
-          <b>#${idx + 1} [${ad.platform.toUpperCase()}] ${ad.title}</b><br>
-          <span style="color:var(--gold)">Target: ${ad.qty.toLocaleString()} Tayangan</span> | <span style="color:var(--emerald)">Status: Aktif</span>
+          <b>#${idx + 1} [${escapeHtml(String(ad.platform || '').toUpperCase())}] ${escapeHtml(ad.title)}</b><br>
+          <span style="color:var(--gold)">Target: ${safeInt(ad.qty,0).toLocaleString()} Tayangan</span> | <span style="color:var(--emerald)">Status: Aktif</span>
         </div>
       `;
     });
@@ -1917,15 +1981,15 @@ function openAIModal() {
   const nextVip = vipD.youtube.find(v => v.l === currentVipLvl + 1);
 
   let recommendation = nextVip 
-    ? `Rekomendasi upgrade ke <b>VIP ${nextVip.l} (${nextVip.n})</b> untuk meningkatkan potensi penghasilan menjadi <b>Rp ${nextVip.d.toLocaleString()}/hari</b>.`
+    ? `Rekomendasi upgrade ke <b>VIP ${nextVip.l} (${escapeHtml(nextVip.n)})</b> untuk meningkatkan potensi penghasilan menjadi <b>Rp ${nextVip.d.toLocaleString()}/hari</b>.`
     : `Anda telah mencapai level tertinggi (VIP 7 Ruby)! Rekomendasikan anggota baru untuk menambah pendapatan komisi 10%.`;
 
   showSimpleModal(
     '🤖 Asisten Task AI',
     `💡 <b>Analisis Performa Akun oleh AI:</b><br><br>` +
-    `• Level Akun: <b>${gVN()}</b><br>` +
+    `• Level Akun: <b>${escapeHtml(gVN())}</b><br>` +
     `• Estimasi Pendapatan Harian: <b>Rp ${currentEstDay.toLocaleString()}</b><br>` +
-    `• Status Saldo: <b>Rp ${Number(uData.balance||0).toLocaleString('id-ID')}</b><br><br>` +
+    `• Status Saldo: <b>Rp ${safeInt(uData.balance,0).toLocaleString('id-ID')}</b><br><br>` +
     `📌 <b>Saran AI:</b><br>${recommendation}`
   );
 }
@@ -1938,12 +2002,12 @@ function openLaporanModal() {
   showSimpleModal(
     '📊 Laporan Harian Anggota',
     `📈 <b>Ringkasan Aktivitas Performa Hari Ini:</b><br><br>` +
-    `• ID Anggota: <b>${uData.username}</b><br>` +
-    `• Level Keanggotaan: <b>${gVN()}</b><br>` +
+    `• ID Anggota: <b>${escapeHtml(uData.username)}</b><br>` +
+    `• Level Keanggotaan: <b>${escapeHtml(gVN())}</b><br>` +
     `• Tugas Diambil: <b>${uData.claimedTasks.length} / ${maxTasks}</b><br>` +
     `• Tugas Lolos Verifikasi: <b>${verifiedCount}</b><br>` +
     `• Tugas Menunggu Review: <b>${pendingCount}</b><br>` +
-    `• Total Saldo Aktif: <b>Rp ${Number(uData.balance||0).toLocaleString('id-ID')}</b>`
+    `• Total Saldo Aktif: <b>Rp ${safeInt(uData.balance,0).toLocaleString('id-ID')}</b>`
   );
 }
 
@@ -1956,7 +2020,7 @@ function openRekorTugasModal() {
     uData.completedTasks.forEach((t, idx) => {
       const isVerified = t.status === 'verified';
       const badge = isVerified ? '<span style="color:var(--emerald)">✅ Diverifikasi</span>' : '<span style="color:var(--gold)">⏳ Menunggu</span>';
-      content += `<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10px">#${idx + 1} ID: <b>${t.id}</b> — Status: ${badge}</div>`;
+      content += `<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10px">#${idx + 1} ID: <b>${escapeHtml(t.id)}</b> — Status: ${badge}</div>`;
     });
     content += `</div>`;
   }
@@ -1976,26 +2040,27 @@ function showSimpleModal(t,b){
 
 function renderTX(){
   const l=document.getElementById('txL');if(!l)return;l.innerHTML='';
-  if(!uData.transactions || uData.transactions.length === 0){
+  const txArr = normalizeTransactions(uData.transactions);
+  if(txArr.length === 0){
     l.innerHTML='<div style="text-align:center;padding:15px;color:var(--dim);font-size:11px">Belum ada riwayat transaksi keuangan.</div>';
     return;
   }
-  (uData.transactions || []).forEach(t=>{
+  txArr.forEach(t=>{
     let stColor = 'var(--gold)';
-    let stText = (t.status || 'pending').toUpperCase();
+    let stText = String(t.status || 'pending').toUpperCase();
     if(t.status === 'approved') stColor = 'var(--emerald)';
     if(t.status === 'rejected') stColor = 'var(--err)';
-    const amt = Number(t.amount || 0);
+    const amt = Math.max(0, safeInt(t.amount, 0));
 
     l.innerHTML+=`
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:11.5px;font-weight:600">${t.title}</div>
-          <div style="font-size:9.5px;color:var(--dim)">${t.date}</div>
+          <div style="font-size:11.5px;font-weight:600">${escapeHtml(t.title)}</div>
+          <div style="font-size:9.5px;color:var(--dim)">${escapeHtml(t.date || '-')}</div>
         </div>
         <div style="text-align:right">
           <div style="font-weight:800;font-size:11.5px;color:${t.type==='plus'?'var(--emerald)':'var(--err)'}">${t.type==='plus'?'+':'-'}Rp ${amt.toLocaleString()}</div>
-          <div style="font-size:9.5px;font-weight:700;color:${stColor}">${stText}</div>
+          <div style="font-size:9.5px;font-weight:700;color:${stColor}">${escapeHtml(stText)}</div>
         </div>
       </div>
     `;
@@ -2006,7 +2071,7 @@ function goPage(p){
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('act'));
   const m={home:'pgHome',tugas:'pgTugas',vip:'pgVIP',pendapatan:'pgPendapatan',profil:'pgProfil',laporanTim:'pgLaporanTim',referral:'pgReferral'};
-  document.getElementById(m[p]).classList.add('on');
+  if(m[p])document.getElementById(m[p]).classList.add('on');
   const ni=document.querySelector(`.ni[data-p="${p}"]`);if(ni)ni.classList.add('act');
   if(p==='vip'){renderVC();renderET()}
   if(p==='tugas')updTP();
@@ -2017,7 +2082,7 @@ function goPage(p){
 
 function closeM(id){document.getElementById(id).classList.remove('on')}
 function toast(m){const t=document.getElementById('tst');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-function copyIC(){navigator.clipboard.writeText(uData.inviteCode);toast('📋 Kode referral disalin!')}
+function copyIC(){if(!uData?.inviteCode)return;navigator.clipboard.writeText(uData.inviteCode);toast('📋 Kode referral disalin!')}
 
 window.addEventListener('DOMContentLoaded',()=>{
   genStars();ldU();
@@ -2027,11 +2092,13 @@ window.addEventListener('DOMContentLoaded',()=>{
     setUDataProxy(au[sv]);
     enterApp();
     syncActiveMemberFromSupabase();
+  } else if (rawUData && rawUData.username) {
+    enterApp();
+    syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
 });
 
-// Polling sinkronisasi pesan chat otomatis setiap 2.5 detik, saldo Supabase & update pengumuman admin
 setInterval(() => {
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
