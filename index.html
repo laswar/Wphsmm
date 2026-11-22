@@ -1785,21 +1785,74 @@ function mkUser(u,p){
   }
 }
 
+function buildLiteSessionSnapshot(uObj) {
+  if (!uObj || typeof uObj !== 'object' || !uObj.username) return null;
+  const recentTx = normalizeTransactions(uObj.transactions).slice(0, 20);
+  const todayKey = getTodayDateKey();
+  const claimedToday = Array.isArray(uObj.claimedTasks)
+    ? uObj.claimedTasks.filter(ct => !ct.dateKey || ct.dateKey === todayKey).slice(-30)
+    : [];
+  const completedToday = Array.isArray(uObj.completedTasks)
+    ? uObj.completedTasks.filter(ct => !ct.dateKey || ct.dateKey === todayKey).slice(-30)
+    : [];
+  return {
+    username: String(uObj.username).trim(),
+    password: uObj.password || '',
+    nama: uObj.nama || String(uObj.username).trim(),
+    balance: safeInt(uObj.balance, 0),
+    currentVip: normalizeVipMap(uObj.currentVip, null),
+    firstVipPurchased: Boolean(uObj.firstVipPurchased),
+    inviteCode: uObj.inviteCode || '',
+    referredBy: uObj.referredBy || null,
+    lastTaskDate: uObj.lastTaskDate || todayKey,
+    claimedTasks: claimedToday,
+    completedTasks: completedToday,
+    dagangAds: Array.isArray(uObj.dagangAds) ? uObj.dagangAds.slice(-20) : [],
+    withdrawCount: safeInt(uObj.withdrawCount, 0),
+    personalInfo: uObj.personalInfo || { wa: '', method: 'dana', accountNum: '', accountName: '' },
+    transactions: recentTx,
+    referrals: uObj.referrals || { 1: [], 2: [], 3: [] }
+  };
+}
+
 function svU(){
   try{
-    if(!rawUData) return;
-    localStorage.setItem('wsp_u20',JSON.stringify(rawUData));
-    localStorage.setItem('wph_u20',JSON.stringify(rawUData));
-    const au=gAU();
-    if(rawUData.username){
-      au[rawUData.username]=rawUData;
-      svAU(au);
+    if(!rawUData || !rawUData.username) return;
+    const snap = buildLiteSessionSnapshot(rawUData);
+    if(!snap) return;
+    const ser = JSON.stringify(snap);
+    localStorage.setItem('wsp_u20', ser);
+    localStorage.setItem('wph_u20', ser);
+    localStorage.setItem('wsp_c20', snap.username);
+    // Cegah penumpukan multi-akun di browser yang sama
+    localStorage.removeItem('wsp_au20');
+    localStorage.removeItem('wph_au20');
+  }catch(_){}
+}
+function ldU(){
+  try{
+    const s = localStorage.getItem('wsp_u20') || localStorage.getItem('wph_u20');
+    if(s){
+      const p = JSON.parse(s);
+      if(p && typeof p === 'object' && p.username){
+        setUDataProxy(buildLiteSessionSnapshot(p));
+      }
     }
   }catch(_){}
 }
-function ldU(){try{const s=localStorage.getItem('wsp_u20')||localStorage.getItem('wph_u20');if(s){const p=JSON.parse(s);if(p && typeof p==='object' && p.username)setUDataProxy(p)}}catch(_){}}
-function gAU(){try{return JSON.parse(localStorage.getItem('wsp_au20')||localStorage.getItem('wph_au20')||'{}')}catch(_){return{}}}
-function svAU(u){try{const ser=JSON.stringify(u);localStorage.setItem('wsp_au20',ser);localStorage.setItem('wph_au20',ser)}catch(_){}}
+function gAU(){
+  const map = {};
+  if(rawUData && rawUData.username){
+    map[rawUData.username] = rawUData;
+  }
+  return map;
+}
+function svAU(_u){
+  try{
+    localStorage.removeItem('wsp_au20');
+    localStorage.removeItem('wph_au20');
+  }catch(_){}
+}
 
 function autoSyncAllIconsAndMenus(){
   if(!rawUData) return;
@@ -1997,6 +2050,9 @@ function doLogout(){
   localStorage.removeItem('wsp_c20');
   localStorage.removeItem('wph_u20');
   localStorage.removeItem('wsp_u20');
+  localStorage.removeItem('wsp_au20');
+  localStorage.removeItem('wph_au20');
+  localStorage.removeItem('wsp_chat_histories');
   rawUData = null;
   uData = null;
   document.querySelectorAll('.mo').forEach(m => m.classList.remove('on'));
@@ -2777,49 +2833,79 @@ function openVM(v){
   document.getElementById('vmPr').textContent=v.l===0?'GRATIS':'Rp '+v.p.toLocaleString('id-ID');
   document.getElementById('vipM').classList.add('on');
 }
-async function buyVIP(){
+async function buyVIP() {
   const btn = document.getElementById('btnBuyVip');
   if (btn) btn.disabled = true;
+
   try {
-    if(!sV||sV.l===0){closeM('vipM');return}
+    if (!sV || sV.l === 0) {
+      closeM('vipM');
+      return;
+    }
+
     const currentLvl = getUserMaxVipLevel(rawUData);
     if (sV.l <= currentLvl) {
       closeM('vipM');
-      toast(sV.l === currentLvl ? 'ℹ️ VIP ' + sV.l + ' adalah Status Anda Saat Ini.' : '⚠️ Tidak dapat membeli level VIP lebih rendah dari VIP ' + currentLvl + '.');
+      toast(
+        sV.l === currentLvl
+          ? 'ℹ️ VIP ' + sV.l + ' adalah Status Anda Saat Ini.'
+          : '⚠️ Tidak dapat membeli level VIP lebih rendah dari VIP ' + currentLvl + '.'
+      );
       return;
     }
-    if(safeInt(rawUData.balance,0)<safeInt(sV.p,0)){toast('Saldo tidak cukup!');return}
 
-    const hadPurchasedBefore = Boolean(
-      rawUData.firstVipPurchased ||
-      normalizeTransactions(rawUData.transactions).some(t => String(t.title || "").includes("Upgrade VIP"))
-    );
-    const isFirstVipPurchase = !hadPurchasedBefore;
+    if (safeInt(rawUData.balance, 0) < safeInt(sV.p, 0)) {
+      toast('Saldo tidak cukup!');
+      return;
+    }
 
-    rawUData.balance=safeInt(rawUData.balance,0)-safeInt(sV.p,0);
-    rawUData.currentVip.youtube = sV.l;
-    rawUData.currentVip.tiktok = sV.l;
-    rawUData.currentVip.facebook = sV.l;
+    const activeUsername = String(rawUData?.username || '').trim();
+    if (!activeUsername) {
+      toast('⚠️ Akun member tidak valid.');
+      return;
+    }
+
+    const { data, error } = await sbClient.rpc('beli_vip_dan_komisi', {
+      p_username: activeUsername,
+      p_target_vip: Number(sV.l)
+    });
+
+    if (error) {
+      toast('❌ Gagal memproses VIP di server: ' + (error.message || 'Error'));
+      return;
+    }
+
+    if (!data || data.ok === false) {
+      toast('⚠️ ' + (data?.message || 'Upgrade VIP gagal diproses.'));
+      return;
+    }
+
     rawUData.lastTaskDate = getTodayDateKey();
     if (!Array.isArray(rawUData.claimedTasks)) rawUData.claimedTasks = [];
     if (!Array.isArray(rawUData.completedTasks)) rawUData.completedTasks = [];
-    if (isFirstVipPurchase) {
-      rawUData.firstVipPurchased = true;
+    rawUData.firstVipPurchased = true;
+
+    const latestRow = await fetchMemberRowFromSupabase(activeUsername);
+    if (latestRow) {
+      applyMemberRowToLocalState(latestRow, activeUsername);
+    } else {
+      rawUData.balance = safeInt(rawUData.balance, 0) - safeInt(sV.p, 0);
+      rawUData.currentVip.youtube = sV.l;
+      rawUData.currentVip.tiktok = sV.l;
+      rawUData.currentVip.facebook = sV.l;
+      svU();
+      autoSyncAllIconsAndMenus();
     }
-    rawUData.transactions.unshift({id:'tx_vip_'+Date.now(),title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
-    svU();
-    autoSyncAllIconsAndMenus();
+
+    await syncReferralTeamFromSupabase();
     renderVC();
     renderET();
-    await persistMemberToSupabase(rawUData);
 
-    if (isFirstVipPurchase && !(await hasRemoteVipCommissionSettled(rawUData))) {
-      await distributeVipUpgradeCommissions(rawUData, sV, true);
-    } else {
-      await markDownlineVipCommissionSettled(rawUData);
-    }
-
-    closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
+    closeM('vipM');
+    toast('🎉 Selamat! VIP ' + sV.l + ' berhasil diaktifkan!');
+  } catch (err) {
+    console.error('Error buyVIP:', err);
+    toast('❌ Terjadi kesalahan saat upgrade VIP.');
   } finally {
     if (btn) btn.disabled = false;
   }
