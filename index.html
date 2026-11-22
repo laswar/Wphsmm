@@ -1747,6 +1747,8 @@ function enterApp(){
   setUDataProxy(rawUData);
   startSlideshow();
   loadAdminAnnouncement();
+  setupTasksRealtimeSync();
+  syncTasksFromSupabase();
 }
 
 function loadAdminAnnouncement() {
@@ -1807,24 +1809,93 @@ function renderHT(){
   });
 }
 
-function openPlatformTaskModal(platform){
+let tasksRealtimeChannel = null;
+let currentOpenTaskPlatform = "";
+
+function applyRemoteTasksRows(rows) {
+  const grouped = { youtube: [], tiktok: [], facebook: [], fbshare: [] };
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    if (row.status && String(row.status).toLowerCase() === "inactive") return;
+    const platRaw = String(row.platform || "youtube").trim().toLowerCase();
+    const plat = Object.prototype.hasOwnProperty.call(grouped, platRaw) ? platRaw : "youtube";
+    const title = String(row.judul || row.title || "").trim();
+    const link = String(row.link_tugas || row.link || "").trim();
+    if (!title && !link) return;
+    grouped[plat].push({
+      id: row.id !== undefined && row.id !== null ? String(row.id) : ("task_" + Date.now() + "_" + Math.random()),
+      t: title || "Tugas Video",
+      l: link,
+      reward: safeInt(row.reward, 0)
+    });
+  });
+
+  localStorage.setItem("wsp_custom_tasks", JSON.stringify(grouped));
+  if (typeof renderHT === "function") renderHT();
+  if (document.getElementById("pgTugas")?.classList.contains("on") && typeof renderTL === "function") {
+    renderTL();
+  }
+  const modalEl = document.getElementById("availableTasksM");
+  if (modalEl && modalEl.classList.contains("on") && currentOpenTaskPlatform) {
+    renderPlatformTaskModalList(currentOpenTaskPlatform);
+  }
+}
+
+async function syncTasksFromSupabase() {
+  try {
+    const { data, error } = await sbClient
+      .from("tasks")
+      .select("id, platform, judul, deskripsi, reward, link_tugas, status, created_at")
+      .order("id", { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      applyRemoteTasksRows(data);
+    } else if (error) {
+      console.error("Gagal sinkron tugas dari Supabase:", error.message);
+    }
+  } catch (e) {
+    console.error("Error sinkron tugas dari Supabase:", e);
+  }
+}
+
+function setupTasksRealtimeSync() {
+  if (tasksRealtimeChannel || typeof sbClient.channel !== "function") return;
+  tasksRealtimeChannel = sbClient
+    .channel("tasks-public-sync")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "tasks"
+      },
+      () => {
+        syncTasksFromSupabase();
+      }
+    )
+    .subscribe();
+}
+
+function renderPlatformTaskModalList(platform) {
   ensureDailyTaskReset(rawUData, true);
-  const info=pInfo[platform];
+  const info = pInfo[platform];
   if (!info) return;
-  const tasks=getCombinedPlatformTasks(platform);
-  const rpt=gRPT();
-  const todayKey=getTodayDateKey();
+  const tasks = getCombinedPlatformTasks(platform);
+  const rpt = gRPT();
+  const todayKey = getTodayDateKey();
 
-  document.getElementById('avTaskTitle').innerHTML=`${info.i} Pilih Tugas Video ${escapeHtml(info.n)}`;
-  const listContainer=document.getElementById('avTaskList');
-  listContainer.innerHTML='';
+  document.getElementById("avTaskTitle").innerHTML = `${info.i} Pilih Tugas Video ${escapeHtml(info.n)}`;
+  const listContainer = document.getElementById("avTaskList");
+  listContainer.innerHTML = "";
 
-  if(tasks.length===0){
-    listContainer.innerHTML='<div style="text-align:center;padding:24px 14px;color:var(--dim);font-size:11px;line-height:1.6">Belum ada tugas video dari Admin untuk platform ini.<br>Silakan tunggu Admin menambahkan daftar tugas.</div>';
-  }else{
-    tasks.forEach((t)=>{
-      const isAlreadyClaimed=rawUData.claimedTasks.some(ct=>ct.id===t.id && (!ct.dateKey || ct.dateKey===todayKey));
-      listContainer.innerHTML+=`
+  if (tasks.length === 0) {
+    listContainer.innerHTML =
+      '<div style="text-align:center;padding:24px 14px;color:var(--dim);font-size:11px;line-height:1.6">Belum ada tugas video dari Admin untuk platform ini.<br>Silakan tunggu Admin menambahkan daftar tugas.</div>';
+  } else {
+    tasks.forEach((t) => {
+      const isAlreadyClaimed = rawUData.claimedTasks.some(
+        (ct) => String(ct.id) === String(t.id) && (!ct.dateKey || ct.dateKey === todayKey)
+      );
+      listContainer.innerHTML += `
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
             <div style="width:36px;height:36px;border-radius:8px;background:${info.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
@@ -1832,19 +1903,26 @@ function openPlatformTaskModal(platform){
             </div>
             <div style="flex:1">
               <div style="font-size:11.5px;font-weight:700;color:#fff">${escapeHtml(t.t)}</div>
-              <div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">Komisi: Rp ${rpt.toLocaleString('id-ID')}</div>
+              <div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">Komisi: Rp ${rpt.toLocaleString("id-ID")}</div>
             </div>
           </div>
           <div style="font-size:9.5px;color:var(--dim);word-break:break-all;margin-bottom:8px">🔗 ${escapeHtml(t.l)}</div>
-          ${isAlreadyClaimed ? 
-            `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil Hari Ini</button>` :
-            `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${escapeHtml(platform)}', '${escapeHtml(t.id)}')">➕ Ambil Tugas Ini</button>`
+          ${
+            isAlreadyClaimed
+              ? `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil Hari Ini</button>`
+              : `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${escapeHtml(platform)}', '${escapeHtml(String(t.id))}')">➕ Ambil Tugas Ini</button>`
           }
         </div>
       `;
     });
   }
-  document.getElementById('availableTasksM').classList.add('on');
+}
+
+async function openPlatformTaskModal(platform) {
+  currentOpenTaskPlatform = platform;
+  renderPlatformTaskModalList(platform);
+  document.getElementById("availableTasksM").classList.add("on");
+  await syncTasksFromSupabase();
 }
 
 function claimSpecificTask(platform, taskId){
@@ -1862,7 +1940,7 @@ function claimSpecificTask(platform, taskId){
   }
 
   const tasks=getCombinedPlatformTasks(platform);
-  const taskObj=tasks.find(t=>t.id===taskId);
+  const taskObj=tasks.find(t=>String(t.id)===String(taskId));
   if(!taskObj) return;
 
   uData.claimedTasks.push({
@@ -1980,7 +2058,7 @@ document.getElementById('topupProofFile').addEventListener('change',function(e){
 function sendProofToWhatsApp(){
   const a=safeInt(document.getElementById('qrisAmtInp').value,0);
   if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
-  const csPhone="6289688780907";
+  const csPhone="6281234567890";
   const msg=encodeURIComponent(
     `Halo CS WPH SMM,\n\nSaya ingin mengonfirmasi Isi Ulang Topup via QRIS DOUBLE Z ALLSHOP:\n` +
     `👤 Username: ${uData.username}\n` +
@@ -2605,6 +2683,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
+  setupTasksRealtimeSync();
+  syncTasksFromSupabase();
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -2614,6 +2694,7 @@ document.addEventListener('visibilitychange', () => {
       if (document.getElementById('pgTugas').classList.contains('on')) updTP();
     }
     syncActiveMemberFromSupabase();
+    syncTasksFromSupabase();
   }
 });
 
@@ -2629,6 +2710,7 @@ setInterval(() => {
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
+  syncTasksFromSupabase();
 }, 15000);
 </script>
 </body>
