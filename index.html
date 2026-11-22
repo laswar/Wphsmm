@@ -97,11 +97,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 @keyframes scr{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 
 .m3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px 12px}
-.mc3{background:rgba(6,22,16,0.9);border:1px solid var(--border);border-radius:12px;padding:12px 8px;cursor:pointer;transition:all 0.3s;position:relative;display:flex;flex-direction:column;align-items:flex-start;min-height:75px}
-.mc3:hover{transform:translateY(-2px);border-color:var(--emerald);box-shadow:0 0 12px var(--emerald-glow)}
-.mc3 .ml{font-size:11px;font-weight:700;color:#fff;line-height:1.3;flex:1}
-.mc3 .mo{position:absolute;right:8px;bottom:8px;width:28px;height:28px;border:1px solid rgba(0,230,118,0.5);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--emerald);font-weight:800;background:rgba(0,230,118,0.1)}
-
 .inv{margin:0 12px 12px;background:linear-gradient(135deg,#005c30,#004d40,#006064);padding:14px 16px;border-radius:12px;position:relative;overflow:hidden;border:1px solid var(--emerald);box-shadow:0 0 15px rgba(0,230,118,0.2);cursor:pointer}
 .inv h3{font-size:15px;font-weight:800;color:#fff;position:relative;z-index:1}
 .inv .sd{position:absolute;top:8px;right:15px;font-size:16px;z-index:1;animation:sp 2s ease-in-out infinite}
@@ -546,14 +541,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="st">Menu Aktivitas Terkait</div>
     <div class="mg3x3">
       <div class="mgi" onclick="openInfoModal()"><div class="mg-ic">👤</div><div class="mg-l">Informasi Pribadi</div></div>
-      <div class="mgi" onclick="openPesanModal()"><div class="mg-ic">💬</div><div class="mg-l">Sentro ng Mensahe</div></div>
+      <div class="mgi" onclick="openPesanModal()"><div class="mg-ic">💬</div><div class="mg-l">Pusat Pesan</div></div>
       <div class="mgi" onclick="openLaporanModal()"><div class="mg-ic">📊</div><div class="mg-l">Laporan Harian</div></div>
       <div class="mgi" onclick="openRekorUangModal()"><div class="mg-ic">🪙</div><div class="mg-l">Rekor Uang</div></div>
       <div class="mgi" onclick="goPage('referral')"><div class="mg-ic">👥</div><div class="mg-l">Ajak Teman</div></div>
       <div class="mgi" onclick="goPage('laporanTim')" style="border-color:var(--emerald)"><div class="mg-ic">👨‍👩‍👧</div><div class="mg-l" style="color:var(--emerald);font-weight:700">Laporan Tim</div></div>
       <div class="mgi" onclick="openManualModal()"><div class="mg-ic">📘</div><div class="mg-l">Manual Bantuan</div></div>
       <div class="mgi" onclick="openCreditModal()"><div class="mg-ic">⭐</div><div class="mg-l">Pusat Kredit</div></div>
-      <div class="mgi" onclick="openAppModal()"><div class="mg-ic">☁️</div><div class="mg-l">Unggah APP</div></div>
+      <div class="mgi" onclick="openAppModal()"><div class="mg-ic">☁️</div><div class="mg-l">Aplikasi WPH</div></div>
     </div>
 
     <div class="btt">
@@ -845,7 +840,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
     <div class="fg" style="display:flex;gap:6px;margin-bottom:8px">
       <input type="text" id="chatInput" placeholder="Ketik pesan ke CS..." onkeypress="if(event.key==='Enter')sendChatMessage()">
-      <button class="bm pr" style="width:auto;padding:0 16px;margin:0" onclick="sendChatMessage()">Kirim</button>
+      <button class="bm pr" id="btnSendChat" style="width:auto;padding:0 16px;margin:0" onclick="sendChatMessage()">Kirim</button>
     </div>
 
     <button class="btn-wa" style="margin-bottom:8px" onclick="openDirectWaCS()">
@@ -876,6 +871,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <script>
 let memberRealtimeChannel = null;
 let subscribedUsername = "";
+let announcementRealtimeChannel = null;
+let supportChatRealtimeChannel = null;
+let guestSessionId = "";
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -1091,32 +1089,6 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
     }
   });
 
-  ["wsp_au20", "wph_au20"].forEach((k) => {
-    const rawAll = localStorage.getItem(k);
-    if (!rawAll) return;
-    try {
-      const parsedAll = JSON.parse(rawAll);
-      if (parsedAll && typeof parsedAll === "object") {
-        const lookupKey = candidateList.find((c) => Object.prototype.hasOwnProperty.call(parsedAll, c));
-        if (lookupKey) {
-          parsedAll[lookupKey].balance = newBal;
-          parsedAll[lookupKey].currentVip = nextVip;
-          parsedAll[lookupKey].personalInfo = mergeBankInfoFromRow(memberRow, parsedAll[lookupKey].personalInfo, parsedAll[lookupKey].username);
-          if (memberRow.nama) parsedAll[lookupKey].nama = memberRow.nama;
-          if (memberRow.invite_code) parsedAll[lookupKey].inviteCode = memberRow.invite_code;
-          if (memberRow.referred_by) parsedAll[lookupKey].referredBy = memberRow.referred_by;
-          if (memberRow.transaksi_json !== undefined) {
-            parsedAll[lookupKey].transactions = serverTx;
-            if (serverTx.some(t => String(t.title || "").includes("Upgrade VIP"))) {
-              parsedAll[lookupKey].firstVipPurchased = true;
-            }
-          }
-          localStorage.setItem(k, JSON.stringify(parsedAll));
-        }
-      }
-    } catch (_) {}
-  });
-
   if (rawUData && matchUser(rawUData)) {
     setUDataProxy(rawUData);
   } else if (typeof autoSyncAllIconsAndMenus === "function") {
@@ -1182,7 +1154,6 @@ async function fetchMemberRowFromSupabase(phoneOrId) {
   const candidates = getCandidateIds(phoneOrId).filter(Boolean);
   if (candidates.length === 0) return null;
 
-  // Query langsung dengan filter .in() pada username agar hanya 1 round-trip ke database
   const { data: byUsername, error: errU } = await sbClient
     .from("members")
     .select("*")
@@ -1193,7 +1164,6 @@ async function fetchMemberRowFromSupabase(phoneOrId) {
 
   if (!errU && byUsername) return byUsername;
 
-  // Fallback pencarian berdasarkan invite_code jika parameter berupa kode undangan
   const rawUpper = String(phoneOrId || "").trim().toUpperCase();
   if (rawUpper) {
     const { data: byInvite, error: errI } = await sbClient
@@ -1316,7 +1286,6 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
     const refAliases = makeAliases(currentRefId);
     if (Array.from(refAliases).some((a) => visited.has(a))) break;
 
-    // Query terarah maksimal 1 baris per tingkat (aman untuk jutaan member)
     const remoteRow = await fetchMemberRowFromSupabase(currentRefId);
 
     let uplineObj = Object.values(au).find((u) => {
@@ -1412,158 +1381,6 @@ async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
     return false;
   }
   return true;
-}
-
-function hasDownlinePriorVipPurchase(downlineUser) {
-  const localHasVipTx = normalizeTransactions(downlineUser?.transactions).some(
-    t => String(t.title || "").includes("Upgrade VIP") || String(t.title || "").includes("Beli VIP")
-  );
-  return Boolean(downlineUser?.firstVipPurchased || localHasVipTx);
-}
-
-async function markDownlineVipCommissionSettled(downlineUser) {
-  if (!downlineUser || !downlineUser.username) return;
-  downlineUser.firstVipPurchased = true;
-
-  const au = gAU();
-  const candidates = getCandidateIds(downlineUser.username);
-  const matchKey = candidates.find(k => Object.prototype.hasOwnProperty.call(au, k)) || downlineUser.username;
-  if (au[matchKey]) {
-    au[matchKey].firstVipPurchased = true;
-    svAU(au);
-  }
-
-  if (rawUData && candidates.includes(String(rawUData.username || "").trim())) {
-    rawUData.firstVipPurchased = true;
-    svU();
-  }
-
-  try {
-    const remoteRow = await fetchMemberRowFromSupabase(downlineUser.username);
-    if (remoteRow) {
-      const remoteTxs = normalizeTransactions(remoteRow.transaksi_json);
-      const alreadyRecorded = remoteTxs.some(
-        t => String(t.id || "").startsWith("vip_comm_settled_")
-      );
-      if (!alreadyRecorded) {
-        remoteTxs.unshift({
-          id: "vip_comm_settled_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-          title: "🔒 Status Komisi VIP Downline Sudah Diproses",
-          amount: 0,
-          type: "info",
-          status: "approved",
-          date: new Date().toLocaleDateString("id-ID")
-        });
-        const mergedObj = {
-          ...downlineUser,
-          username: remoteRow.username || downlineUser.username,
-          password: remoteRow.password || downlineUser.password || "",
-          nama: remoteRow.nama || downlineUser.nama || remoteRow.username,
-          balance: safeInt(remoteRow.saldo ?? downlineUser.balance, 0),
-          currentVip: normalizeVipMap(remoteRow.level_vip, downlineUser.currentVip),
-          inviteCode: remoteRow.invite_code || downlineUser.inviteCode || "",
-          referredBy: remoteRow.referred_by || downlineUser.referredBy || null,
-          personalInfo: mergeBankInfoFromRow(remoteRow, downlineUser.personalInfo, remoteRow.username),
-          transactions: remoteTxs
-        };
-        await persistMemberToSupabase(mergedObj);
-      }
-    }
-  } catch (e) {
-    console.error("Gagal mencatat status komisi VIP downline:", e);
-  }
-}
-
-async function hasRemoteVipCommissionSettled(downlineUser) {
-  if (!downlineUser || !downlineUser.username) return false;
-  try {
-    const remoteRow = await fetchMemberRowFromSupabase(downlineUser.username);
-    if (remoteRow) {
-      const remoteTxs = normalizeTransactions(remoteRow.transaksi_json);
-      if (remoteTxs.some(t => String(t.id || "").startsWith("vip_comm_settled_") || String(t.title || "").includes("Upgrade VIP"))) {
-        return true;
-      }
-    }
-  } catch (_) {}
-  return false;
-}
-
-async function recordVipLockMarkerForUpline(uplineObj, downlineUser, lockedLvl, rate, levelStep) {
-  const todayStr = new Date().toLocaleDateString("id-ID");
-  const pctLabel = Math.round(rate * 100);
-  const latestRemote = await fetchMemberRowFromSupabase(uplineObj.username);
-  const baseObj = latestRemote
-    ? {
-        ...uplineObj,
-        username: latestRemote.username || uplineObj.username,
-        balance: safeInt(latestRemote.saldo ?? uplineObj.balance, 0),
-        personalInfo: mergeBankInfoFromRow(latestRemote, uplineObj.personalInfo, latestRemote.username || uplineObj.username),
-        transactions: normalizeTransactions(latestRemote.transaksi_json)
-      }
-    : {
-        ...uplineObj,
-        balance: safeInt(uplineObj.balance, 0),
-        transactions: normalizeTransactions(uplineObj.transactions)
-      };
-
-  baseObj.transactions.unshift({
-    id: "tx_comm_lock_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    title: `🔒 Komisi VIP T${levelStep} (${pctLabel}%, min VIP ${lockedLvl}) dari ${downlineUser.username}`,
-    amount: 0,
-    type: "info",
-    status: "approved",
-    date: todayStr
-  });
-
-  const au = gAU();
-  au[baseObj.username] = baseObj;
-  svAU(au);
-  if (rawUData && rawUData.username === baseObj.username) {
-    rawUData.transactions = baseObj.transactions;
-    setUDataProxy(rawUData);
-  }
-  await persistMemberToSupabase(baseObj);
-}
-
-async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, isFirstVipPurchase = false) {
-  if (!downlineUser || !purchasedVipPkg || safeInt(purchasedVipPkg.l, 0) <= 0) return;
-
-  if (hasDownlinePriorVipPurchase(downlineUser) || await hasRemoteVipCommissionSettled(downlineUser)) {
-    if (!isFirstVipPurchase) return;
-  }
-
-  const downlineVipLvl = Math.max(1, safeInt(purchasedVipPkg.l, 1));
-  const chain = await getUplineChain(downlineUser, 3);
-
-  for (const item of chain) {
-    const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    const isAheadByDownline = downlineVipLvl > uplineVipLvl;
-    const lowestVipLvl = isAheadByDownline ? uplineVipLvl : Math.min(uplineVipLvl, downlineVipLvl);
-
-    if (uplineVipLvl <= 0 || lowestVipLvl <= 0) {
-      await recordVipLockMarkerForUpline(item.uplineObj, downlineUser, 0, item.rate, item.levelStep);
-      continue;
-    }
-
-    const lowestPkg = getVipPackageByLevel(lowestVipLvl);
-    const basisAmount = isAheadByDownline
-      ? safeInt(lowestPkg.p, 0)
-      : Math.min(safeInt(purchasedVipPkg.p, 0), safeInt(lowestPkg.p, 0));
-    const commission = Math.floor(basisAmount * item.rate);
-
-    if (commission > 0) {
-      const pctLabel = Math.round(item.rate * 100);
-      await creditUplineObj(
-        item.uplineObj,
-        commission,
-        `🪙 Komisi VIP T${item.levelStep} (${pctLabel}%, min VIP ${lowestVipLvl}) dari ${downlineUser.username}`
-      );
-    } else if (isAheadByDownline) {
-      await recordVipLockMarkerForUpline(item.uplineObj, downlineUser, lowestVipLvl, item.rate, item.levelStep);
-    }
-  }
-
-  await markDownlineVipCommissionSettled(downlineUser);
 }
 
 function getLockedCommissionVipCap(uplineObj, downlineUser) {
@@ -1800,7 +1617,6 @@ function svU(){
     localStorage.setItem('wsp_u20', ser);
     localStorage.setItem('wph_u20', ser);
     localStorage.setItem('wsp_c20', snap.username);
-    // Cegah penumpukan multi-akun di browser yang sama
     localStorage.removeItem('wsp_au20');
     localStorage.removeItem('wph_au20');
   }catch(_){}
@@ -2019,6 +1835,10 @@ function doLogout(){
     memberRealtimeChannel=null;
     subscribedUsername="";
   }
+  if(supportChatRealtimeChannel){
+    try{sbClient.removeChannel(supportChatRealtimeChannel);}catch(_){}
+    supportChatRealtimeChannel=null;
+  }
   if(slideInterval){
     clearInterval(slideInterval);
     slideInterval=null;
@@ -2053,16 +1873,62 @@ function enterApp(){
   setUDataProxy(rawUData);
   startSlideshow();
   loadAdminAnnouncement();
+  setupAnnouncementRealtimeSync();
+  setupSupportChatRealtimeSync();
   setupTasksRealtimeSync();
   syncTasksFromSupabase();
 }
 
-function loadAdminAnnouncement() {
-  const savedAnn = localStorage.getItem('wsp_admin_announcement');
+function applyAnnouncementText(text) {
+  const clean = String(text || "").trim();
+  if (!clean) return;
+  localStorage.setItem('wsp_admin_announcement', clean);
   const annEl = document.getElementById('dynamicAnnouncementText');
-  if (savedAnn && annEl) {
-    annEl.textContent = savedAnn;
+  if (annEl) {
+    annEl.textContent = clean;
   }
+}
+
+async function loadAdminAnnouncement() {
+  const savedAnn = localStorage.getItem('wsp_admin_announcement');
+  if (savedAnn) {
+    applyAnnouncementText(savedAnn);
+  }
+  try {
+    const { data, error } = await sbClient
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'announcement_text')
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data && data.setting_value) {
+      applyAnnouncementText(data.setting_value);
+    }
+  } catch (e) {
+    console.error("Gagal memuat pengumuman dari app_settings:", e);
+  }
+}
+
+function setupAnnouncementRealtimeSync() {
+  if (announcementRealtimeChannel || typeof sbClient.channel !== "function") return;
+  announcementRealtimeChannel = sbClient
+    .channel("app-settings-announcement-sync")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "app_settings"
+      },
+      (payload) => {
+        const row = payload.new || payload.record;
+        if (!row || row.setting_key === "announcement_text") {
+          loadAdminAnnouncement();
+        }
+      }
+    )
+    .subscribe();
 }
 
 function getUserMaxVipLevel(user){return Math.max(safeInt(user?.currentVip?.youtube,0),safeInt(user?.currentVip?.tiktok,0),safeInt(user?.currentVip?.facebook,0))}
@@ -2887,50 +2753,164 @@ async function buyVIP() {
   }
 }
 
-function openLiveChatModal(){
-  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uData.username || 'Anggota');
-  document.getElementById('liveChatM').classList.add('on');
-  renderMemberChatMessages();
+function getActiveChatUsername() {
+  if (rawUData && rawUData.username) {
+    return normalizePhone(rawUData.username) || String(rawUData.username).trim();
+  }
+  if (!guestSessionId) {
+    guestSessionId = sessionStorage.getItem('wph_guest_chat_id') || ('Tamu_' + Math.floor(1000 + Math.random() * 9000));
+    sessionStorage.setItem('wph_guest_chat_id', guestSessionId);
+  }
+  return guestSessionId;
 }
 
-function openPublicLiveChat(){
-  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = 'Tamu / Calon Anggota');
-  document.getElementById('liveChatM').classList.add('on');
-  renderMemberChatMessages();
+function readLocalChatHistory(uname) {
+  let chatHistories = {};
+  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
+  return Array.isArray(chatHistories[uname]) ? chatHistories[uname] : [];
 }
 
-function sendChatMessage(){
+function writeLocalChatHistory(uname, msgs) {
+  try {
+    let chatHistories = {};
+    try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
+    chatHistories[uname] = msgs.slice(-60);
+    localStorage.setItem('wsp_chat_histories', JSON.stringify(chatHistories));
+  } catch(_){}
+}
+
+async function fetchSupportChatsFromSupabase(uname) {
+  const candidates = getCandidateIds(uname);
+  const queryVals = candidates.length > 0 ? candidates : [uname];
+  try {
+    const { data, error } = await sbClient
+      .from('support_chats')
+      .select('id, username, sender, message, created_at')
+      .in('username', queryVals)
+      .order('id', { ascending: true })
+      .limit(80);
+
+    if (!error && Array.isArray(data)) {
+      const mapped = data.map(r => ({
+        id: r.id,
+        sender: r.sender === 'admin' ? 'admin' : 'user',
+        text: r.message || ''
+      }));
+      writeLocalChatHistory(uname, mapped);
+      return mapped;
+    }
+  } catch (e) {
+    console.error("Gagal memuat support_chats dari Supabase:", e);
+  }
+  return readLocalChatHistory(uname);
+}
+
+function setupSupportChatRealtimeSync() {
+  if (supportChatRealtimeChannel || typeof sbClient.channel !== "function") return;
+  supportChatRealtimeChannel = sbClient
+    .channel("support-chats-member-sync")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "support_chats"
+      },
+      (payload) => {
+        const row = payload.new || payload.record;
+        if (!row) return;
+        const activeUname = getActiveChatUsername();
+        const rowCand = getCandidateIds(row.username);
+        const activeCand = getCandidateIds(activeUname);
+        const isMatch = rowCand.some(c => activeCand.includes(c)) || String(row.username || '') === activeUname;
+        if (isMatch) {
+          const cur = readLocalChatHistory(activeUname);
+          if (!cur.some(m => row.id && m.id === row.id)) {
+            cur.push({
+              id: row.id,
+              sender: row.sender === 'admin' ? 'admin' : 'user',
+              text: row.message || ''
+            });
+            writeLocalChatHistory(activeUname, cur);
+          }
+          if (document.getElementById('liveChatM')?.classList.contains('on')) {
+            renderChatBubbleList(activeUname, cur);
+          }
+        }
+      }
+    )
+    .subscribe();
+}
+
+async function openLiveChatModal(){
+  const uname = getActiveChatUsername();
+  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
+  document.getElementById('liveChatM').classList.add('on');
+  renderChatBubbleList(uname, readLocalChatHistory(uname));
+  const remoteMsgs = await fetchSupportChatsFromSupabase(uname);
+  renderChatBubbleList(uname, remoteMsgs);
+}
+
+async function openPublicLiveChat(){
+  const uname = getActiveChatUsername();
+  document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
+  document.getElementById('liveChatM').classList.add('on');
+  renderChatBubbleList(uname, readLocalChatHistory(uname));
+  const remoteMsgs = await fetchSupportChatsFromSupabase(uname);
+  renderChatBubbleList(uname, remoteMsgs);
+}
+
+async function sendChatMessage(){
   const input = document.getElementById('chatInput');
+  const btn = document.getElementById('btnSendChat');
   const txt = input.value.trim();
   if(!txt) return;
 
-  const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
+  const currentUname = getActiveChatUsername();
+  if (btn) btn.disabled = true;
 
-  let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
-  if(!chatHistories[currentUname]) chatHistories[currentUname] = [];
+  try {
+    const msgs = readLocalChatHistory(currentUname);
+    msgs.push({ sender: 'user', text: txt });
+    writeLocalChatHistory(currentUname, msgs);
+    input.value = '';
+    renderChatBubbleList(currentUname, msgs);
 
-  chatHistories[currentUname].push({ sender: 'user', text: txt });
-  localStorage.setItem('wsp_chat_histories', JSON.stringify(chatHistories));
+    const { data, error } = await sbClient
+      .from('support_chats')
+      .insert([{
+        username: currentUname,
+        sender: 'user',
+        message: txt
+      }])
+      .select('id, sender, message')
+      .maybeSingle();
 
-  input.value = '';
-  renderMemberChatMessages();
+    if (!error && data && data.id) {
+      const updated = readLocalChatHistory(currentUname);
+      const lastIdx = updated.length - 1;
+      if (lastIdx >= 0 && !updated[lastIdx].id) {
+        updated[lastIdx].id = data.id;
+        writeLocalChatHistory(currentUname, updated);
+      }
+    } else if (error) {
+      console.error("Gagal kirim pesan ke support_chats:", error.message);
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
-function renderMemberChatMessages(){
-  const currentUname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu_' + Math.floor(1000 + Math.random() * 9000);
-  let chatHistories = {};
-  try { chatHistories = JSON.parse(localStorage.getItem('wsp_chat_histories') || '{}'); } catch(_){}
-  const msgs = chatHistories[currentUname] || [];
-
+function renderChatBubbleList(currentUname, msgs) {
   const box = document.getElementById('chatBox');
+  if (!box) return;
   box.innerHTML = `
     <div class="chat-msg cs">
       Halo <b><span class="chat-uname">${escapeHtml(currentUname)}</span></b>! Selamat datang di Layanan Pelanggan WPH SMM. Ada yang bisa kami bantu?
     </div>
   `;
 
-  msgs.forEach(m => {
+  (Array.isArray(msgs) ? msgs : []).forEach(m => {
     const cls = m.sender === 'user' ? 'user' : 'cs';
     const prefix = m.sender === 'admin' ? '<b>Admin CS:</b> ' : '';
     box.innerHTML += `<div class="chat-msg ${cls}">${prefix}${escapeHtml(m.text)}</div>`;
@@ -2938,9 +2918,15 @@ function renderMemberChatMessages(){
   box.scrollTop = box.scrollHeight;
 }
 
+async function renderMemberChatMessages(){
+  const currentUname = getActiveChatUsername();
+  const remoteMsgs = await fetchSupportChatsFromSupabase(currentUname);
+  renderChatBubbleList(currentUname, remoteMsgs);
+}
+
 function openDirectWaCS(){
   const csPhone = "6289688780907";
-  const uname = (rawUData && rawUData.username) ? rawUData.username : 'Tamu';
+  const uname = (rawUData && rawUData.username) ? rawUData.username : getActiveChatUsername();
   const msg = encodeURIComponent(`Halo Admin CS WPH SMM,\nSaya ${uname} ingin berkonsultasi mengenai akun dan layanan.`);
   window.open(`https://wa.me/${csPhone}?text=${msg}`, '_blank', 'noopener,noreferrer');
 }
@@ -2967,7 +2953,7 @@ function openPesanModal() {
   const sisaKuota = Math.max(0, maxTasks - getUsedDailyTaskCount(uData));
 
   showSimpleModal(
-    '💬 Sentro ng Mensahe',
+    '💬 Pusat Pesan',
     `🔔 <b>Pemberitahuan Sistem & Aktivitas Akun:</b><br><br>` +
     `• <b>Status VIP:</b> Anda berada di <b>${escapeHtml(gVN())}</b>.<br>` +
     `• <b>Kuota Tugas:</b> Tersisa <b>${sisaKuota} tugas</b> lagi untuk dikerjakan hari ini.<br>` +
@@ -3050,7 +3036,7 @@ function openRekorTugasModal() {
 
 function openRekorUangModal(){goPage('pendapatan')}
 function openManualModal(){showSimpleModal('📘 Manual Bantuan','❓ <b>Panduan Penggunaan WPH SMM:</b><br>1. Ambil tugas di Ruang Tugas Halaman Utama.<br>2. Buka link tugas, lakukan Like/Subscribe, lalu ambil screenshot.<br>3. Upload bukti di menu Tugas Saya.<br>4. Kumpulkan saldo & ajukan penarikan / isi ulang QRIS (Memerlukan Verifikasi Admin).')}
-function openAppModal(){showSimpleModal('☁️ Unggah APP','📱 <b>Download Aplikasi Android WPH SMM v2.4</b><br>Nikmati kemudahan pengerjaan tugas langsung dari aplikasi mobile.')}
+function openAppModal(){showSimpleModal('☁️ Aplikasi WPH','📱 <b>Aplikasi Web WPH SMM</b><br>Anda dapat menambahkan halaman ini ke Layar Utama (Add to Home Screen) browser HP untuk akses cepat.')}
 function openNodeModal(){showSimpleModal('🌐 Server Node Rute','Primary Node: <b>Asia-Jakarta-Cluster-01 (Online - 12ms)</b>')}
 
 function showSimpleModal(t,b){
@@ -3105,64 +3091,6 @@ function buildReferralKeys(memberRow) {
   return keys;
 }
 
-function getDownlineLevelsForMember(targetMember, allMembers) {
-  const list = Array.isArray(allMembers) ? allMembers : [];
-  if (!targetMember) return { t1: [], t2: [], t3: [] };
-
-  const targetKeys = buildReferralKeys(targetMember);
-  const visited = new Set(targetKeys);
-
-  const matchParentRef = (memberRow, parentKeys) => {
-    if (!memberRow) return false;
-    const mKeys = buildReferralKeys(memberRow);
-    if (Array.from(mKeys).some((k) => parentKeys.has(k))) return false;
-
-    const refVal = String(memberRow.referred_by || memberRow.referredBy || "").trim().toLowerCase();
-    if (!refVal) return false;
-
-    const refAliases = new Set([refVal]);
-    const digits = refVal.replace(/\D/g, "");
-    if (digits) {
-      refAliases.add(digits);
-      if (digits.startsWith("62")) refAliases.add("0" + digits.slice(2));
-      if (digits.startsWith("0")) refAliases.add("62" + digits.slice(1));
-    }
-    return Array.from(refAliases).some((alias) => parentKeys.has(alias));
-  };
-
-  const t1 = list.filter((m) => {
-    const matched = matchParentRef(m, targetKeys);
-    if (matched) buildReferralKeys(m).forEach((k) => visited.add(k));
-    return matched;
-  });
-
-  const t2 = [];
-  for (const memberT1 of t1) {
-    const t1Keys = buildReferralKeys(memberT1);
-    for (const child of list.filter((m) => matchParentRef(m, t1Keys))) {
-      const cKeys = buildReferralKeys(child);
-      if (!Array.from(cKeys).some((k) => visited.has(k))) {
-        cKeys.forEach((k) => visited.add(k));
-        t2.push(child);
-      }
-    }
-  }
-
-  const t3 = [];
-  for (const memberT2 of t2) {
-    const t2Keys = buildReferralKeys(memberT2);
-    for (const child of list.filter((m) => matchParentRef(m, t2Keys))) {
-      const cKeys = buildReferralKeys(child);
-      if (!Array.from(cKeys).some((k) => visited.has(k))) {
-        cKeys.forEach((k) => visited.add(k));
-        t3.push(child);
-      }
-    }
-  }
-
-  return { t1, t2, t3 };
-}
-
 async function fetchDirectDownlinesByParents(parentRows, excludeKeys, limitCap = 500) {
   const refTokens = new Set();
   (Array.isArray(parentRows) ? parentRows : []).forEach((p) => {
@@ -3183,7 +3111,6 @@ async function fetchDirectDownlinesByParents(parentRows, excludeKeys, limitCap =
   const tokenArr = Array.from(refTokens).filter(Boolean);
   if (tokenArr.length === 0) return [];
 
-  // Query hanya anggota yang kolom referred_by-nya cocok dengan parent (terindeks & berbatas)
   const chunkSize = 80;
   const results = [];
   for (let i = 0; i < tokenArr.length; i += chunkSize) {
@@ -3295,18 +3222,26 @@ window.addEventListener('DOMContentLoaded',()=>{
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
+  setupAnnouncementRealtimeSync();
+  setupSupportChatRealtimeSync();
   setupTasksRealtimeSync();
   syncTasksFromSupabase();
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && rawUData) {
-    if (ensureDailyTaskReset(rawUData, true)) {
-      autoSyncAllIconsAndMenus();
-      if (document.getElementById('pgTugas').classList.contains('on')) updTP();
-    }
-    syncActiveMemberFromSupabase();
+  if (!document.hidden) {
+    loadAdminAnnouncement();
     syncTasksFromSupabase();
+    if (document.getElementById('liveChatM')?.classList.contains('on')) {
+      renderMemberChatMessages();
+    }
+    if (rawUData) {
+      if (ensureDailyTaskReset(rawUData, true)) {
+        autoSyncAllIconsAndMenus();
+        if (document.getElementById('pgTugas').classList.contains('on')) updTP();
+      }
+      syncActiveMemberFromSupabase();
+    }
   }
 });
 
@@ -3321,7 +3256,6 @@ setInterval(() => {
       autoSyncAllIconsAndMenus();
       if (document.getElementById('pgTugas').classList.contains('on')) updTP();
     }
-    // Sinkron fallback tiap ~1 menit hanya saat tab aktif (utama tetap lewat Realtime)
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
