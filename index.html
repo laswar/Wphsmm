@@ -1143,7 +1143,7 @@ async function persistMemberToSupabase(userObj) {
       saldo: safeInt(userObj.balance, 0),
       invite_code: userObj.inviteCode || "",
       referred_by: userObj.referredBy || null,
-      transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions : [],
+      transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions.slice(0, 100) : [],
       bank_method: String(pInfo.method || "").trim(),
       bank_account: String(pInfo.accountNum || "").trim(),
       bank_holder: String(pInfo.accountName || "").trim()
@@ -1179,22 +1179,33 @@ async function persistMemberToSupabase(userObj) {
 }
 
 async function fetchMemberRowFromSupabase(phoneOrId) {
-  const candidates = getCandidateIds(phoneOrId);
-  for (const col of ["username", "phone", "no_hp"]) {
-    for (const candidate of candidates) {
-      if (!candidate) continue;
-      const { data, error } = await sbClient
-        .from("members")
-        .select("*")
-        .eq(col, candidate)
-        .order("id", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) {
-        return data;
-      }
-    }
+  const candidates = getCandidateIds(phoneOrId).filter(Boolean);
+  if (candidates.length === 0) return null;
+
+  // Query langsung dengan filter .in() pada username agar hanya 1 round-trip ke database
+  const { data: byUsername, error: errU } = await sbClient
+    .from("members")
+    .select("*")
+    .in("username", candidates)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!errU && byUsername) return byUsername;
+
+  // Fallback pencarian berdasarkan invite_code jika parameter berupa kode undangan
+  const rawUpper = String(phoneOrId || "").trim().toUpperCase();
+  if (rawUpper) {
+    const { data: byInvite, error: errI } = await sbClient
+      .from("members")
+      .select("*")
+      .ilike("invite_code", rawUpper)
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!errI && byInvite) return byInvite;
   }
+
   return null;
 }
 
@@ -1260,7 +1271,6 @@ async function syncActiveMemberFromSupabase() {
     if (memberRow) {
       applyMemberRowToLocalState(memberRow, phoneOrId);
     }
-    await syncReferralTeamFromSupabase();
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
   }
@@ -1284,16 +1294,6 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
   if (!startMemberObj) return chain;
   const au = gAU();
 
-  let allRemoteMembers = null;
-  try {
-    const { data, error } = await sbClient
-      .from("members")
-      .select("*");
-    if (!error && Array.isArray(data)) {
-      allRemoteMembers = data;
-    }
-  } catch (_) {}
-
   const makeAliases = (rawVal) => {
     const set = new Set();
     const s = String(rawVal || "").trim();
@@ -1316,32 +1316,8 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
     const refAliases = makeAliases(currentRefId);
     if (Array.from(refAliases).some((a) => visited.has(a))) break;
 
-    let remoteRow = null;
-    if (Array.isArray(allRemoteMembers)) {
-      remoteRow = allRemoteMembers.find((row) => {
-        const rowAliases = new Set([
-          ...makeAliases(row.username),
-          ...makeAliases(row.phone),
-          ...makeAliases(row.no_hp),
-          ...makeAliases(row.invite_code)
-        ]);
-        return Array.from(refAliases).some((a) => rowAliases.has(a));
-      }) || null;
-    }
-
-    if (!remoteRow) {
-      remoteRow = await fetchMemberRowFromSupabase(currentRefId);
-      if (!remoteRow) {
-        const { data: invRow } = await sbClient
-          .from("members")
-          .select("*")
-          .ilike("invite_code", currentRefId)
-          .order("id", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        remoteRow = invRow || null;
-      }
-    }
+    // Query terarah maksimal 1 baris per tingkat (aman untuk jutaan member)
+    const remoteRow = await fetchMemberRowFromSupabase(currentRefId);
 
     let uplineObj = Object.values(au).find((u) => {
       const uAliases = new Set([
@@ -3187,27 +3163,62 @@ function getDownlineLevelsForMember(targetMember, allMembers) {
   return { t1, t2, t3 };
 }
 
+async function fetchDirectDownlinesByParents(parentRows, excludeKeys, limitCap = 500) {
+  const refTokens = new Set();
+  (Array.isArray(parentRows) ? parentRows : []).forEach((p) => {
+    const uname = String(p?.username || "").trim();
+    const inv = String(p?.invite_code || p?.inviteCode || "").trim();
+    if (uname) {
+      getCandidateIds(uname).forEach((c) => {
+        if (c) refTokens.add(c);
+      });
+    }
+    if (inv) {
+      refTokens.add(inv);
+      refTokens.add(inv.toUpperCase());
+      refTokens.add(inv.toLowerCase());
+    }
+  });
+
+  const tokenArr = Array.from(refTokens).filter(Boolean);
+  if (tokenArr.length === 0) return [];
+
+  // Query hanya anggota yang kolom referred_by-nya cocok dengan parent (terindeks & berbatas)
+  const chunkSize = 80;
+  const results = [];
+  for (let i = 0; i < tokenArr.length; i += chunkSize) {
+    const chunk = tokenArr.slice(i, i + chunkSize);
+    const { data, error } = await sbClient
+      .from("members")
+      .select("username, nama, level_vip, invite_code, referred_by")
+      .in("referred_by", chunk)
+      .limit(limitCap);
+
+    if (!error && Array.isArray(data)) {
+      for (const row of data) {
+        const rKeys = buildReferralKeys(row);
+        if (Array.from(rKeys).some((k) => excludeKeys.has(k))) continue;
+        rKeys.forEach((k) => excludeKeys.add(k));
+        results.push(row);
+      }
+    }
+    if (results.length >= limitCap) break;
+  }
+  return results;
+}
+
 async function syncReferralTeamFromSupabase() {
   if (!rawUData || !rawUData.username) return;
   try {
-    const { data: allMembers, error } = await sbClient
-      .from("members")
-      .select("username, nama, level_vip, invite_code, referred_by");
-
-    if (error || !Array.isArray(allMembers)) return;
-
-    const myKeys = buildReferralKeys({
+    const rootNode = {
       username: rawUData.username,
-      invite_code: rawUData.inviteCode
-    });
+      invite_code: rawUData.inviteCode || ""
+    };
+    const visitedKeys = buildReferralKeys(rootNode);
 
-    const currentRow =
-      allMembers.find((m) => Array.from(myKeys).some((k) => buildReferralKeys(m).has(k))) || {
-        username: rawUData.username,
-        invite_code: rawUData.inviteCode
-      };
-
-    const { t1, t2, t3 } = getDownlineLevelsForMember(currentRow, allMembers);
+    const t1 = await fetchDirectDownlinesByParents([rootNode], visitedKeys, 500);
+    const t2 = t1.length > 0 ? await fetchDirectDownlinesByParents(t1, visitedKeys, 1000) : [];
+    const t3 = t2.length > 0 ? await fetchDirectDownlinesByParents(t2, visitedKeys, 1500) : [];
 
     const mapItem = (row) => ({
       username: row.username,
@@ -3299,7 +3310,9 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+const basePollMs = 60000 + Math.floor(Math.random() * 15000);
 setInterval(() => {
+  if (document.hidden) return;
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
   }
@@ -3308,11 +3321,11 @@ setInterval(() => {
       autoSyncAllIconsAndMenus();
       if (document.getElementById('pgTugas').classList.contains('on')) updTP();
     }
+    // Sinkron fallback tiap ~1 menit hanya saat tab aktif (utama tetap lewat Realtime)
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
-  syncTasksFromSupabase();
-}, 15000);
+}, basePollMs);
 </script>
 </body>
 </html>
