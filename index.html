@@ -1487,13 +1487,44 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
 
   const downlineVipLvl = Math.max(1, safeInt(purchasedVipPkg.l, 1));
   const chain = await getUplineChain(downlineUser, 3);
+  const todayStr = new Date().toLocaleDateString("id-ID");
 
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    if (uplineVipLvl <= 0) continue;
-
     const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
-    if (lowestVipLvl <= 0) continue;
+
+    if (uplineVipLvl <= 0 || lowestVipLvl <= 0) {
+      const latestRemote = await fetchMemberRowFromSupabase(item.uplineObj.username);
+      const baseObj = latestRemote
+        ? {
+            ...item.uplineObj,
+            username: latestRemote.username || item.uplineObj.username,
+            balance: safeInt(latestRemote.saldo ?? item.uplineObj.balance, 0),
+            personalInfo: mergeBankInfoFromRow(latestRemote, item.uplineObj.personalInfo, latestRemote.username || item.uplineObj.username),
+            transactions: normalizeTransactions(latestRemote.transaksi_json)
+          }
+        : {
+            ...item.uplineObj,
+            balance: safeInt(item.uplineObj.balance, 0),
+            transactions: normalizeTransactions(item.uplineObj.transactions)
+          };
+
+      const pctLabel = Math.round(item.rate * 100);
+      baseObj.transactions.unshift({
+        id: "tx_comm_lock0_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        title: `🔒 Komisi VIP T${item.levelStep} (${pctLabel}%, min VIP 0) dari ${downlineUser.username}`,
+        amount: 0,
+        type: "info",
+        status: "approved",
+        date: todayStr
+      });
+
+      const au = gAU();
+      au[baseObj.username] = baseObj;
+      svAU(au);
+      await persistMemberToSupabase(baseObj);
+      continue;
+    }
 
     const lowestPkg = getVipPackageByLevel(lowestVipLvl);
     const basisAmount = Math.min(safeInt(purchasedVipPkg.p, 0), safeInt(lowestPkg.p, 0));
@@ -1533,8 +1564,8 @@ function getLockedCommissionVipCap(uplineObj, downlineUser) {
     if (title.includes("Komisi VIP") || title.includes("Komisi Tugas")) {
       const match = title.match(/min VIP\s*(\d+)/i);
       if (match && match[1]) {
-        const recordedLvl = safeInt(match[1], 0);
-        if (recordedLvl > 0) {
+        const recordedLvl = safeInt(match[1], -1);
+        if (recordedLvl >= 0) {
           lockedCap = lockedCap === null ? recordedLvl : Math.min(lockedCap, recordedLvl);
         }
       }
