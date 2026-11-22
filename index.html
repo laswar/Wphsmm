@@ -934,6 +934,50 @@ function getCandidateIds(phoneOrId) {
   return Array.from(s);
 }
 
+function normalizePhone(rawPhone) {
+  const raw = String(rawPhone || "").trim();
+  if (!raw) return "";
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (!digits) return raw;
+  if (digits.startsWith("62")) return "0" + digits.slice(2);
+  if (digits.startsWith("8")) return "0" + digits;
+  return digits;
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function ensureDailyTaskReset(userObj, shouldSave = false) {
+  if (!userObj || typeof userObj !== "object") return false;
+  const todayKey = getTodayDateKey();
+  let changed = false;
+
+  if (!Array.isArray(userObj.claimedTasks)) {
+    userObj.claimedTasks = [];
+    changed = true;
+  }
+  if (!Array.isArray(userObj.completedTasks)) {
+    userObj.completedTasks = [];
+    changed = true;
+  }
+
+  if (userObj.lastTaskDate !== todayKey) {
+    userObj.claimedTasks = [];
+    userObj.lastTaskDate = todayKey;
+    changed = true;
+  }
+
+  if (changed && shouldSave && rawUData && userObj === rawUData) {
+    svU();
+  }
+  return changed;
+}
+
 function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   if (!memberRow) return;
 
@@ -1370,32 +1414,10 @@ async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
 }
 
 const defaultPlatformTasks = {
-  youtube: [
-    {id:'yt1', t:'Like & Subscribe Channel Gaming WPH SMM', l:'https://youtube.com/watch?v=dQw4w9WgXcQ'},
-    {id:'yt2', t:'Like Video Tutorial Strategi SMM Marketing', l:'https://youtube.com/watch?v=abc123456'},
-    {id:'yt3', t:'Subscribe Channel Official WPH SMM Galaxy', l:'https://youtube.com/watch?v=xyz789101'},
-    {id:'yt4', t:'Like & Comment Video Promosi Aplikasi WPH', l:'https://youtube.com/watch?v=travel1234'},
-    {id:'yt5', t:'Watch 2 Min & Like Video Review Komisi WPH', l:'https://youtube.com/watch?v=revwph99'},
-    {id:'yt6', t:'Subscribe & Bell Icon Fanbase SMM Indonesia', l:'https://youtube.com/watch?v=smmfanid'}
-  ],
-  tiktok: [
-    {id:'tt1', t:'Like & Follow Creator SMM Viral #1', l:'https://tiktok.com/@wphsmm/video/1001'},
-    {id:'tt2', t:'Like Video Edukasi Digital Galaxy SMM', l:'https://tiktok.com/@wphsmm/video/1002'},
-    {id:'tt3', t:'Follow Akun Marketing Digital WPH', l:'https://tiktok.com/@wphsmm/video/1003'},
-    {id:'tt4', t:'Like & Share Video Challenge SMM VIP', l:'https://tiktok.com/@wphsmm/video/1004'},
-    {id:'tt5', t:'Follow Akun Official Support WPH TikTok', l:'https://tiktok.com/@wphsmm/video/1005'}
-  ],
-  facebook: [
-    {id:'fb1', t:'Like & Follow Fanpage WPH SMM Official', l:'https://facebook.com/wphsmm/page'},
-    {id:'fb2', t:'Like Post Pengumuman Event VIP Bulan Ini', l:'https://facebook.com/wphsmm/posts/101'},
-    {id:'fb3', t:'Comment Positif di Post Testimoni WPH', l:'https://facebook.com/wphsmm/posts/102'},
-    {id:'fb4', t:'Follow Halaman Komunitas SMM Indonesia', l:'https://facebook.com/wphsmm/posts/103'}
-  ],
-  fbshare: [
-    {id:'fbs1', t:'Bagikan Post Banner WPH SMM ke Group FB', l:'https://facebook.com/sharer/sharer.php?id=1'},
-    {id:'fbs2', t:'Share Video Promo WPH ke Timeline Facebook', l:'https://facebook.com/sharer/sharer.php?id=2'},
-    {id:'fbs3', t:'Bagikan Link Referral ke Group Dagang FB', l:'https://facebook.com/sharer/sharer.php?id=3'}
-  ]
+  youtube: [],
+  tiktok: [],
+  facebook: [],
+  fbshare: []
 };
 
 function getCombinedPlatformTasks(platform) {
@@ -1486,7 +1508,7 @@ function mkUser(u,p){
     vipStart:null,vipExp:null,
     inviteCode:'WPH-'+u.substring(0,4).toUpperCase()+Math.floor(100+Math.random()*900),
     referredBy:null,referrals:{1:[],2:[],3:[]},
-    claimedTasks:[],completedTasks:[],
+    lastTaskDate:getTodayDateKey(),claimedTasks:[],completedTasks:[],
     dagangAds:[],withdrawCount:0,
     personalInfo:{wa:'',method:'dana',accountNum:'',accountName:''},
     transactions:[{id:'tx_init_'+Date.now(),title:'🎁 Bonus Registrasi Akun',amount:1000,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')}]
@@ -1511,6 +1533,7 @@ function svAU(u){try{const ser=JSON.stringify(u);localStorage.setItem('wsp_au20'
 
 function autoSyncAllIconsAndMenus(){
   if(!rawUData) return;
+  ensureDailyTaskReset(rawUData, false);
 
   const todayStr = new Date().toLocaleDateString('id-ID');
 
@@ -1583,56 +1606,73 @@ function showErr(m){const e=document.getElementById('errM');e.textContent=m;e.cl
 function showOk(m){const e=document.getElementById('okM');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3000)}
 
 async function doLogin(){
-  const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim();
+  const rawInputU=document.getElementById('inpU').value.trim();
+  const u=normalizePhone(rawInputU);
+  const p=document.getElementById('inpP').value.trim();
   if(!u||!p){showErr('Username dan password harus diisi!');return}
   const au=gAU();
-  let localMatch = au[u];
+  const candidates = getCandidateIds(u);
+  let localMatch = candidates.map(id => au[id]).find(Boolean);
 
-  if(!localMatch || localMatch.password !== p){
-    const remoteRow = await fetchMemberRowFromSupabase(u);
-    if(remoteRow && (!remoteRow.password || remoteRow.password === p)){
-      const canonUsername = remoteRow.username || u;
-      const baseAccount = localMatch || mkUser(canonUsername, p);
-      baseAccount.username = canonUsername;
-      baseAccount.password = p;
-      baseAccount.balance = safeInt(remoteRow.saldo ?? baseAccount.balance, 0);
-      baseAccount.currentVip = normalizeVipMap(remoteRow.level_vip, baseAccount.currentVip);
-      baseAccount.personalInfo = mergeBankInfoFromRow(remoteRow, baseAccount.personalInfo, canonUsername);
-      if(remoteRow.invite_code) baseAccount.inviteCode = remoteRow.invite_code;
-      if(remoteRow.referred_by) baseAccount.referredBy = remoteRow.referred_by;
-      if(remoteRow.transaksi_json !== undefined) {
-        baseAccount.transactions = normalizeTransactions(remoteRow.transaksi_json);
-      }
-      au[canonUsername] = baseAccount;
-      svAU(au);
-      localMatch = baseAccount;
+  const remoteRow = await fetchMemberRowFromSupabase(u);
+  if(remoteRow){
+    if(remoteRow.password && remoteRow.password !== p){
+      showErr('Username/Password salah!');
+      return;
     }
+    const canonUsername = normalizePhone(remoteRow.username || u) || (remoteRow.username || u);
+    const baseAccount = localMatch || mkUser(canonUsername, p);
+    baseAccount.username = canonUsername;
+    baseAccount.password = remoteRow.password || p;
+    baseAccount.balance = safeInt(remoteRow.saldo ?? baseAccount.balance, 0);
+    baseAccount.currentVip = normalizeVipMap(remoteRow.level_vip, baseAccount.currentVip);
+    baseAccount.personalInfo = mergeBankInfoFromRow(remoteRow, baseAccount.personalInfo, canonUsername);
+    if(remoteRow.invite_code) baseAccount.inviteCode = remoteRow.invite_code;
+    if(remoteRow.referred_by) baseAccount.referredBy = remoteRow.referred_by;
+    if(remoteRow.transaksi_json !== undefined) {
+      baseAccount.transactions = normalizeTransactions(remoteRow.transaksi_json);
+    }
+    ensureDailyTaskReset(baseAccount, false);
+    au[canonUsername] = baseAccount;
+    svAU(au);
+    localMatch = baseAccount;
   }
 
   if(!localMatch || localMatch.password!==p){showErr('Username/Password salah!');return}
+  ensureDailyTaskReset(localMatch, false);
   setUDataProxy(localMatch);
+  svU();
   localStorage.setItem('wsp_c20',localMatch.username);
   localStorage.setItem('wph_u20',localMatch.username);
   showOk('Login berhasil!');
   setTimeout(async ()=>{
     enterApp();
     await syncActiveMemberFromSupabase();
-  },400);
+  },300);
 }
 
 async function doRegister(){
-  const u=document.getElementById('inpU').value.trim(),p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim().toUpperCase();
+  const rawInputU=document.getElementById('inpU').value.trim();
+  const u=normalizePhone(rawInputU);
+  const p=document.getElementById('inpP').value.trim(),p2=document.getElementById('inpP2').value.trim(),r=document.getElementById('inpRef').value.trim().toUpperCase();
   const digits=u.replace(/\D/g,'');
   if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
   if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}
   if(p!==p2){showErr('Ulangi password tidak sama!');return}
   const au=gAU();
+  const candidates = getCandidateIds(u);
+  const existingLocal = candidates.some(id => Boolean(au[id]));
   const existingRemote = await fetchMemberRowFromSupabase(u);
-  if(au[u] || existingRemote){showErr('Nomor HP sudah terdaftar!');return}
+  if(existingLocal || existingRemote){showErr('Nomor HP sudah terdaftar!');return}
 
   const newUser=mkUser(u,p);
   if(r){
-    const ref=Object.values(au).find(x=>String(x.inviteCode || '').trim().toUpperCase()===r || String(x.username || '').trim().toUpperCase()===r);
+    const normRefPhone = normalizePhone(r).toUpperCase();
+    const ref=Object.values(au).find(x=>{
+      const inv = String(x.inviteCode || '').trim().toUpperCase();
+      const usr = String(x.username || '').trim().toUpperCase();
+      return inv===r || usr===r || usr===normRefPhone;
+    });
     if(ref){
       newUser.referredBy=ref.username;
       if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
@@ -1647,16 +1687,11 @@ async function doRegister(){
         .limit(1)
         .maybeSingle();
       if(refRow && refRow.username){
-        newUser.referredBy = refRow.username;
+        newUser.referredBy = normalizePhone(refRow.username) || refRow.username;
       } else {
-        const { data: byUserRow } = await sbClient
-          .from("members")
-          .select("username")
-          .ilike("username", r)
-          .limit(1)
-          .maybeSingle();
-        if(byUserRow && byUserRow.username){
-          newUser.referredBy = byUserRow.username;
+        const remoteByPhone = await fetchMemberRowFromSupabase(r);
+        if(remoteByPhone && remoteByPhone.username){
+          newUser.referredBy = normalizePhone(remoteByPhone.username) || remoteByPhone.username;
         }
       }
     }
@@ -1671,7 +1706,7 @@ async function doRegister(){
   setTimeout(async ()=>{
     enterApp();
     await syncActiveMemberFromSupabase();
-  },400);
+  },300);
 }
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
@@ -1681,11 +1716,20 @@ function doLogout(){
     memberRealtimeChannel=null;
     subscribedUsername="";
   }
+  if(slideInterval){
+    clearInterval(slideInterval);
+    slideInterval=null;
+  }
   localStorage.removeItem('wsp_c20');
   localStorage.removeItem('wph_u20');
   localStorage.removeItem('wsp_u20');
   rawUData = null;
   uData = null;
+  document.querySelectorAll('.mo').forEach(m => m.classList.remove('on'));
+  document.getElementById('inpU').value = '';
+  document.getElementById('inpP').value = '';
+  document.getElementById('inpP2').value = '';
+  document.getElementById('inpRef').value = '';
   location.reload();
 }
 
@@ -1698,6 +1742,7 @@ function enterApp(){
   if(!rawUData.dagangAds)rawUData.dagangAds=[];
   rawUData.transactions = normalizeTransactions(rawUData.transactions);
   if(!rawUData.personalInfo)rawUData.personalInfo={wa:'',method:'dana',accountNum:'',accountName:''};
+  ensureDailyTaskReset(rawUData, true);
   
   setUDataProxy(rawUData);
   startSlideshow();
@@ -1763,20 +1808,22 @@ function renderHT(){
 }
 
 function openPlatformTaskModal(platform){
+  ensureDailyTaskReset(rawUData, true);
   const info=pInfo[platform];
   if (!info) return;
   const tasks=getCombinedPlatformTasks(platform);
   const rpt=gRPT();
+  const todayKey=getTodayDateKey();
 
   document.getElementById('avTaskTitle').innerHTML=`${info.i} Pilih Tugas Video ${escapeHtml(info.n)}`;
   const listContainer=document.getElementById('avTaskList');
   listContainer.innerHTML='';
 
   if(tasks.length===0){
-    listContainer.innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);font-size:11px">Tidak ada video tugas tersedia untuk platform ini.</div>';
+    listContainer.innerHTML='<div style="text-align:center;padding:24px 14px;color:var(--dim);font-size:11px;line-height:1.6">Belum ada tugas video dari Admin untuk platform ini.<br>Silakan tunggu Admin menambahkan daftar tugas.</div>';
   }else{
     tasks.forEach((t)=>{
-      const isAlreadyClaimed=uData.claimedTasks.some(ct=>ct.id===t.id);
+      const isAlreadyClaimed=rawUData.claimedTasks.some(ct=>ct.id===t.id && (!ct.dateKey || ct.dateKey===todayKey));
       listContainer.innerHTML+=`
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -1790,7 +1837,7 @@ function openPlatformTaskModal(platform){
           </div>
           <div style="font-size:9.5px;color:var(--dim);word-break:break-all;margin-bottom:8px">🔗 ${escapeHtml(t.l)}</div>
           ${isAlreadyClaimed ? 
-            `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil</button>` :
+            `<button class="bm cn" style="padding:6px;font-size:10.5px;cursor:not-allowed;opacity:0.6" disabled>✓ Sudah Diambil Hari Ini</button>` :
             `<button class="bm pr" style="padding:7px;font-size:11px" onclick="claimSpecificTask('${escapeHtml(platform)}', '${escapeHtml(t.id)}')">➕ Ambil Tugas Ini</button>`
           }
         </div>
@@ -1801,12 +1848,19 @@ function openPlatformTaskModal(platform){
 }
 
 function claimSpecificTask(platform, taskId){
+  ensureDailyTaskReset(rawUData, true);
   const max=gMT();
-  if(uData.claimedTasks.length>=max){
-    toast(`⚠️ Batas tugas Keanggotaan ${gVN()} (${max} tugas) tercapai! Upgrade VIP untuk mengambil lebih banyak.`);
+  if(rawUData.claimedTasks.length>=max){
+    toast(`⚠️ Batas tugas harian ${gVN()} (${max} tugas/hari) tercapai! Tugas akan di-refresh besok atau upgrade VIP.`);
     return;
   }
   
+  const todayKey=getTodayDateKey();
+  if(rawUData.claimedTasks.some(ct=>ct.id===taskId && (!ct.dateKey || ct.dateKey===todayKey))){
+    toast('ℹ️ Tugas ini sudah Anda ambil hari ini.');
+    return;
+  }
+
   const tasks=getCombinedPlatformTasks(platform);
   const taskObj=tasks.find(t=>t.id===taskId);
   if(!taskObj) return;
@@ -1816,7 +1870,8 @@ function claimSpecificTask(platform, taskId){
     platform:platform,
     title:taskObj.t,
     link:taskObj.l,
-    status:'claimed'
+    status:'claimed',
+    dateKey:todayKey
   });
 
   closeM('availableTasksM');
@@ -1825,10 +1880,11 @@ function claimSpecificTask(platform, taskId){
   setTimeout(()=>{
     goPage('tugas');
     selTP(platform);
-  },400);
+  },300);
 }
 
 function updTP(){
+  ensureDailyTaskReset(rawUData, true);
   renderTPT();renderTL();
 }
 
@@ -1851,11 +1907,13 @@ function openSafeTaskLink(urlStr) {
 
 function renderTL(){
   const c=document.getElementById('tL');if(!c)return;
-  const myTasks=uData.claimedTasks.filter(t=>t.platform===sTP);
-  if(myTasks.length===0){c.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:11px">Belum ada tugas yang diambil dari platform ini.<br>Klik <b>Ruang Tugas Halaman Utama</b> untuk memilih tautan video.</div>';return}
+  ensureDailyTaskReset(rawUData, true);
+  const todayKey=getTodayDateKey();
+  const myTasks=rawUData.claimedTasks.filter(t=>t.platform===sTP && (!t.dateKey || t.dateKey===todayKey));
+  if(myTasks.length===0){c.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:11px">Belum ada tugas yang diambil hari ini dari platform ini.<br>Klik <b>Ruang Tugas Halaman Utama</b> untuk mengambil tugas yang tersedia.</div>';return}
   c.innerHTML='';const rpt=gRPT();
   myTasks.forEach(t=>{
-    const ct=uData.completedTasks.find(x=>x.id===t.id);
+    const ct=rawUData.completedTasks.find(x=>x.id===t.id && x.dateKey===todayKey);
     const isDone=ct&&ct.status==='verified';const isPending=ct&&ct.status==='pending';
     let stHtml='',actHtml='',pvHtml='';
     if(isDone){stHtml='<div class="ti-s vr">✓ Diverifikasi</div>';if(ct.proof)pvHtml=`<div class="pc"><img src="${escapeHtml(ct.proof)}"></div>`}
@@ -1878,12 +1936,28 @@ function showImgPrev(){
 
 function submitProof(){
   if(!pUT||!pUI)return;
+  ensureDailyTaskReset(rawUData, true);
   const tid = pUT;
+  const todayKey = getTodayDateKey();
+  const alreadySubmittedToday = rawUData.completedTasks.some(x => x.id === tid && x.dateKey === todayKey);
+  if(alreadySubmittedToday){
+    closeM('imgM');
+    toast('ℹ️ Bukti tugas ini sudah dikirim hari ini.');
+    return;
+  }
   const rpt=gRPT();
-  uData.completedTasks.push({id:tid,proof:pUI,status:'pending'});
+  const completionRecord = {
+    id: tid,
+    proof: pUI,
+    status: 'pending',
+    dateKey: todayKey,
+    date: new Date().toLocaleDateString('id-ID')
+  };
+  uData.completedTasks.push(completionRecord);
   closeM('imgM');toast('⏳ Bukti dikirim, memverifikasi...');
   setTimeout(async ()=>{
-    const ct=uData.completedTasks.find(x=>x.id===tid);if(ct)ct.status='verified';
+    if(!rawUData) return;
+    completionRecord.status='verified';
     rawUData.balance=safeInt(rawUData.balance,0)+rpt;
     rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
@@ -2533,15 +2607,29 @@ window.addEventListener('DOMContentLoaded',()=>{
   loadAdminAnnouncement();
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && rawUData) {
+    if (ensureDailyTaskReset(rawUData, true)) {
+      autoSyncAllIconsAndMenus();
+      if (document.getElementById('pgTugas').classList.contains('on')) updTP();
+    }
+    syncActiveMemberFromSupabase();
+  }
+});
+
 setInterval(() => {
   if(document.getElementById('liveChatM').classList.contains('on')){
     renderMemberChatMessages();
   }
   if(rawUData){
+    if (ensureDailyTaskReset(rawUData, true)) {
+      autoSyncAllIconsAndMenus();
+      if (document.getElementById('pgTugas').classList.contains('on')) updTP();
+    }
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
-}, 2500);
+}, 15000);
 </script>
 </body>
 </html>
