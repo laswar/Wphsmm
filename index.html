@@ -1512,6 +1512,38 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
   await markDownlineVipCommissionSettled(downlineUser);
 }
 
+function getLockedCommissionVipCap(uplineObj, downlineUser) {
+  const uplineLvl = getUserMaxVipLevel(uplineObj);
+  if (uplineLvl <= 0) return 0;
+
+  const downlineKeys = new Set([
+    ...buildReferralKeys(downlineUser || {}),
+    String(downlineUser?.username || "").trim().toLowerCase(),
+    String(downlineUser?.inviteCode || downlineUser?.invite_code || "").trim().toLowerCase()
+  ].filter(Boolean));
+
+  const txs = normalizeTransactions(uplineObj?.transactions);
+  let lockedCap = null;
+
+  for (const t of txs) {
+    const title = String(t?.title || "");
+    const mentionsDownline = Array.from(downlineKeys).some(k => k && title.toLowerCase().includes(k));
+    if (!mentionsDownline) continue;
+
+    if (title.includes("Komisi VIP") || title.includes("Komisi Tugas")) {
+      const match = title.match(/min VIP\s*(\d+)/i);
+      if (match && match[1]) {
+        const recordedLvl = safeInt(match[1], 0);
+        if (recordedLvl > 0) {
+          lockedCap = lockedCap === null ? recordedLvl : Math.min(lockedCap, recordedLvl);
+        }
+      }
+    }
+  }
+
+  return lockedCap !== null ? lockedCap : uplineLvl;
+}
+
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
   if (!downlineUser || safeInt(taskRewardAmount, 0) <= 0) return;
   const downlineVipLvl = getUserMaxVipLevel(downlineUser);
@@ -1524,7 +1556,10 @@ async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
     if (uplineVipLvl <= 0) continue;
 
-    const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
+    const effectiveCapLvl = getLockedCommissionVipCap(item.uplineObj, downlineUser);
+    if (effectiveCapLvl <= 0) continue;
+
+    const lowestVipLvl = Math.min(effectiveCapLvl, downlineVipLvl);
     if (lowestVipLvl <= 0) continue;
 
     const lowestPkg = getVipPackageByLevel(lowestVipLvl);
