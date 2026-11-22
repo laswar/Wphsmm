@@ -684,30 +684,50 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="bank-info-box">
         📋 <b>Ketentuan Penarikan Dana (Verifikasi Admin)</b><br>
         - Minimal ke-1: <b>Rp 20.000</b> | Ke-2 dst: <b>Rp 50.000</b><br>
-        - Saldo akan terpotong dan masuk ke antrean verifikasi admin.
+        - Akun bank/e-wallet mengikuti <b>Informasi Pribadi</b> yang terikat (tidak dapat diedit langsung di sini).
       </div>
+
+      <div id="wdBoundBankCard" class="bank-info-box" style="border-color:var(--cyan);background:rgba(0,229,255,0.08);margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <b style="color:var(--cyan)">🏦 Rekening Terikat (Informasi Pribadi)</b>
+          <button type="button" onclick="openInfoFromWithdraw()" style="background:rgba(0,229,255,0.18);border:1px solid var(--cyan);color:var(--cyan);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer">✏️ Kelola / Edit</button>
+        </div>
+        <div style="font-size:11px;line-height:1.55">
+          <div>Metode: <b id="wdBoundMethod">-</b></div>
+          <div>No. Rekening / HP: <b id="wdBoundAcc">-</b></div>
+          <div>Atas Nama: <b id="wdBoundName">-</b></div>
+        </div>
+        <div id="wdMissingBankNotice" style="display:none;margin-top:6px;color:var(--err);font-size:10px;font-weight:700">
+          ⚠️ Akun bank/e-wallet belum terikat. Silakan ikat terlebih dahulu di menu Informasi Pribadi.
+        </div>
+      </div>
+
       <div class="fg">
-        <label>Kategori Tujuan Penarikan</label>
-        <select id="wdCategory" onchange="updateWdMethods()">
+        <label>Kategori Tujuan Penarikan (Terkunci)</label>
+        <select id="wdCategory" disabled style="opacity:0.75;cursor:not-allowed">
           <option value="ewallet">E-Wallet (DANA, GoPay, OVO, ShopeePay, LinkAja, iSaku)</option>
           <option value="bank">Transfer Bank (Semua Bank Indonesia)</option>
         </select>
       </div>
       <div class="fg">
-        <label>Provider Bank / E-Wallet</label>
-        <select id="wdProvider"></select>
+        <label>Provider Bank / E-Wallet (Terkunci)</label>
+        <select id="wdProvider" disabled style="opacity:0.75;cursor:not-allowed"></select>
       </div>
       <div class="fg">
-        <label>Nomor Rekening / HP Akun E-Wallet</label>
-        <input type="text" id="wdAccountNum" placeholder="Contoh: 081234567890 / 123456789">
+        <label>Nomor Rekening / HP Akun E-Wallet (Terkunci)</label>
+        <input type="text" id="wdAccountNum" readonly disabled style="opacity:0.75;cursor:not-allowed" placeholder="Belum terikat">
       </div>
       <div class="fg">
-        <label>Nama Pemilik Rekening</label>
-        <input type="text" id="wdAccountName" placeholder="Nama sesuai rekening/e-wallet">
+        <label>Nama Pemilik Rekening (Terkunci)</label>
+        <input type="text" id="wdAccountName" readonly disabled style="opacity:0.75;cursor:not-allowed" placeholder="Belum terikat">
       </div>
       <div class="fg">
         <label>Jumlah Penarikan (IDR)</label>
         <input type="number" id="wdAmountInp" placeholder="Masukkan jumlah">
+      </div>
+      <div class="fg">
+        <label>Password Akun (Konfirmasi Penarikan)</label>
+        <input type="password" id="wdPasswordInp" placeholder="Masukkan password akun Anda">
       </div>
       <button class="bm pr" id="btnSubmitWd" onclick="submitWithdraw()">🚀 Ajukan Penarikan Dana</button>
     </div>
@@ -722,29 +742,43 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <h3>👤 Informasi Pribadi Akun</h3>
     <div class="fg"><label>Username</label><input type="text" id="infoU" readonly style="opacity:0.7"></div>
     <div class="fg"><label>Nomor WhatsApp</label><input type="text" id="infoWa" placeholder="08xxxxxxxxxx"></div>
-    <div class="fg">
-      <label>Kaitkan Metode Pembayaran Utama</label>
-      <select id="infoMethod">
-        <option value="dana">DANA</option>
-        <option value="gopay">GoPay</option>
-        <option value="ovo">OVO</option>
-        <option value="shopeepay">ShopeePay</option>
-        <option value="linkaja">LinkAja</option>
-        <option value="bca">Bank BCA</option>
-        <option value="mandiri">Bank Mandiri</option>
-        <option value="bri">Bank BRI</option>
-        <option value="bni">Bank BNI</option>
-        <option value="bsi">Bank BSI</option>
-        <option value="cimb">Bank CIMB Niaga</option>
-        <option value="permata">Bank Permata</option>
-        <option value="danamon">Bank Danamon</option>
-        <option value="btn">Bank BTN</option>
-        <option value="seabank">SeaBank</option>
-        <option value="jago">Bank Jago</option>
-      </select>
+
+    <div id="infoBoundSummaryBox" class="bank-info-box" style="display:none;border-color:var(--emerald);background:rgba(0,230,118,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div>
+          <b style="color:var(--emerald)">✅ Akun Bank Sudah Terikat</b><br>
+          <span style="font-size:10.5px;color:var(--text)" id="infoBoundSummaryText">-</span>
+        </div>
+        <button type="button" id="btnToggleEditBank" onclick="toggleBankEditMode()" style="background:rgba(0,230,118,0.18);border:1px solid var(--emerald);color:var(--emerald);padding:5px 10px;border-radius:8px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">✏️ Edit Akun Bank</button>
+      </div>
     </div>
-    <div class="fg"><label>Nomor Rekening / HP E-Wallet</label><input type="text" id="infoAcc" placeholder="Masukkan nomor akun"></div>
-    <div class="fg"><label>Nama Pemilik Rekening</label><input type="text" id="infoName" placeholder="Nama lengkap pemilik akun"></div>
+
+    <div id="infoBankFields">
+      <div class="fg">
+        <label>Kaitkan Metode Pembayaran Utama</label>
+        <select id="infoMethod">
+          <option value="dana">DANA</option>
+          <option value="gopay">GoPay</option>
+          <option value="ovo">OVO</option>
+          <option value="shopeepay">ShopeePay</option>
+          <option value="linkaja">LinkAja</option>
+          <option value="bca">Bank BCA</option>
+          <option value="mandiri">Bank Mandiri</option>
+          <option value="bri">Bank BRI</option>
+          <option value="bni">Bank BNI</option>
+          <option value="bsi">Bank BSI</option>
+          <option value="cimb">Bank CIMB Niaga</option>
+          <option value="permata">Bank Permata</option>
+          <option value="danamon">Bank Danamon</option>
+          <option value="btn">Bank BTN</option>
+          <option value="seabank">SeaBank</option>
+          <option value="jago">Bank Jago</option>
+        </select>
+      </div>
+      <div class="fg"><label>Nomor Rekening / HP E-Wallet</label><input type="text" id="infoAcc" placeholder="Masukkan nomor akun"></div>
+      <div class="fg"><label>Nama Pemilik Rekening</label><input type="text" id="infoName" placeholder="Nama lengkap pemilik akun"></div>
+    </div>
+
     <button class="bm pr" id="btnSavePersonalInfo" onclick="savePersonalInfo()">💾 Simpan Informasi Rekening</button>
     <button class="bm cn" onclick="closeM('infoM')">Batal</button>
   </div>
@@ -2292,13 +2326,19 @@ function sendProofToWhatsApp(){
   toast('📱 Mengarahkan ke CS WhatsApp...');
 }
 
-function openWalletModal(){
-  document.getElementById('walletM').classList.add('on');
-  if(uData.personalInfo){
-    if(uData.personalInfo.accountNum)document.getElementById('wdAccountNum').value=uData.personalInfo.accountNum;
-    if(uData.personalInfo.accountName)document.getElementById('wdAccountName').value=uData.personalInfo.accountName;
+async function openWalletModal(){
+  if (rawUData && rawUData.username) {
+    try {
+      const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
+      if (remoteRow) {
+        applyMemberRowToLocalState(remoteRow, rawUData.username);
+      }
+    } catch (_) {}
   }
-  updateWdMethods();
+  const pwdInp = document.getElementById('wdPasswordInp');
+  if (pwdInp) pwdInp.value = '';
+  document.getElementById('walletM').classList.add('on');
+  syncWithdrawBoundBankUI();
 }
 
 function switchWalletTab(t){
@@ -2348,47 +2388,169 @@ async function confirmQrisPay(){
   }
 }
 
-function updateWdMethods(){
-  const cat=document.getElementById('wdCategory').value,p=document.getElementById('wdProvider');p.innerHTML='';
-  if(cat==='ewallet'){
-    const ewallets=['DANA','GoPay','OVO','ShopeePay','LinkAja','iSaku'];
-    ewallets.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
-  }else{
-    const indonesianBanks=[
-      'Bank BCA','Bank Mandiri','Bank BRI','Bank BNI','Bank BSI (Syariah Indonesia)',
-      'Bank CIMB Niaga','Bank Permata','Bank Danamon','Bank BTN','Bank Mega',
-      'Bank Panin','Maybank Indonesia','Bank OCBC NISP','SeaBank','Bank Jago',
-      'Blu by BCA Digital','Bank Neo Commerce (BNC)','Jenius / Bank BTPN'
+function isEwalletMethod(methodVal) {
+  const m = String(methodVal || '').trim().toLowerCase();
+  return ['dana', 'gopay', 'ovo', 'shopeepay', 'linkaja', 'isaku'].includes(m);
+}
+
+function getMethodDisplayLabel(methodVal) {
+  const map = {
+    dana: 'DANA',
+    gopay: 'GoPay',
+    ovo: 'OVO',
+    shopeepay: 'ShopeePay',
+    linkaja: 'LinkAja',
+    isaku: 'iSaku',
+    bca: 'Bank BCA',
+    mandiri: 'Bank Mandiri',
+    bri: 'Bank BRI',
+    bni: 'Bank BNI',
+    bsi: 'Bank BSI (Syariah Indonesia)',
+    cimb: 'Bank CIMB Niaga',
+    permata: 'Bank Permata',
+    danamon: 'Bank Danamon',
+    btn: 'Bank BTN',
+    seabank: 'SeaBank',
+    jago: 'Bank Jago'
+  };
+  const key = String(methodVal || '').trim().toLowerCase();
+  return map[key] || String(methodVal || 'DANA').toUpperCase();
+}
+
+function populateWdProviderOptions(cat, selectedMethod) {
+  const p = document.getElementById('wdProvider');
+  if (!p) return;
+  p.innerHTML = '';
+  if (cat === 'ewallet') {
+    const ewallets = [
+      { v: 'dana', l: 'DANA' },
+      { v: 'gopay', l: 'GoPay' },
+      { v: 'ovo', l: 'OVO' },
+      { v: 'shopeepay', l: 'ShopeePay' },
+      { v: 'linkaja', l: 'LinkAja' },
+      { v: 'isaku', l: 'iSaku' }
     ];
-    indonesianBanks.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
+    ewallets.forEach(x => {
+      p.innerHTML += `<option value="${x.v}">${escapeHtml(x.l)}</option>`;
+    });
+  } else {
+    const indonesianBanks = [
+      { v: 'bca', l: 'Bank BCA' },
+      { v: 'mandiri', l: 'Bank Mandiri' },
+      { v: 'bri', l: 'Bank BRI' },
+      { v: 'bni', l: 'Bank BNI' },
+      { v: 'bsi', l: 'Bank BSI (Syariah Indonesia)' },
+      { v: 'cimb', l: 'Bank CIMB Niaga' },
+      { v: 'permata', l: 'Bank Permata' },
+      { v: 'danamon', l: 'Bank Danamon' },
+      { v: 'btn', l: 'Bank BTN' },
+      { v: 'seabank', l: 'SeaBank' },
+      { v: 'jago', l: 'Bank Jago' }
+    ];
+    indonesianBanks.forEach(x => {
+      p.innerHTML += `<option value="${x.v}">${escapeHtml(x.l)}</option>`;
+    });
   }
+  const cleanSel = String(selectedMethod || '').trim().toLowerCase();
+  if (cleanSel && Array.from(p.options).some(opt => opt.value === cleanSel)) {
+    p.value = cleanSel;
+  }
+}
+
+function syncWithdrawBoundBankUI() {
+  const pInfoObj = rawUData?.personalInfo || {};
+  const methodVal = String(pInfoObj.method || 'dana').trim().toLowerCase();
+  const accNum = String(pInfoObj.accountNum || '').trim();
+  const accName = String(pInfoObj.accountName || '').trim();
+  const hasBoundBank = Boolean(accNum && accName);
+
+  const cat = isEwalletMethod(methodVal) ? 'ewallet' : 'bank';
+  const catEl = document.getElementById('wdCategory');
+  if (catEl) catEl.value = cat;
+  populateWdProviderOptions(cat, methodVal);
+
+  const accNumEl = document.getElementById('wdAccountNum');
+  const accNameEl = document.getElementById('wdAccountName');
+  const boundMethodEl = document.getElementById('wdBoundMethod');
+  const boundAccEl = document.getElementById('wdBoundAcc');
+  const boundNameEl = document.getElementById('wdBoundName');
+  const missingNoticeEl = document.getElementById('wdMissingBankNotice');
+  const submitBtnEl = document.getElementById('btnSubmitWd');
+
+  if (accNumEl) accNumEl.value = accNum || '';
+  if (accNameEl) accNameEl.value = accName || '';
+
+  if (boundMethodEl) boundMethodEl.textContent = hasBoundBank ? getMethodDisplayLabel(methodVal) : 'Belum Terikat';
+  if (boundAccEl) boundAccEl.textContent = accNum || '-';
+  if (boundNameEl) boundNameEl.textContent = accName || '-';
+  if (missingNoticeEl) missingNoticeEl.style.display = hasBoundBank ? 'none' : 'block';
+  if (submitBtnEl) submitBtnEl.disabled = !hasBoundBank;
+}
+
+function openInfoFromWithdraw() {
+  closeM('walletM');
+  openInfoModal();
 }
 
 async function submitWithdraw(){
   const btn = document.getElementById('btnSubmitWd');
   if (btn) btn.disabled = true;
   try {
-    const amt=safeInt(document.getElementById('wdAmountInp').value,0);
-    const num=document.getElementById('wdAccountNum').value.trim();
-    const name=document.getElementById('wdAccountName').value.trim();
-    const minW=safeInt(rawUData.withdrawCount,0)===0?20000:50000;
-    if(amt<minW){toast('Minimal penarikan Rp '+minW.toLocaleString());return}
-    if(!num||!name){toast('Lengkapi nomor & nama rekening!');return}
-    if(safeInt(rawUData.balance,0)<amt){toast('Saldo tidak mencukupi!');return}
+    if (!rawUData) return;
+    try {
+      const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
+      if (remoteRow) {
+        applyMemberRowToLocalState(remoteRow, rawUData.username);
+      }
+    } catch (_) {}
 
-    rawUData.balance=safeInt(rawUData.balance,0)-amt;
-    rawUData.withdrawCount=safeInt(rawUData.withdrawCount,0)+1;
-    const provName=document.getElementById('wdProvider').value.toUpperCase();
+    const pInfoObj = rawUData.personalInfo || {};
+    const boundMethod = String(pInfoObj.method || 'dana').trim().toUpperCase();
+    const num = String(pInfoObj.accountNum || '').trim();
+    const name = String(pInfoObj.accountName || '').trim();
+    const amt = safeInt(document.getElementById('wdAmountInp').value, 0);
+    const pwdInpVal = String(document.getElementById('wdPasswordInp')?.value || '').trim();
+    const expectedPwd = String(rawUData.password || '').trim();
 
-    if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+    if (!num || !name) {
+      toast('⚠️ Ikat akun bank/e-wallet dulu di Informasi Pribadi!');
+      return;
+    }
+    if (!pwdInpVal) {
+      toast('⚠️ Masukkan password akun untuk penarikan!');
+      return;
+    }
+    if (!expectedPwd || pwdInpVal !== expectedPwd) {
+      toast('❌ Password akun salah! Penarikan dibatalkan.');
+      return;
+    }
+
+    const minW = safeInt(rawUData.withdrawCount, 0) === 0 ? 20000 : 50000;
+    if (amt < minW) {
+      toast('Minimal penarikan Rp ' + minW.toLocaleString('id-ID'));
+      return;
+    }
+    if (safeInt(rawUData.balance, 0) < amt) {
+      toast('Saldo tidak mencukupi!');
+      return;
+    }
+
+    rawUData.balance = safeInt(rawUData.balance, 0) - amt;
+    rawUData.withdrawCount = safeInt(rawUData.withdrawCount, 0) + 1;
+
+    if (!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
     rawUData.transactions.unshift({
       id: 'tx_wd_' + Date.now(),
-      title: 'Penarikan ke ' + provName + ' (' + num + ' a.n ' + name + ')',
+      title: 'Penarikan ke ' + boundMethod + ' (' + num + ' a.n ' + name + ')',
       amount: amt,
       type: 'withdraw',
       status: 'pending',
       date: new Date().toLocaleDateString('id-ID')
     });
+
+    if (document.getElementById('wdPasswordInp')) {
+      document.getElementById('wdPasswordInp').value = '';
+    }
 
     svU();
     autoSyncAllIconsAndMenus();
@@ -2396,7 +2558,46 @@ async function submitWithdraw(){
     closeM('walletM');
     toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
   } finally {
-    if (btn) btn.disabled = false;
+    syncWithdrawBoundBankUI();
+  }
+}
+
+let isEditingBoundBank = false;
+
+function setBankFieldsEditable(editable) {
+  isEditingBoundBank = Boolean(editable);
+  const methodEl = document.getElementById('infoMethod');
+  const accEl = document.getElementById('infoAcc');
+  const nameEl = document.getElementById('infoName');
+  const toggleBtn = document.getElementById('btnToggleEditBank');
+
+  [methodEl, accEl, nameEl].forEach((el) => {
+    if (!el) return;
+    el.disabled = !isEditingBoundBank;
+    el.readOnly = !isEditingBoundBank && el.tagName === 'INPUT';
+    el.style.opacity = isEditingBoundBank ? '1' : '0.72';
+    el.style.cursor = isEditingBoundBank ? 'auto' : 'not-allowed';
+  });
+
+  if (toggleBtn) {
+    toggleBtn.textContent = isEditingBoundBank ? '🔒 Batal Edit' : '✏️ Edit Akun Bank';
+  }
+}
+
+function toggleBankEditMode() {
+  const pInfoObj = rawUData?.personalInfo || {};
+  const hasBoundBank = Boolean(String(pInfoObj.accountNum || '').trim() && String(pInfoObj.accountName || '').trim());
+  if (!hasBoundBank) {
+    setBankFieldsEditable(true);
+    return;
+  }
+  if (isEditingBoundBank) {
+    document.getElementById('infoMethod').value = pInfoObj.method || 'dana';
+    document.getElementById('infoAcc').value = pInfoObj.accountNum || '';
+    document.getElementById('infoName').value = pInfoObj.accountName || '';
+    setBankFieldsEditable(false);
+  } else {
+    setBankFieldsEditable(true);
   }
 }
 
@@ -2410,11 +2611,27 @@ async function openInfoModal(){
   } catch (_) {}
 
   const pInfoObj = rawUData.personalInfo || {};
-  document.getElementById('infoU').value=rawUData.username || '';
-  document.getElementById('infoWa').value=pInfoObj.wa||'';
-  document.getElementById('infoMethod').value=pInfoObj.method||'dana';
-  document.getElementById('infoAcc').value=pInfoObj.accountNum||'';
-  document.getElementById('infoName').value=pInfoObj.accountName||'';
+  const methodVal = pInfoObj.method || 'dana';
+  const accNumVal = String(pInfoObj.accountNum || '').trim();
+  const accNameVal = String(pInfoObj.accountName || '').trim();
+  const hasBoundBank = Boolean(accNumVal && accNameVal);
+
+  document.getElementById('infoU').value = rawUData.username || '';
+  document.getElementById('infoWa').value = pInfoObj.wa || '';
+  document.getElementById('infoMethod').value = methodVal;
+  document.getElementById('infoAcc').value = accNumVal;
+  document.getElementById('infoName').value = accNameVal;
+
+  const summaryBox = document.getElementById('infoBoundSummaryBox');
+  const summaryText = document.getElementById('infoBoundSummaryText');
+  if (summaryBox) {
+    summaryBox.style.display = hasBoundBank ? 'block' : 'none';
+  }
+  if (summaryText && hasBoundBank) {
+    summaryText.textContent = `${getMethodDisplayLabel(methodVal)} • ${accNumVal} • a.n ${accNameVal}`;
+  }
+
+  setBankFieldsEditable(!hasBoundBank);
   document.getElementById('infoM').classList.add('on');
 }
 
@@ -2431,6 +2648,7 @@ async function savePersonalInfo(){
     };
     svU();
     autoSyncAllIconsAndMenus();
+    syncWithdrawBoundBankUI();
     const synced = await persistMemberToSupabase(rawUData);
     closeM('infoM');
     toast(synced ? '💾 Informasi rekening tersinkron ke server!' : '💾 Tersimpan lokal (cek koneksi Supabase)');
