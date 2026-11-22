@@ -1512,6 +1512,43 @@ async function hasRemoteVipCommissionSettled(downlineUser) {
   return false;
 }
 
+async function recordVipLockMarkerForUpline(uplineObj, downlineUser, lockedLvl, rate, levelStep) {
+  const todayStr = new Date().toLocaleDateString("id-ID");
+  const pctLabel = Math.round(rate * 100);
+  const latestRemote = await fetchMemberRowFromSupabase(uplineObj.username);
+  const baseObj = latestRemote
+    ? {
+        ...uplineObj,
+        username: latestRemote.username || uplineObj.username,
+        balance: safeInt(latestRemote.saldo ?? uplineObj.balance, 0),
+        personalInfo: mergeBankInfoFromRow(latestRemote, uplineObj.personalInfo, latestRemote.username || uplineObj.username),
+        transactions: normalizeTransactions(latestRemote.transaksi_json)
+      }
+    : {
+        ...uplineObj,
+        balance: safeInt(uplineObj.balance, 0),
+        transactions: normalizeTransactions(uplineObj.transactions)
+      };
+
+  baseObj.transactions.unshift({
+    id: "tx_comm_lock_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    title: `🔒 Komisi VIP T${levelStep} (${pctLabel}%, min VIP ${lockedLvl}) dari ${downlineUser.username}`,
+    amount: 0,
+    type: "info",
+    status: "approved",
+    date: todayStr
+  });
+
+  const au = gAU();
+  au[baseObj.username] = baseObj;
+  svAU(au);
+  if (rawUData && rawUData.username === baseObj.username) {
+    rawUData.transactions = baseObj.transactions;
+    setUDataProxy(rawUData);
+  }
+  await persistMemberToSupabase(baseObj);
+}
+
 async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, isFirstVipPurchase = false) {
   if (!downlineUser || !purchasedVipPkg || safeInt(purchasedVipPkg.l, 0) <= 0) return;
 
@@ -1521,47 +1558,21 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
 
   const downlineVipLvl = Math.max(1, safeInt(purchasedVipPkg.l, 1));
   const chain = await getUplineChain(downlineUser, 3);
-  const todayStr = new Date().toLocaleDateString("id-ID");
 
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
+    const isAheadByDownline = downlineVipLvl > uplineVipLvl;
+    const lowestVipLvl = isAheadByDownline ? uplineVipLvl : Math.min(uplineVipLvl, downlineVipLvl);
 
     if (uplineVipLvl <= 0 || lowestVipLvl <= 0) {
-      const latestRemote = await fetchMemberRowFromSupabase(item.uplineObj.username);
-      const baseObj = latestRemote
-        ? {
-            ...item.uplineObj,
-            username: latestRemote.username || item.uplineObj.username,
-            balance: safeInt(latestRemote.saldo ?? item.uplineObj.balance, 0),
-            personalInfo: mergeBankInfoFromRow(latestRemote, item.uplineObj.personalInfo, latestRemote.username || item.uplineObj.username),
-            transactions: normalizeTransactions(latestRemote.transaksi_json)
-          }
-        : {
-            ...item.uplineObj,
-            balance: safeInt(item.uplineObj.balance, 0),
-            transactions: normalizeTransactions(item.uplineObj.transactions)
-          };
-
-      const pctLabel = Math.round(item.rate * 100);
-      baseObj.transactions.unshift({
-        id: "tx_comm_lock0_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-        title: `🔒 Komisi VIP T${item.levelStep} (${pctLabel}%, min VIP 0) dari ${downlineUser.username}`,
-        amount: 0,
-        type: "info",
-        status: "approved",
-        date: todayStr
-      });
-
-      const au = gAU();
-      au[baseObj.username] = baseObj;
-      svAU(au);
-      await persistMemberToSupabase(baseObj);
+      await recordVipLockMarkerForUpline(item.uplineObj, downlineUser, 0, item.rate, item.levelStep);
       continue;
     }
 
     const lowestPkg = getVipPackageByLevel(lowestVipLvl);
-    const basisAmount = Math.min(safeInt(purchasedVipPkg.p, 0), safeInt(lowestPkg.p, 0));
+    const basisAmount = isAheadByDownline
+      ? safeInt(lowestPkg.p, 0)
+      : Math.min(safeInt(purchasedVipPkg.p, 0), safeInt(lowestPkg.p, 0));
     const commission = Math.floor(basisAmount * item.rate);
 
     if (commission > 0) {
@@ -1571,6 +1582,8 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
         commission,
         `🪙 Komisi VIP T${item.levelStep} (${pctLabel}%, min VIP ${lowestVipLvl}) dari ${downlineUser.username}`
       );
+    } else if (isAheadByDownline) {
+      await recordVipLockMarkerForUpline(item.uplineObj, downlineUser, lowestVipLvl, item.rate, item.levelStep);
     }
   }
 
@@ -1579,7 +1592,7 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
 
 function getLockedCommissionVipCap(uplineObj, downlineUser) {
   const uplineLvl = getUserMaxVipLevel(uplineObj);
-  if (uplineLvl <= 0) return 0;
+  const downlineLvl = getUserMaxVipLevel(downlineUser);
 
   const downlineKeys = new Set([
     ...buildReferralKeys(downlineUser || {}),
@@ -1597,7 +1610,7 @@ function getLockedCommissionVipCap(uplineObj, downlineUser) {
 
     if (title.includes("Komisi VIP") || title.includes("Komisi Tugas")) {
       const match = title.match(/min VIP\s*(\d+)/i);
-      if (match && match[1]) {
+      if (match && match[1] !== undefined) {
         const recordedLvl = safeInt(match[1], -1);
         if (recordedLvl >= 0) {
           lockedCap = lockedCap === null ? recordedLvl : Math.min(lockedCap, recordedLvl);
@@ -1606,7 +1619,15 @@ function getLockedCommissionVipCap(uplineObj, downlineUser) {
     }
   }
 
-  return lockedCap !== null ? lockedCap : uplineLvl;
+  if (lockedCap !== null) {
+    return lockedCap;
+  }
+
+  if (downlineLvl > uplineLvl) {
+    return uplineLvl;
+  }
+
+  return uplineLvl;
 }
 
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
@@ -2558,6 +2579,7 @@ async function submitWithdraw(){
     closeM('walletM');
     toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
   } finally {
+    if (btn) btn.disabled = false;
     syncWithdrawBoundBankUI();
   }
 }
