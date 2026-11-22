@@ -684,9 +684,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="bank-info-box">
         📋 <b>Ketentuan Penarikan Dana (Verifikasi Admin)</b><br>
         - Minimal ke-1: <b>Rp 20.000</b> | Ke-2 dst: <b>Rp 50.000</b><br>
-        - Akun bank / e-wallet diambil otomatis dari <b>Informasi Pribadi</b> dan tidak dapat diedit di menu penarikan.
+        - Saldo akan terpotong dan masuk ke antrean verifikasi admin.
       </div>
-      <div id="wdBoundAccountBox" class="bank-info-box" style="margin-bottom:12px"></div>
+      <div class="fg">
+        <label>Kategori Tujuan Penarikan</label>
+        <select id="wdCategory" onchange="updateWdMethods()">
+          <option value="ewallet">E-Wallet (DANA, GoPay, OVO, ShopeePay, LinkAja, iSaku)</option>
+          <option value="bank">Transfer Bank (Semua Bank Indonesia)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Provider Bank / E-Wallet</label>
+        <select id="wdProvider"></select>
+      </div>
+      <div class="fg">
+        <label>Nomor Rekening / HP Akun E-Wallet</label>
+        <input type="text" id="wdAccountNum" placeholder="Contoh: 081234567890 / 123456789">
+      </div>
+      <div class="fg">
+        <label>Nama Pemilik Rekening</label>
+        <input type="text" id="wdAccountName" placeholder="Nama sesuai rekening/e-wallet">
+      </div>
       <div class="fg">
         <label>Jumlah Penarikan (IDR)</label>
         <input type="number" id="wdAmountInp" placeholder="Masukkan jumlah">
@@ -727,8 +745,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
     <div class="fg"><label>Nomor Rekening / HP E-Wallet</label><input type="text" id="infoAcc" placeholder="Masukkan nomor akun"></div>
     <div class="fg"><label>Nama Pemilik Rekening</label><input type="text" id="infoName" placeholder="Nama lengkap pemilik akun"></div>
-    <div class="fg"><label>Password Akun (Untuk Mengikat Bank / E-Wallet)</label><input type="password" id="infoPass" placeholder="Masukkan password akun daftar/login" autocomplete="current-password"></div>
-    <button class="bm pr" id="btnSavePersonalInfo" onclick="savePersonalInfo()">🔒 Verifikasi Password & Ikat Rekening</button>
+    <button class="bm pr" id="btnSavePersonalInfo" onclick="savePersonalInfo()">💾 Simpan Informasi Rekening</button>
     <button class="bm cn" onclick="closeM('infoM')">Batal</button>
   </div>
 </div>
@@ -933,6 +950,28 @@ function getTodayDateKey() {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function getTodayClaimedTasks(userObj) {
+  if (!userObj || !Array.isArray(userObj.claimedTasks)) return [];
+  const todayKey = getTodayDateKey();
+  return userObj.claimedTasks.filter(ct => !ct.dateKey || ct.dateKey === todayKey);
+}
+
+function getTodayCompletedTasks(userObj) {
+  if (!userObj || !Array.isArray(userObj.completedTasks)) return [];
+  const todayKey = getTodayDateKey();
+  return userObj.completedTasks.filter(ct => !ct.dateKey || ct.dateKey === todayKey);
+}
+
+function getUsedDailyTaskCount(userObj) {
+  const claimedToday = getTodayClaimedTasks(userObj);
+  const completedToday = getTodayCompletedTasks(userObj);
+  const uniqueIds = new Set([
+    ...claimedToday.map(x => String(x.id)),
+    ...completedToday.map(x => String(x.id))
+  ]);
+  return Math.max(claimedToday.length, completedToday.length, uniqueIds.size);
 }
 
 function ensureDailyTaskReset(userObj, shouldSave = false) {
@@ -1365,59 +1404,85 @@ async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
   return true;
 }
 
-function getVipPurchaseTimestamp(userObj) {
-  if (!userObj) return null;
-  if (userObj.firstVipPurchasedAt) {
-    const t = Date.parse(userObj.firstVipPurchasedAt);
-    if (!Number.isNaN(t)) return t;
-  }
-  const txs = normalizeTransactions(userObj.transactions);
-  const vipTx = txs.find(tx => String(tx.title || "").includes("Upgrade VIP"));
-  if (!vipTx) return null;
-  if (vipTx.id && typeof vipTx.id === "string" && vipTx.id.startsWith("tx_vip_")) {
-    const ts = Number(vipTx.id.replace("tx_vip_", ""));
-    if (Number.isFinite(ts) && ts > 0) return ts;
-  }
-  if (vipTx.createdAt) {
-    const t = Date.parse(vipTx.createdAt);
-    if (!Number.isNaN(t)) return t;
-  }
-  if (vipTx.date) {
-    const parts = String(vipTx.date).split("/");
-    if (parts.length === 3) {
-      const [d, m, y] = parts.map(Number);
-      const dt = new Date(y, (m || 1) - 1, d || 1, 23, 59, 59);
-      if (!Number.isNaN(dt.getTime())) return dt.getTime();
-    }
-  }
-  return Date.now();
+function hasDownlinePriorVipPurchase(downlineUser) {
+  const localHasVipTx = normalizeTransactions(downlineUser?.transactions).some(
+    t => String(t.title || "").includes("Upgrade VIP") || String(t.title || "").includes("Beli VIP")
+  );
+  return Boolean(downlineUser?.firstVipPurchased || localHasVipTx);
 }
 
-function isUplineEligibleForCommission(uplineObj, downlineUser, checkMode = "vip") {
-  const uplineVipLvl = getUserMaxVipLevel(uplineObj);
-  if (uplineVipLvl <= 0) return false;
+async function markDownlineVipCommissionSettled(downlineUser) {
+  if (!downlineUser || !downlineUser.username) return;
+  downlineUser.firstVipPurchased = true;
 
-  // Jika downline sudah pernah membeli VIP sebelumnya, cek apakah upline sudah VIP pada saat downline pertama kali beli VIP
-  const downlineFirstVipTime = getVipPurchaseTimestamp(downlineUser);
-  if (downlineFirstVipTime !== null) {
-    const uplineFirstVipTime = getVipPurchaseTimestamp(uplineObj);
-    // Jika upline belum pernah beli VIP sama sekali atau baru beli VIP setelah downline beli VIP pertama kali -> komisi hangus/tidak berlaku
-    if (uplineFirstVipTime === null || uplineFirstVipTime > downlineFirstVipTime) {
-      return false;
-    }
+  const au = gAU();
+  const candidates = getCandidateIds(downlineUser.username);
+  const matchKey = candidates.find(k => Object.prototype.hasOwnProperty.call(au, k)) || downlineUser.username;
+  if (au[matchKey]) {
+    au[matchKey].firstVipPurchased = true;
+    svAU(au);
   }
 
-  return true;
+  if (rawUData && candidates.includes(String(rawUData.username || "").trim())) {
+    rawUData.firstVipPurchased = true;
+    svU();
+  }
+
+  try {
+    const remoteRow = await fetchMemberRowFromSupabase(downlineUser.username);
+    if (remoteRow) {
+      const remoteTxs = normalizeTransactions(remoteRow.transaksi_json);
+      const alreadyRecorded = remoteTxs.some(
+        t => String(t.id || "").startsWith("vip_comm_settled_")
+      );
+      if (!alreadyRecorded) {
+        remoteTxs.unshift({
+          id: "vip_comm_settled_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          title: "🔒 Status Komisi VIP Downline Sudah Diproses",
+          amount: 0,
+          type: "info",
+          status: "approved",
+          date: new Date().toLocaleDateString("id-ID")
+        });
+        const mergedObj = {
+          ...downlineUser,
+          username: remoteRow.username || downlineUser.username,
+          password: remoteRow.password || downlineUser.password || "",
+          nama: remoteRow.nama || downlineUser.nama || remoteRow.username,
+          balance: safeInt(remoteRow.saldo ?? downlineUser.balance, 0),
+          currentVip: normalizeVipMap(remoteRow.level_vip, downlineUser.currentVip),
+          inviteCode: remoteRow.invite_code || downlineUser.inviteCode || "",
+          referredBy: remoteRow.referred_by || downlineUser.referredBy || null,
+          personalInfo: mergeBankInfoFromRow(remoteRow, downlineUser.personalInfo, remoteRow.username),
+          transactions: remoteTxs
+        };
+        await persistMemberToSupabase(mergedObj);
+      }
+    }
+  } catch (e) {
+    console.error("Gagal mencatat status komisi VIP downline:", e);
+  }
+}
+
+async function hasRemoteVipCommissionSettled(downlineUser) {
+  if (!downlineUser || !downlineUser.username) return false;
+  try {
+    const remoteRow = await fetchMemberRowFromSupabase(downlineUser.username);
+    if (remoteRow) {
+      const remoteTxs = normalizeTransactions(remoteRow.transaksi_json);
+      if (remoteTxs.some(t => String(t.id || "").startsWith("vip_comm_settled_") || String(t.title || "").includes("Upgrade VIP"))) {
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
 }
 
 async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, isFirstVipPurchase = false) {
   if (!downlineUser || !purchasedVipPkg || safeInt(purchasedVipPkg.l, 0) <= 0) return;
 
-  const hasPriorVipTx = normalizeTransactions(downlineUser.transactions).some(
-    t => String(t.title || "").includes("Upgrade VIP")
-  );
-  if (!isFirstVipPurchase && (downlineUser.firstVipPurchased || hasPriorVipTx)) {
-    return;
+  if (hasDownlinePriorVipPurchase(downlineUser) || await hasRemoteVipCommissionSettled(downlineUser)) {
+    if (!isFirstVipPurchase) return;
   }
 
   const downlineVipLvl = Math.max(1, safeInt(purchasedVipPkg.l, 1));
@@ -1426,7 +1491,6 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
     if (uplineVipLvl <= 0) continue;
-    if (!isUplineEligibleForCommission(item.uplineObj, downlineUser, "vip")) continue;
 
     const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
     if (lowestVipLvl <= 0) continue;
@@ -1444,6 +1508,8 @@ async function distributeVipUpgradeCommissions(downlineUser, purchasedVipPkg, is
       );
     }
   }
+
+  await markDownlineVipCommissionSettled(downlineUser);
 }
 
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
@@ -1457,7 +1523,6 @@ async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
   for (const item of chain) {
     const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
     if (uplineVipLvl <= 0) continue;
-    if (!isUplineEligibleForCommission(item.uplineObj, downlineUser, "task")) continue;
 
     const lowestVipLvl = Math.min(uplineVipLvl, downlineVipLvl);
     if (lowestVipLvl <= 0) continue;
@@ -1670,7 +1735,8 @@ function autoSyncAllIconsAndMenus(){
 
   const maxTasks = gMT();
   const currentVipLabel = gVN();
-  setText('tC', rawUData.claimedTasks?.length || 0);
+  const usedTasksToday = getUsedDailyTaskCount(rawUData);
+  setText('tC', usedTasksToday);
   setText('tM', maxTasks);
   setText('tV', currentVipLabel);
   setText('cvN', currentVipLabel);
@@ -2015,7 +2081,8 @@ async function openPlatformTaskModal(platform) {
 function claimSpecificTask(platform, taskId){
   ensureDailyTaskReset(rawUData, true);
   const max=gMT();
-  if(rawUData.claimedTasks.length>=max){
+  const usedToday=getUsedDailyTaskCount(rawUData);
+  if(usedToday>=max){
     toast(`⚠️ Batas tugas harian ${gVN()} (${max} tugas/hari) tercapai! Tugas akan di-refresh besok atau upgrade VIP.`);
     return;
   }
@@ -2127,6 +2194,7 @@ function submitProof(){
     rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
     autoSyncAllIconsAndMenus();
+    if (document.getElementById('pgTugas')?.classList.contains('on')) updTP();
     await persistMemberToSupabase(rawUData);
     await distributeDailyTaskCommissions(rawUData, rpt);
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
@@ -2158,37 +2226,13 @@ function sendProofToWhatsApp(){
   toast('📱 Mengarahkan ke CS WhatsApp...');
 }
 
-function renderBoundWithdrawSummary(){
-  const box = document.getElementById('wdBoundAccountBox');
-  const submitBtn = document.getElementById('btnSubmitWd');
-  if (!box) return;
-  const pInfoObj = rawUData?.personalInfo || {};
-  const method = String(pInfoObj.method || '').trim().toUpperCase();
-  const num = String(pInfoObj.accountNum || '').trim();
-  const name = String(pInfoObj.accountName || '').trim();
-  const hasBoundAccount = Boolean(method && num && name);
-
-  if (!hasBoundAccount) {
-    box.innerHTML =
-      `🔒 <b>Akun Bank / E-Wallet Belum Diikat</b><br>` +
-      `<span style="color:var(--dim);font-size:10px">Silakan buka menu <b>Milikku → Informasi Pribadi</b> dan masukkan password akun untuk mengikat bank/e-wallet terlebih dahulu.</span><br>` +
-      `<button class="bm pr" style="padding:7px;font-size:10.5px;margin-top:8px" onclick="closeM('walletM');goPage('profil');openInfoModal();">👤 Buka Informasi Pribadi</button>`;
-    if (submitBtn) submitBtn.disabled = true;
-    return;
-  }
-
-  box.innerHTML =
-    `🔒 <b>Akun Penarikan Terikat (Terkunci / Tidak Bisa Diedit)</b><br>` +
-    `• Metode: <b>${escapeHtml(method)}</b><br>` +
-    `• No. Akun: <b>${escapeHtml(num)}</b><br>` +
-    `• Atas Nama: <b>${escapeHtml(name)}</b><br>` +
-    `<span style="font-size:9.5px;color:var(--dim)">Untuk mengubah data rekening, lakukan di <b>Informasi Pribadi</b> dengan verifikasi password akun.</span>`;
-  if (submitBtn) submitBtn.disabled = false;
-}
-
 function openWalletModal(){
   document.getElementById('walletM').classList.add('on');
-  renderBoundWithdrawSummary();
+  if(uData.personalInfo){
+    if(uData.personalInfo.accountNum)document.getElementById('wdAccountNum').value=uData.personalInfo.accountNum;
+    if(uData.personalInfo.accountName)document.getElementById('wdAccountName').value=uData.personalInfo.accountName;
+  }
+  updateWdMethods();
 }
 
 function switchWalletTab(t){
@@ -2196,7 +2240,6 @@ function switchWalletTab(t){
   document.getElementById('tabWdBtn').classList.toggle('act',t==='wd');
   document.getElementById('wTabTopup').style.display=t==='topup'?'block':'none';
   document.getElementById('wTabWd').style.display=t==='wd'?'block':'none';
-  if (t === 'wd') renderBoundWithdrawSummary();
 }
 
 function setQrisAmt(a,el){
@@ -2239,27 +2282,37 @@ async function confirmQrisPay(){
   }
 }
 
+function updateWdMethods(){
+  const cat=document.getElementById('wdCategory').value,p=document.getElementById('wdProvider');p.innerHTML='';
+  if(cat==='ewallet'){
+    const ewallets=['DANA','GoPay','OVO','ShopeePay','LinkAja','iSaku'];
+    ewallets.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
+  }else{
+    const indonesianBanks=[
+      'Bank BCA','Bank Mandiri','Bank BRI','Bank BNI','Bank BSI (Syariah Indonesia)',
+      'Bank CIMB Niaga','Bank Permata','Bank Danamon','Bank BTN','Bank Mega',
+      'Bank Panin','Maybank Indonesia','Bank OCBC NISP','SeaBank','Bank Jago',
+      'Blu by BCA Digital','Bank Neo Commerce (BNC)','Jenius / Bank BTPN'
+    ];
+    indonesianBanks.forEach(x=>p.innerHTML+=`<option value="${x.toLowerCase()}">${escapeHtml(x)}</option>`);
+  }
+}
+
 async function submitWithdraw(){
   const btn = document.getElementById('btnSubmitWd');
   if (btn) btn.disabled = true;
   try {
-    const pInfoObj = rawUData?.personalInfo || {};
-    const provName = String(pInfoObj.method || '').trim().toUpperCase();
-    const num = String(pInfoObj.accountNum || '').trim();
-    const name = String(pInfoObj.accountName || '').trim();
-    if (!provName || !num || !name) {
-      toast('⚠️ Ikat akun bank/e-wallet di Informasi Pribadi terlebih dahulu!');
-      renderBoundWithdrawSummary();
-      return;
-    }
-
     const amt=safeInt(document.getElementById('wdAmountInp').value,0);
+    const num=document.getElementById('wdAccountNum').value.trim();
+    const name=document.getElementById('wdAccountName').value.trim();
     const minW=safeInt(rawUData.withdrawCount,0)===0?20000:50000;
     if(amt<minW){toast('Minimal penarikan Rp '+minW.toLocaleString());return}
+    if(!num||!name){toast('Lengkapi nomor & nama rekening!');return}
     if(safeInt(rawUData.balance,0)<amt){toast('Saldo tidak mencukupi!');return}
 
     rawUData.balance=safeInt(rawUData.balance,0)-amt;
     rawUData.withdrawCount=safeInt(rawUData.withdrawCount,0)+1;
+    const provName=document.getElementById('wdProvider').value.toUpperCase();
 
     if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
     rawUData.transactions.unshift({
@@ -2274,14 +2327,10 @@ async function submitWithdraw(){
     svU();
     autoSyncAllIconsAndMenus();
     await persistMemberToSupabase(rawUData);
-    document.getElementById('wdAmountInp').value = '';
     closeM('walletM');
     toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
   } finally {
     if (btn) btn.disabled = false;
-    if (document.getElementById('walletM')?.classList.contains('on')) {
-      renderBoundWithdrawSummary();
-    }
   }
 }
 
@@ -2300,22 +2349,7 @@ async function openInfoModal(){
   document.getElementById('infoMethod').value=pInfoObj.method||'dana';
   document.getElementById('infoAcc').value=pInfoObj.accountNum||'';
   document.getElementById('infoName').value=pInfoObj.accountName||'';
-  document.getElementById('infoPass').value='';
   document.getElementById('infoM').classList.add('on');
-}
-
-async function getVerifiedAccountPassword() {
-  let expectedPass = String(rawUData?.password || "");
-  if (rawUData?.username) {
-    try {
-      const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
-      if (remoteRow && remoteRow.password) {
-        expectedPass = String(remoteRow.password);
-        rawUData.password = expectedPass;
-      }
-    } catch (_) {}
-  }
-  return expectedPass;
 }
 
 async function savePersonalInfo(){
@@ -2323,39 +2357,17 @@ async function savePersonalInfo(){
   const btn = document.getElementById('btnSavePersonalInfo');
   if (btn) btn.disabled = true;
   try {
-    const inputPass = document.getElementById('infoPass').value;
-    if (!inputPass) {
-      toast('⚠️ Masukkan password akun daftar/login terlebih dahulu!');
-      return;
-    }
-
-    const expectedPass = await getVerifiedAccountPassword();
-    if (!expectedPass || inputPass !== expectedPass) {
-      toast('❌ Password salah! Gunakan password yang dipakai saat daftar/login.');
-      return;
-    }
-
-    const nextMethod = document.getElementById('infoMethod').value;
-    const nextAcc = document.getElementById('infoAcc').value.trim();
-    const nextName = document.getElementById('infoName').value.trim();
-    if ((nextAcc || nextName) && (!nextAcc || !nextName)) {
-      toast('⚠️ Lengkapi nomor rekening/e-wallet dan nama pemiliknya!');
-      return;
-    }
-
     rawUData.personalInfo={
       wa:document.getElementById('infoWa').value.trim(),
-      method:nextMethod,
-      accountNum:nextAcc,
-      accountName:nextName
+      method:document.getElementById('infoMethod').value,
+      accountNum:document.getElementById('infoAcc').value.trim(),
+      accountName:document.getElementById('infoName').value.trim()
     };
-    document.getElementById('infoPass').value = '';
     svU();
     autoSyncAllIconsAndMenus();
-    renderBoundWithdrawSummary();
     const synced = await persistMemberToSupabase(rawUData);
     closeM('infoM');
-    toast(synced ? '🔒 Password terverifikasi & rekening berhasil diikat!' : '🔒 Password terverifikasi & tersimpan lokal');
+    toast(synced ? '💾 Informasi rekening tersinkron ke server!' : '💾 Tersimpan lokal (cek koneksi Supabase)');
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -2482,9 +2494,11 @@ async function buyVIP(){
     rawUData.currentVip.youtube = sV.l;
     rawUData.currentVip.tiktok = sV.l;
     rawUData.currentVip.facebook = sV.l;
+    rawUData.lastTaskDate = getTodayDateKey();
+    if (!Array.isArray(rawUData.claimedTasks)) rawUData.claimedTasks = [];
+    if (!Array.isArray(rawUData.completedTasks)) rawUData.completedTasks = [];
     if (isFirstVipPurchase) {
       rawUData.firstVipPurchased = true;
-      rawUData.firstVipPurchasedAt = new Date().toISOString();
     }
     rawUData.transactions.unshift({id:'tx_vip_'+Date.now(),title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
@@ -2493,8 +2507,10 @@ async function buyVIP(){
     renderET();
     await persistMemberToSupabase(rawUData);
 
-    if (isFirstVipPurchase) {
+    if (isFirstVipPurchase && !(await hasRemoteVipCommissionSettled(rawUData))) {
       await distributeVipUpgradeCommissions(rawUData, sV, true);
+    } else {
+      await markDownlineVipCommissionSettled(rawUData);
     }
 
     closeM('vipM');toast('🎉 Selamat! VIP '+sV.l+' Berhasil diaktifkan!');
@@ -2580,7 +2596,7 @@ function openCreditModal() {
 function openPesanModal() {
   const pendingWd = normalizeTransactions(uData.transactions).filter(t => String(t.title || '').includes('Penarikan') && t.status === 'pending').length;
   const maxTasks = gMT();
-  const sisaKuota = Math.max(0, maxTasks - uData.claimedTasks.length);
+  const sisaKuota = Math.max(0, maxTasks - getUsedDailyTaskCount(uData));
 
   showSimpleModal(
     '💬 Sentro ng Mensahe',
@@ -2641,7 +2657,7 @@ function openLaporanModal() {
     `📈 <b>Ringkasan Aktivitas Performa Hari Ini:</b><br><br>` +
     `• ID Anggota: <b>${escapeHtml(uData.username)}</b><br>` +
     `• Level Keanggotaan: <b>${escapeHtml(gVN())}</b><br>` +
-    `• Tugas Diambil: <b>${uData.claimedTasks.length} / ${maxTasks}</b><br>` +
+    `• Tugas Terpakai Hari Ini: <b>${getUsedDailyTaskCount(uData)} / ${maxTasks}</b> (Sisa: <b>${Math.max(0, maxTasks - getUsedDailyTaskCount(uData))}</b>)<br>` +
     `• Tugas Lolos Verifikasi: <b>${verifiedCount}</b><br>` +
     `• Tugas Menunggu Review: <b>${pendingCount}</b><br>` +
     `• Total Saldo Aktif: <b>Rp ${safeInt(uData.balance,0).toLocaleString('id-ID')}</b>`
@@ -2682,7 +2698,7 @@ function renderTX(){
     l.innerHTML='<div style="text-align:center;padding:15px;color:var(--dim);font-size:11px">Belum ada riwayat transaksi keuangan.</div>';
     return;
   }
-  txArr.forEach(t=>{
+  txArr.filter(t => t.type !== 'info').forEach(t=>{
     let stColor = 'var(--gold)';
     let stText = String(t.status || 'pending').toUpperCase();
     if(t.status === 'approved') stColor = 'var(--emerald)';
