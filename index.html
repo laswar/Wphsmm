@@ -896,10 +896,10 @@ function normalizeVipMap(levelVip, existingVip) {
     }
     const parsedNum = parseInt(String(levelVip).replace(/\D/g, ""), 10);
     if (!Number.isNaN(parsedNum)) {
-      const maxCurrent = Math.max(base.youtube, base.tiktok, base.facebook);
-      if (parsedNum >= maxCurrent) {
-        base.youtube = parsedNum;
-      }
+      const nextLvl = Math.max(parsedNum, base.youtube, base.tiktok, base.facebook);
+      base.youtube = nextLvl;
+      base.tiktok = nextLvl;
+      base.facebook = nextLvl;
     }
   }
   return base;
@@ -1227,20 +1227,54 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
   const chain = [];
   if (!startMemberObj) return chain;
   const au = gAU();
+
+  let allRemoteMembers = null;
+  try {
+    const { data, error } = await sbClient
+      .from("members")
+      .select("*");
+    if (!error && Array.isArray(data)) {
+      allRemoteMembers = data;
+    }
+  } catch (_) {}
+
+  const makeAliases = (rawVal) => {
+    const set = new Set();
+    const s = String(rawVal || "").trim();
+    if (!s) return set;
+    set.add(s.toUpperCase());
+    const norm = normalizePhone(s);
+    if (norm) set.add(norm.toUpperCase());
+    getCandidateIds(s).forEach((c) => set.add(String(c).trim().toUpperCase()));
+    return set;
+  };
+
   let currentRefId = String(startMemberObj.referredBy || startMemberObj.referred_by || "").trim();
-  const visited = new Set([String(startMemberObj.username || "").trim().toUpperCase()]);
+  const visited = new Set([
+    ...makeAliases(startMemberObj.username),
+    ...makeAliases(startMemberObj.inviteCode || startMemberObj.invite_code)
+  ]);
 
   for (let depth = 0; depth < maxDepth; depth++) {
-    if (!currentRefId || visited.has(currentRefId.toUpperCase())) break;
-    visited.add(currentRefId.toUpperCase());
+    if (!currentRefId) break;
+    const refAliases = makeAliases(currentRefId);
+    if (Array.from(refAliases).some((a) => visited.has(a))) break;
 
-    let uplineObj = Object.values(au).find(u =>
-      String(u.username || "").trim().toUpperCase() === currentRefId.toUpperCase() ||
-      String(u.inviteCode || "").trim().toUpperCase() === currentRefId.toUpperCase()
-    );
+    let remoteRow = null;
+    if (Array.isArray(allRemoteMembers)) {
+      remoteRow = allRemoteMembers.find((row) => {
+        const rowAliases = new Set([
+          ...makeAliases(row.username),
+          ...makeAliases(row.phone),
+          ...makeAliases(row.no_hp),
+          ...makeAliases(row.invite_code)
+        ]);
+        return Array.from(refAliases).some((a) => rowAliases.has(a));
+      }) || null;
+    }
 
-    if (!uplineObj) {
-      let remoteRow = await fetchMemberRowFromSupabase(currentRefId);
+    if (!remoteRow) {
+      remoteRow = await fetchMemberRowFromSupabase(currentRefId);
       if (!remoteRow) {
         const { data: invRow } = await sbClient
           .from("members")
@@ -1251,24 +1285,44 @@ async function getUplineChain(startMemberObj, maxDepth = 3) {
           .maybeSingle();
         remoteRow = invRow || null;
       }
-      if (remoteRow && remoteRow.username) {
-        const lvl = safeInt(remoteRow.level_vip, 0);
-        uplineObj = {
-          username: remoteRow.username,
-          password: remoteRow.password || "",
-          nama: remoteRow.nama || remoteRow.username,
-          balance: safeInt(remoteRow.saldo, 0),
-          currentVip: { youtube: lvl, tiktok: lvl, facebook: lvl },
-          inviteCode: remoteRow.invite_code || "",
-          referredBy: remoteRow.referred_by || null,
-          personalInfo: mergeBankInfoFromRow(remoteRow, null, remoteRow.username),
-          transactions: normalizeTransactions(remoteRow.transaksi_json),
-          referrals: { 1: [], 2: [], 3: [] }
-        };
-      }
+    }
+
+    let uplineObj = Object.values(au).find((u) => {
+      const uAliases = new Set([
+        ...makeAliases(u.username),
+        ...makeAliases(u.phone),
+        ...makeAliases(u.noHp),
+        ...makeAliases(u.inviteCode)
+      ]);
+      return Array.from(refAliases).some((a) => uAliases.has(a));
+    }) || null;
+
+    if (remoteRow && remoteRow.username) {
+      const lvl = safeInt(remoteRow.level_vip, 0);
+      const baseLocal = uplineObj || {};
+      uplineObj = {
+        ...baseLocal,
+        username: remoteRow.username,
+        password: remoteRow.password || baseLocal.password || "",
+        nama: remoteRow.nama || baseLocal.nama || remoteRow.username,
+        balance: safeInt(remoteRow.saldo ?? baseLocal.balance, 0),
+        currentVip: normalizeVipMap(lvl, baseLocal.currentVip),
+        inviteCode: remoteRow.invite_code || baseLocal.inviteCode || "",
+        referredBy: remoteRow.referred_by || baseLocal.referredBy || null,
+        personalInfo: mergeBankInfoFromRow(remoteRow, baseLocal.personalInfo, remoteRow.username),
+        transactions: remoteRow.transaksi_json !== undefined
+          ? normalizeTransactions(remoteRow.transaksi_json)
+          : normalizeTransactions(baseLocal.transactions),
+        referrals: baseLocal.referrals || { 1: [], 2: [], 3: [] }
+      };
     }
 
     if (!uplineObj) break;
+
+    makeAliases(uplineObj.username).forEach((a) => visited.add(a));
+    makeAliases(uplineObj.inviteCode).forEach((a) => visited.add(a));
+    refAliases.forEach((a) => visited.add(a));
+
     chain.push({
       levelStep: depth + 1,
       rate: REFERRAL_RATES[depth] || 0,
@@ -1585,9 +1639,12 @@ function autoSyncAllIconsAndMenus(){
   setText('ltL1', l1); setText('ltL2', l2); setText('ltL3', l3);
 
   const maxTasks = gMT();
+  const currentVipLabel = gVN();
   setText('tC', rawUData.claimedTasks?.length || 0);
   setText('tM', maxTasks);
-  setText('tV', gVN());
+  setText('tV', currentVipLabel);
+  setText('cvN', currentVipLabel);
+  setText('cvT', maxTasks + ' tugas/hari');
 
   if (typeof renderHT === 'function') renderHT();
   if (typeof renderDagang === 'function') renderDagang();
@@ -2254,27 +2311,66 @@ async function submitDagang(){
   }
 }
 
-function swPlat(p,el){cPlat=p;document.querySelectorAll('.vt').forEach(t=>t.classList.remove('act'));el.classList.add('act');renderVC();renderET()}
+function swPlat(p,el){
+  cPlat=p;
+  document.querySelectorAll('.vt').forEach(t=>t.classList.remove('act'));
+  if(el)el.classList.add('act');
+  const subEl=document.getElementById('vSub');
+  if(subEl){
+    const labelMap={youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook'};
+    subEl.textContent='Pilih level identitas '+(labelMap[p]||p)+' Anda';
+  }
+  renderVC();
+  renderET();
+}
 function renderVC(){
   const g=document.getElementById('vG');if(!g)return;g.innerHTML='';
+  const currentLvl = getUserMaxVipLevel(rawUData);
   vipD[cPlat].forEach(v2=>{
-    const cd=document.createElement('div');cd.className='vcd '+v2.c;
-    cd.innerHTML=`<div class="vcd-h"><div class="vbd">${escapeHtml(v2.i)}</div><div class="vcd-t"><h3>VIP ${v2.l}</h3><div class="vn">${escapeHtml(v2.n)}</div></div></div><div class="vcd-f"><div class="vpr">${v2.l===0?'FREE':'Rp '+v2.p.toLocaleString()}</div><div class="vtk">${v2.t} tugas/hr</div></div>`;
-    cd.onclick=()=>openVM(v2);g.appendChild(cd);
+    const isCurrent = v2.l === currentLvl;
+    const isLower = v2.l < currentLvl;
+    const cd=document.createElement('div');
+    cd.className='vcd '+v2.c;
+    if (isCurrent) {
+      cd.style.border='2px solid var(--gold)';
+      cd.style.boxShadow='0 0 16px rgba(255,215,0,0.4)';
+    } else if (isLower) {
+      cd.style.opacity='0.58';
+    }
+    const statusBadgeLeft = isCurrent
+      ? `<div style="display:inline-block;margin-top:4px;padding:2px 6px;border-radius:6px;background:rgba(255,215,0,0.22);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:800;line-height:1.2">Status Anda Saat Ini</div>`
+      : (isLower
+          ? `<div style="display:inline-block;margin-top:4px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,0.35);color:var(--dim);font-size:8px;font-weight:600;line-height:1.2">Level Terlewati</div>`
+          : '');
+    cd.innerHTML=`<div class="vcd-h"><div class="vbd">${escapeHtml(v2.i)}</div><div class="vcd-t" style="text-align:left"><h3>VIP ${v2.l}</h3><div class="vn">${escapeHtml(v2.n)}</div>${statusBadgeLeft}</div></div><div class="vcd-f"><div class="vpr">${v2.l===0?'FREE':'Rp '+v2.p.toLocaleString('id-ID')}</div><div class="vtk">${v2.t} tugas/hr</div></div>`;
+    cd.onclick=()=>openVM(v2);
+    g.appendChild(cd);
   });
 }
 function renderET(){
   const tb=document.getElementById('eTB');if(!tb)return;tb.innerHTML='';
-  const ml=getUserMaxVipLevel(uData);
+  const ml=getUserMaxVipLevel(rawUData);
   vipD.youtube.forEach(v=>{
-    tb.innerHTML+=`<tr class="${v.l===ml?'active-row':''}"><td>${escapeHtml(v.i)} VIP ${v.l} (${v.dur}hr)</td><td class="ev">Rp ${v.d.toLocaleString()} / hari</td></tr>`
+    const curTag = v.l === ml ? ' • Status Anda Saat Ini' : '';
+    tb.innerHTML+=`<tr class="${v.l===ml?'active-row':''}"><td>${escapeHtml(v.i)} VIP ${v.l} (${v.dur}hr)${curTag}</td><td class="ev">Rp ${v.d.toLocaleString('id-ID')} / hari</td></tr>`
   });
 }
 function openVM(v){
-  sV=v;document.getElementById('vmL').textContent='VIP '+v.l;
+  const currentLvl = getUserMaxVipLevel(rawUData);
+  if (v.l === currentLvl) {
+    toast('ℹ️ VIP ' + v.l + ' adalah Status Anda Saat Ini.');
+    return;
+  }
+  if (v.l < currentLvl) {
+    toast('⚠️ Tidak dapat menurunkan ke VIP ' + v.l + ' (Status Anda saat ini VIP ' + currentLvl + ').');
+    return;
+  }
+  sV=v;
+  document.getElementById('vmT').textContent='Upgrade ke VIP '+v.l;
+  document.getElementById('vmL').textContent='VIP '+v.l+' ('+v.n+')';
   document.getElementById('vmT2').textContent=v.t+' tugas/hari';
   document.getElementById('vmDur').textContent=v.dur+' Hari';
-  document.getElementById('vmPr').textContent=v.l===0?'GRATIS':'Rp '+v.p.toLocaleString();
+  document.getElementById('vmPr').textContent=v.l===0?'GRATIS':'Rp '+v.p.toLocaleString('id-ID');
   document.getElementById('vipM').classList.add('on');
 }
 async function buyVIP(){
@@ -2282,6 +2378,12 @@ async function buyVIP(){
   if (btn) btn.disabled = true;
   try {
     if(!sV||sV.l===0){closeM('vipM');return}
+    const currentLvl = getUserMaxVipLevel(rawUData);
+    if (sV.l <= currentLvl) {
+      closeM('vipM');
+      toast(sV.l === currentLvl ? 'ℹ️ VIP ' + sV.l + ' adalah Status Anda Saat Ini.' : '⚠️ Tidak dapat membeli level VIP lebih rendah dari VIP ' + currentLvl + '.');
+      return;
+    }
     if(safeInt(rawUData.balance,0)<safeInt(sV.p,0)){toast('Saldo tidak cukup!');return}
 
     const hadPurchasedBefore = Boolean(
@@ -2291,13 +2393,17 @@ async function buyVIP(){
     const isFirstVipPurchase = !hadPurchasedBefore;
 
     rawUData.balance=safeInt(rawUData.balance,0)-safeInt(sV.p,0);
-    rawUData.currentVip[cPlat]=sV.l;
+    rawUData.currentVip.youtube = sV.l;
+    rawUData.currentVip.tiktok = sV.l;
+    rawUData.currentVip.facebook = sV.l;
     if (isFirstVipPurchase) {
       rawUData.firstVipPurchased = true;
     }
     rawUData.transactions.unshift({id:'tx_vip_'+Date.now(),title:'👑 Upgrade VIP '+sV.l+' '+sV.n,amount:sV.p,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
     autoSyncAllIconsAndMenus();
+    renderVC();
+    renderET();
     await persistMemberToSupabase(rawUData);
 
     if (isFirstVipPurchase) {
