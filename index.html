@@ -390,7 +390,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       </div>
     </div>
 
-    <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">Selamat kepada anggota ****2478 rekomendasi platinum, mendapat Rp 300,000 komisi!</span></div></div>
+    <div class="ann"><div class="spk-i">🔊</div><div class="ann-t"><span id="dynamicAnnouncementText">274 mendapatkan 300000 komisi</span></div></div>
 
     <div class="m3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 12px;">
       <div onclick="goPage('vip')" style="background:rgba(6,20,15,0.88);border:1.5px solid rgba(0,230,118,0.45);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:138px;">
@@ -434,10 +434,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div><div class="tlb">Tugas Hari Ini</div><div class="tlv"><span id="tC">0</span> / <span id="tM">4</span></div></div>
       <div style="text-align:right"><div class="tlb">Level VIP</div><div class="tv" id="tV">VIP 0 (Free)</div></div>
     </div>
-    
+
     <div class="st">Platform Ruang Tugas <span class="st-sub">(Pilih Platform)</span></div>
     <div class="tpt" id="tPT"></div>
-    
+
     <div class="st">Daftar Tugas Saya <span class="st-sub">(Siap Dikerjakan)</span></div>
     <div class="tl3" id="tL"></div>
   </div>
@@ -471,7 +471,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
           <div class="vt" onclick="swPlat('facebook',this)">Facebook</div>
         </div>
       </div>
-  
+
       <div class="vs" id="vSub">Pilih level identitas YouTube Anda</div>
       <div class="vg" id="vG"></div>
     </div>
@@ -647,7 +647,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         <input type="number" id="qrisAmtInp" value="100000" placeholder="Minimal 20000">
       </div>
       <button class="bm pr" onclick="generateQris()">📱 Tampilkan Barcode Pembayaran</button>
-      
+
       <div id="qrisArea" style="display:none;text-align:center;margin-top:14px">
         <div class="qris-card">
           <div class="qris-logo-header">
@@ -661,7 +661,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         </div>
 
         <div style="font-size:12px;color:var(--gold);font-weight:700" id="qrisAmtTxt">Total: Rp 100.000</div>
-        
+
         <div class="fg" style="margin-top:10px;text-align:left">
           <label>Unggah Screenshot Bukti Transfer (Opsional)</label>
           <button class="bm cn" style="padding:8px;font-size:11px" onclick="document.getElementById('topupProofFile').click()">📸 Pilih Foto Bukti Transfer</button>
@@ -860,7 +860,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </div>
 
 <div class="tst" id="tst">Pesan sistem</div>
-  
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://siospyjjalkrwnrtwyof.supabase.co";
@@ -871,7 +871,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <script>
 let memberRealtimeChannel = null;
 let subscribedUsername = "";
-let announcementRealtimeChannel = null;
 let supportChatRealtimeChannel = null;
 let guestSessionId = "";
 
@@ -1096,86 +1095,57 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   }
 }
 
+function hydrateAccountFromMemberData(memberData, fallbackUsername, fallbackPassword = "") {
+  const canonUsername = normalizePhone(memberData?.username || fallbackUsername) || (memberData?.username || fallbackUsername);
+  const existingLocal = rawUData && getCandidateIds(rawUData.username).includes(canonUsername)
+    ? rawUData
+    : mkUser(canonUsername, fallbackPassword);
+
+  const hydrated = {
+    ...existingLocal,
+    username: canonUsername,
+    nama: memberData?.nama || existingLocal.nama || canonUsername,
+    balance: (memberData?.saldo !== undefined && memberData?.saldo !== null)
+      ? safeInt(memberData.saldo, existingLocal.balance)
+      : safeInt(existingLocal.balance, 0),
+    currentVip: normalizeVipMap(memberData?.level_vip, existingLocal.currentVip),
+    inviteCode: memberData?.invite_code || existingLocal.inviteCode || "",
+    referredBy: memberData?.referred_by ?? existingLocal.referredBy ?? null,
+    personalInfo: mergeBankInfoFromRow(memberData, existingLocal.personalInfo, canonUsername),
+    transactions: memberData?.transaksi_json !== undefined
+      ? normalizeTransactions(memberData.transaksi_json)
+      : normalizeTransactions(existingLocal.transactions)
+  };
+  if (fallbackPassword) {
+    hydrated.password = fallbackPassword;
+  }
+  ensureDailyTaskReset(hydrated, false);
+  return hydrated;
+}
+
 async function persistMemberToSupabase(userObj) {
   if (!userObj || !userObj.username) return false;
-  try {
-    const cleanUsername = String(userObj.username).trim();
-    const maxVip = Math.max(
-      safeInt(userObj.currentVip?.youtube, 0),
-      safeInt(userObj.currentVip?.tiktok, 0),
-      safeInt(userObj.currentVip?.facebook, 0)
-    );
-    const pInfo = userObj.personalInfo || {};
-
-    const payload = {
-      username: cleanUsername,
-      password: userObj.password || "",
-      nama: userObj.nama || cleanUsername,
-      level_vip: maxVip,
-      saldo: safeInt(userObj.balance, 0),
-      invite_code: userObj.inviteCode || "",
-      referred_by: userObj.referredBy || null,
-      transaksi_json: Array.isArray(userObj.transactions) ? userObj.transactions.slice(0, 100) : [],
-      bank_method: String(pInfo.method || "").trim(),
-      bank_account: String(pInfo.accountNum || "").trim(),
-      bank_holder: String(pInfo.accountName || "").trim()
-    };
-
-    const existing = await fetchMemberRowFromSupabase(cleanUsername);
-
-    if (existing && existing.id) {
-      payload.username = existing.username || cleanUsername;
-      const { error } = await sbClient
-        .from("members")
-        .update(payload)
-        .eq("id", existing.id);
-      if (error) {
-        console.error("Gagal update member di Supabase:", error);
-        return false;
-      }
-      return true;
-    } else {
-      const { error } = await sbClient
-        .from("members")
-        .insert([payload]);
-      if (error) {
-        console.error("Gagal insert member ke Supabase:", error);
-        return false;
-      }
-      return true;
-    }
-  } catch (e) {
-    console.error("Gagal menyimpan data member ke Supabase:", e);
-    return false;
-  }
+  svU();
+  return true;
 }
 
 async function fetchMemberRowFromSupabase(phoneOrId) {
-  const candidates = getCandidateIds(phoneOrId).filter(Boolean);
-  if (candidates.length === 0) return null;
-
-  const { data: byUsername, error: errU } = await sbClient
-    .from("members")
-    .select("*")
-    .in("username", candidates)
-    .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!errU && byUsername) return byUsername;
-
-  const rawUpper = String(phoneOrId || "").trim().toUpperCase();
-  if (rawUpper) {
-    const { data: byInvite, error: errI } = await sbClient
-      .from("members")
-      .select("*")
-      .ilike("invite_code", rawUpper)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!errI && byInvite) return byInvite;
+  const cleanId = normalizePhone(phoneOrId) || String(phoneOrId || "").trim();
+  if (!cleanId) return null;
+  if (rawUData && getCandidateIds(rawUData.username).includes(cleanId)) {
+    return {
+      username: rawUData.username,
+      nama: rawUData.nama || rawUData.username,
+      saldo: safeInt(rawUData.balance, 0),
+      level_vip: getUserMaxVipLevel(rawUData),
+      invite_code: rawUData.inviteCode || "",
+      referred_by: rawUData.referredBy || null,
+      transaksi_json: normalizeTransactions(rawUData.transactions),
+      bank_method: rawUData.personalInfo?.method || "",
+      bank_account: rawUData.personalInfo?.accountNum || "",
+      bank_holder: rawUData.personalInfo?.accountName || ""
+    };
   }
-
   return null;
 }
 
@@ -1190,57 +1160,14 @@ function setupMemberRealtimeSync(phoneOrId) {
     } catch (_) {}
     memberRealtimeChannel = null;
   }
-
   subscribedUsername = cleanId;
-  memberRealtimeChannel = sbClient
-    .channel(`member-sync-${cleanId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "members",
-        filter: `username=eq.${cleanId}`
-      },
-      (payload) => {
-        const latestRow = payload.new || payload.record;
-        if (latestRow) {
-          applyMemberRowToLocalState(latestRow, cleanId);
-          syncReferralTeamFromSupabase();
-        } else {
-          syncActiveMemberFromSupabase();
-        }
-      }
-    )
-    .subscribe();
 }
 
 async function syncActiveMemberFromSupabase() {
   try {
-    const activeRaw =
-      localStorage.getItem("wsp_c20") ||
-      localStorage.getItem("wsp_u20") ||
-      localStorage.getItem("wph_u20");
-    if (!activeRaw) return;
-
-    let phoneOrId = "";
-    try {
-      const parsed = JSON.parse(activeRaw);
-      phoneOrId = typeof parsed === "string"
-        ? parsed
-        : (parsed.phone || parsed.noHp || parsed.username || parsed.user || parsed.id || "");
-    } catch (_) {
-      phoneOrId = String(activeRaw);
-    }
-    phoneOrId = String(phoneOrId || "").trim();
-    if (!phoneOrId) return;
-
-    setupMemberRealtimeSync(phoneOrId);
-
-    const memberRow = await fetchMemberRowFromSupabase(phoneOrId);
-    if (memberRow) {
-      applyMemberRowToLocalState(memberRow, phoneOrId);
-    }
+    if (!rawUData || !rawUData.username) return;
+    setupMemberRealtimeSync(rawUData.username);
+    autoSyncAllIconsAndMenus();
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
   }
@@ -1262,218 +1189,22 @@ function getVipPackageByLevel(level) {
 async function getUplineChain(startMemberObj, maxDepth = 3) {
   const chain = [];
   if (!startMemberObj) return chain;
-  const au = gAU();
-
-  const makeAliases = (rawVal) => {
-    const set = new Set();
-    const s = String(rawVal || "").trim();
-    if (!s) return set;
-    set.add(s.toUpperCase());
-    const norm = normalizePhone(s);
-    if (norm) set.add(norm.toUpperCase());
-    getCandidateIds(s).forEach((c) => set.add(String(c).trim().toUpperCase()));
-    return set;
-  };
-
-  let currentRefId = String(startMemberObj.referredBy || startMemberObj.referred_by || "").trim();
-  const visited = new Set([
-    ...makeAliases(startMemberObj.username),
-    ...makeAliases(startMemberObj.inviteCode || startMemberObj.invite_code)
-  ]);
-
-  for (let depth = 0; depth < maxDepth; depth++) {
-    if (!currentRefId) break;
-    const refAliases = makeAliases(currentRefId);
-    if (Array.from(refAliases).some((a) => visited.has(a))) break;
-
-    const remoteRow = await fetchMemberRowFromSupabase(currentRefId);
-
-    let uplineObj = Object.values(au).find((u) => {
-      const uAliases = new Set([
-        ...makeAliases(u.username),
-        ...makeAliases(u.phone),
-        ...makeAliases(u.noHp),
-        ...makeAliases(u.inviteCode)
-      ]);
-      return Array.from(refAliases).some((a) => uAliases.has(a));
-    }) || null;
-
-    if (remoteRow && remoteRow.username) {
-      const lvl = safeInt(remoteRow.level_vip, 0);
-      const baseLocal = uplineObj || {};
-      uplineObj = {
-        ...baseLocal,
-        username: remoteRow.username,
-        password: remoteRow.password || baseLocal.password || "",
-        nama: remoteRow.nama || baseLocal.nama || remoteRow.username,
-        balance: safeInt(remoteRow.saldo ?? baseLocal.balance, 0),
-        currentVip: normalizeVipMap(lvl, baseLocal.currentVip),
-        inviteCode: remoteRow.invite_code || baseLocal.inviteCode || "",
-        referredBy: remoteRow.referred_by || baseLocal.referredBy || null,
-        personalInfo: mergeBankInfoFromRow(remoteRow, baseLocal.personalInfo, remoteRow.username),
-        transactions: remoteRow.transaksi_json !== undefined
-          ? normalizeTransactions(remoteRow.transaksi_json)
-          : normalizeTransactions(baseLocal.transactions),
-        referrals: baseLocal.referrals || { 1: [], 2: [], 3: [] }
-      };
-    }
-
-    if (!uplineObj) break;
-
-    makeAliases(uplineObj.username).forEach((a) => visited.add(a));
-    makeAliases(uplineObj.inviteCode).forEach((a) => visited.add(a));
-    refAliases.forEach((a) => visited.add(a));
-
-    chain.push({
-      levelStep: depth + 1,
-      rate: REFERRAL_RATES[depth] || 0,
-      uplineObj
-    });
-
-    currentRefId = String(uplineObj.referredBy || uplineObj.referred_by || "").trim();
-  }
   return chain;
 }
 
 async function creditUplineObj(uplineObj, commissionAmount, txTitle) {
-  if (!uplineObj || !uplineObj.username || commissionAmount <= 0) return false;
-  const cleanAmt = safeInt(commissionAmount, 0);
-  const todayStr = new Date().toLocaleDateString("id-ID");
-
-  const latestRemote = await fetchMemberRowFromSupabase(uplineObj.username);
-  const baseObj = latestRemote
-    ? {
-        ...uplineObj,
-        username: latestRemote.username || uplineObj.username,
-        balance: safeInt(latestRemote.saldo ?? uplineObj.balance, 0),
-        personalInfo: mergeBankInfoFromRow(latestRemote, uplineObj.personalInfo, latestRemote.username || uplineObj.username),
-        transactions: normalizeTransactions(latestRemote.transaksi_json)
-      }
-    : {
-        ...uplineObj,
-        balance: safeInt(uplineObj.balance, 0),
-        transactions: normalizeTransactions(uplineObj.transactions)
-      };
-
-  baseObj.balance = safeInt(baseObj.balance, 0) + cleanAmt;
-  baseObj.transactions.unshift({
-    id: "tx_comm_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    title: txTitle,
-    amount: cleanAmt,
-    type: "plus",
-    status: "approved",
-    date: todayStr
-  });
-
-  const au = gAU();
-  au[baseObj.username] = baseObj;
-  svAU(au);
-
-  if (rawUData && rawUData.username === baseObj.username) {
-    rawUData.balance = baseObj.balance;
-    rawUData.transactions = baseObj.transactions;
-    setUDataProxy(rawUData);
-  }
-
-  const saved = await persistMemberToSupabase(baseObj);
-  if (!saved) {
-    toast("⚠️ Gagal update saldo upline " + baseObj.username + " di Supabase");
-    return false;
-  }
-  return true;
+  return false;
 }
 
 function getLockedCommissionVipCap(uplineObj, downlineUser) {
   const uplineLvl = getUserMaxVipLevel(uplineObj);
   const downlineLvl = getUserMaxVipLevel(downlineUser);
-
-  const downlineKeys = new Set([
-    ...buildReferralKeys(downlineUser || {}),
-    String(downlineUser?.username || "").trim().toLowerCase(),
-    String(downlineUser?.inviteCode || downlineUser?.invite_code || "").trim().toLowerCase()
-  ].filter(Boolean));
-
-  const txs = normalizeTransactions(uplineObj?.transactions);
-  let lockedCap = null;
-
-  for (const t of txs) {
-    const title = String(t?.title || "");
-    const mentionsDownline = Array.from(downlineKeys).some(k => k && title.toLowerCase().includes(k));
-    if (!mentionsDownline) continue;
-
-    if (title.includes("Komisi VIP") || title.includes("Komisi Tugas")) {
-      const match = title.match(/min VIP\s*(\d+)/i);
-      if (match && match[1] !== undefined) {
-        const recordedLvl = safeInt(match[1], -1);
-        if (recordedLvl >= 0) {
-          lockedCap = lockedCap === null ? recordedLvl : Math.min(lockedCap, recordedLvl);
-        }
-      }
-    }
-  }
-
-  if (lockedCap !== null) {
-    return lockedCap;
-  }
-
-  if (downlineLvl > uplineLvl) {
-    return uplineLvl;
-  }
-
+  if (downlineLvl > uplineLvl) return uplineLvl;
   return uplineLvl;
 }
 
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
-  if (!downlineUser || safeInt(taskRewardAmount, 0) <= 0) return;
-  const downlineVipLvl = getUserMaxVipLevel(downlineUser);
-  if (downlineVipLvl < 1 || downlineVipLvl > 7) return;
-
-  const todayStr = new Date().toLocaleDateString("id-ID");
-  const chain = await getUplineChain(downlineUser, 3);
-
-  for (const item of chain) {
-    const uplineVipLvl = getUserMaxVipLevel(item.uplineObj);
-    if (uplineVipLvl <= 0) continue;
-
-    const effectiveCapLvl = getLockedCommissionVipCap(item.uplineObj, downlineUser);
-    if (effectiveCapLvl <= 0) continue;
-
-    const lowestVipLvl = Math.min(effectiveCapLvl, downlineVipLvl);
-    if (lowestVipLvl <= 0) continue;
-
-    const lowestPkg = getVipPackageByLevel(lowestVipLvl);
-    const lowestRewardPerTask = getTaskRewardPerTask(lowestVipLvl);
-    const maxDailyCommissionForUpline = Math.floor(safeInt(lowestPkg.d, 0) * item.rate);
-    const rawTaskCommission = Math.floor(Math.min(safeInt(taskRewardAmount, 0), safeInt(lowestRewardPerTask, 0)) * item.rate);
-
-    if (rawTaskCommission <= 0 || maxDailyCommissionForUpline <= 0) continue;
-
-    const latestRemote = await fetchMemberRowFromSupabase(item.uplineObj.username);
-    const currentTxs = latestRemote
-      ? normalizeTransactions(latestRemote.transaksi_json)
-      : normalizeTransactions(item.uplineObj.transactions);
-
-    const earnedTodayFromDownline = currentTxs
-      .filter(t =>
-        t.date === todayStr &&
-        t.status === "approved" &&
-        String(t.title || "").includes(`Komisi Tugas T${item.levelStep}`) &&
-        String(t.title || "").includes(`dari ${downlineUser.username}`)
-      )
-      .reduce((sum, t) => sum + safeInt(t.amount, 0), 0);
-
-    const remainingDailyCap = Math.max(0, maxDailyCommissionForUpline - earnedTodayFromDownline);
-    const commission = Math.min(rawTaskCommission, remainingDailyCap);
-
-    if (commission > 0) {
-      const pctLabel = Math.round(item.rate * 100);
-      await creditUplineObj(
-        item.uplineObj,
-        commission,
-        `📈 Komisi Tugas T${item.levelStep} (${pctLabel}%, min VIP ${lowestVipLvl}) dari ${downlineUser.username}`
-      );
-    }
-  }
+  return;
 }
 
 const defaultPlatformTasks = {
@@ -1694,7 +1425,7 @@ function autoSyncAllIconsAndMenus(){
   const l1 = rawUData.referrals?.[1]?.length || 0;
   const l2 = rawUData.referrals?.[2]?.length || 0;
   const l3 = rawUData.referrals?.[3]?.length || 0;
-  
+
   setText('rL1', l1); setText('rL2', l2); setText('rL3', l3);
   setText('ltTotal', l1 + l2 + l3);
   setText('ltL1', l1); setText('ltL2', l2); setText('ltL3', l3);
@@ -1729,45 +1460,42 @@ async function doLogin(){
   const u=normalizePhone(rawInputU);
   const p=document.getElementById('inpP').value.trim();
   if(!u||!p){showErr('Username dan password harus diisi!');return}
-  const au=gAU();
-  const candidates = getCandidateIds(u);
-  let localMatch = candidates.map(id => au[id]).find(Boolean);
 
-  const remoteRow = await fetchMemberRowFromSupabase(u);
-  if(remoteRow){
-    if(remoteRow.password && remoteRow.password !== p){
-      showErr('Username/Password salah!');
+  const btnL = document.getElementById('btnL');
+  if (btnL) btnL.disabled = true;
+
+  try {
+    const { data, error } = await sbClient.rpc('login_member_secure', {
+      p_username: u,
+      p_password: p
+    });
+
+    if (error) {
+      showErr('Gagal terhubung ke server: ' + (error.message || 'Error'));
       return;
     }
-    const canonUsername = normalizePhone(remoteRow.username || u) || (remoteRow.username || u);
-    const baseAccount = localMatch || mkUser(canonUsername, p);
-    baseAccount.username = canonUsername;
-    baseAccount.password = remoteRow.password || p;
-    baseAccount.balance = safeInt(remoteRow.saldo ?? baseAccount.balance, 0);
-    baseAccount.currentVip = normalizeVipMap(remoteRow.level_vip, baseAccount.currentVip);
-    baseAccount.personalInfo = mergeBankInfoFromRow(remoteRow, baseAccount.personalInfo, canonUsername);
-    if(remoteRow.invite_code) baseAccount.inviteCode = remoteRow.invite_code;
-    if(remoteRow.referred_by) baseAccount.referredBy = remoteRow.referred_by;
-    if(remoteRow.transaksi_json !== undefined) {
-      baseAccount.transactions = normalizeTransactions(remoteRow.transaksi_json);
-    }
-    ensureDailyTaskReset(baseAccount, false);
-    au[canonUsername] = baseAccount;
-    svAU(au);
-    localMatch = baseAccount;
-  }
 
-  if(!localMatch || localMatch.password!==p){showErr('Username/Password salah!');return}
-  ensureDailyTaskReset(localMatch, false);
-  setUDataProxy(localMatch);
-  svU();
-  localStorage.setItem('wsp_c20',localMatch.username);
-  localStorage.setItem('wph_u20',localMatch.username);
-  showOk('Login berhasil!');
-  setTimeout(async ()=>{
-    enterApp();
-    await syncActiveMemberFromSupabase();
-  },300);
+    if (!data || data.ok === false || !data.member) {
+      showErr(data?.message || 'Username/Password salah!');
+      return;
+    }
+
+    const hydrated = hydrateAccountFromMemberData(data.member, u, p);
+    setUDataProxy(hydrated);
+    svU();
+    localStorage.setItem('wsp_c20', hydrated.username);
+    localStorage.setItem('wph_u20', hydrated.username);
+    showOk('Login berhasil!');
+    setTimeout(async ()=>{
+      enterApp();
+      await syncActiveMemberFromSupabase();
+    },300);
+  } catch (err) {
+    console.error('Error doLogin:', err);
+    showErr('Terjadi kesalahan saat masuk.');
+  } finally {
+    if (btnL) btnL.disabled = false;
+  }
 }
 
 async function doRegister(){
@@ -1778,54 +1506,43 @@ async function doRegister(){
   if(!u||digits.length<8){showErr('Masukkan nomor HP yang valid (minimal 8 digit)!');return}
   if(!p||p.length<4){showErr('Password minimal 4 karakter!');return}
   if(p!==p2){showErr('Ulangi password tidak sama!');return}
-  const au=gAU();
-  const candidates = getCandidateIds(u);
-  const existingLocal = candidates.some(id => Boolean(au[id]));
-  const existingRemote = await fetchMemberRowFromSupabase(u);
-  if(existingLocal || existingRemote){showErr('Nomor HP sudah terdaftar!');return}
 
-  const newUser=mkUser(u,p);
-  if(r){
-    const normRefPhone = normalizePhone(r).toUpperCase();
-    const ref=Object.values(au).find(x=>{
-      const inv = String(x.inviteCode || '').trim().toUpperCase();
-      const usr = String(x.username || '').trim().toUpperCase();
-      return inv===r || usr===r || usr===normRefPhone;
+  const btnR = document.getElementById('btnR');
+  if (btnR) btnR.disabled = true;
+
+  try {
+    const { data, error } = await sbClient.rpc('register_member_secure', {
+      p_username: u,
+      p_password: p,
+      p_referral: r
     });
-    if(ref){
-      newUser.referredBy=ref.username;
-      if(!ref.referrals)ref.referrals={1:[],2:[],3:[]};
-      ref.referrals[1].push({username:u,date:new Date().toLocaleDateString('id-ID')});
-      au[ref.username]=ref;
-      await persistMemberToSupabase(ref);
-    } else {
-      const { data: refRow } = await sbClient
-        .from("members")
-        .select("username, invite_code")
-        .ilike("invite_code", r)
-        .limit(1)
-        .maybeSingle();
-      if(refRow && refRow.username){
-        newUser.referredBy = normalizePhone(refRow.username) || refRow.username;
-      } else {
-        const remoteByPhone = await fetchMemberRowFromSupabase(r);
-        if(remoteByPhone && remoteByPhone.username){
-          newUser.referredBy = normalizePhone(remoteByPhone.username) || remoteByPhone.username;
-        }
-      }
+
+    if (error) {
+      showErr('Gagal mendaftar: ' + (error.message || 'Error'));
+      return;
     }
+
+    if (!data || data.ok === false) {
+      showErr(data?.message || 'Pendaftaran gagal.');
+      return;
+    }
+
+    const hydrated = hydrateAccountFromMemberData(data.member || { username: u, saldo: 1000, level_vip: 0 }, u, p);
+    setUDataProxy(hydrated);
+    svU();
+    localStorage.setItem('wsp_c20', hydrated.username);
+    localStorage.setItem('wph_u20', hydrated.username);
+    showOk('Pendaftaran berhasil!');
+    setTimeout(async ()=>{
+      enterApp();
+      await syncActiveMemberFromSupabase();
+    },300);
+  } catch (err) {
+    console.error('Error doRegister:', err);
+    showErr('Terjadi kesalahan saat mendaftar.');
+  } finally {
+    if (btnR) btnR.disabled = false;
   }
-  au[u]=newUser;
-  svAU(au);
-  setUDataProxy(newUser);
-  localStorage.setItem('wsp_c20',u);
-  localStorage.setItem('wph_u20',u);
-  await persistMemberToSupabase(newUser);
-  showOk('Pendaftaran berhasil!');
-  setTimeout(async ()=>{
-    enterApp();
-    await syncActiveMemberFromSupabase();
-  },300);
 }
 
 function doReset(){if(confirm('Reset seluruh memori aplikasi?')){localStorage.clear();location.reload()}}
@@ -1869,14 +1586,10 @@ function enterApp(){
   rawUData.transactions = normalizeTransactions(rawUData.transactions);
   if(!rawUData.personalInfo)rawUData.personalInfo={wa:'',method:'dana',accountNum:'',accountName:''};
   ensureDailyTaskReset(rawUData, true);
-  
+
   setUDataProxy(rawUData);
   startSlideshow();
   loadAdminAnnouncement();
-  setupAnnouncementRealtimeSync();
-  setupSupportChatRealtimeSync();
-  setupTasksRealtimeSync();
-  syncTasksFromSupabase();
 }
 
 function applyAnnouncementText(text) {
@@ -1890,45 +1603,24 @@ function applyAnnouncementText(text) {
 }
 
 async function loadAdminAnnouncement() {
+  const fallbackAnn = "274 mendapatkan 300000 komisi";
   const savedAnn = localStorage.getItem('wsp_admin_announcement');
-  if (savedAnn) {
-    applyAnnouncementText(savedAnn);
-  }
-  try {
-    const { data, error } = await sbClient
-      .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'announcement_text')
-      .limit(1)
-      .maybeSingle();
+  applyAnnouncementText(savedAnn || fallbackAnn);
 
-    if (!error && data && data.setting_value) {
-      applyAnnouncementText(data.setting_value);
+  try {
+    const { data, error } = await sbClient.rpc('get_announcements_public');
+    if (!error && data && data.ok !== false && Array.isArray(data.items) && data.items.length > 0) {
+      const combined = data.items
+        .map(item => String(item?.message || "").trim())
+        .filter(Boolean)
+        .join("   •   ");
+      if (combined) {
+        applyAnnouncementText(combined);
+      }
     }
   } catch (e) {
-    console.error("Gagal memuat pengumuman dari app_settings:", e);
+    console.error("Gagal memuat pengumuman publik via RPC:", e);
   }
-}
-
-function setupAnnouncementRealtimeSync() {
-  if (announcementRealtimeChannel || typeof sbClient.channel !== "function") return;
-  announcementRealtimeChannel = sbClient
-    .channel("app-settings-announcement-sync")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "app_settings"
-      },
-      (payload) => {
-        const row = payload.new || payload.record;
-        if (!row || row.setting_key === "announcement_text") {
-          loadAdminAnnouncement();
-        }
-      }
-    )
-    .subscribe();
 }
 
 function getUserMaxVipLevel(user){return Math.max(safeInt(user?.currentVip?.youtube,0),safeInt(user?.currentVip?.tiktok,0),safeInt(user?.currentVip?.facebook,0))}
@@ -1981,71 +1673,7 @@ function renderHT(){
   });
 }
 
-let tasksRealtimeChannel = null;
 let currentOpenTaskPlatform = "";
-
-function applyRemoteTasksRows(rows) {
-  const grouped = { youtube: [], tiktok: [], facebook: [], fbshare: [] };
-  (Array.isArray(rows) ? rows : []).forEach((row) => {
-    if (row.status && String(row.status).toLowerCase() === "inactive") return;
-    const platRaw = String(row.platform || "youtube").trim().toLowerCase();
-    const plat = Object.prototype.hasOwnProperty.call(grouped, platRaw) ? platRaw : "youtube";
-    const title = String(row.judul || row.title || "").trim();
-    const link = String(row.link_tugas || row.link || "").trim();
-    if (!title && !link) return;
-    grouped[plat].push({
-      id: row.id !== undefined && row.id !== null ? String(row.id) : ("task_" + Date.now() + "_" + Math.random()),
-      t: title || "Tugas Video",
-      l: link,
-      reward: safeInt(row.reward, 0)
-    });
-  });
-
-  localStorage.setItem("wsp_custom_tasks", JSON.stringify(grouped));
-  if (typeof renderHT === "function") renderHT();
-  if (document.getElementById("pgTugas")?.classList.contains("on") && typeof renderTL === "function") {
-    renderTL();
-  }
-  const modalEl = document.getElementById("availableTasksM");
-  if (modalEl && modalEl.classList.contains("on") && currentOpenTaskPlatform) {
-    renderPlatformTaskModalList(currentOpenTaskPlatform);
-  }
-}
-
-async function syncTasksFromSupabase() {
-  try {
-    const { data, error } = await sbClient
-      .from("tasks")
-      .select("id, platform, judul, deskripsi, reward, link_tugas, status, created_at")
-      .order("id", { ascending: false });
-
-    if (!error && Array.isArray(data)) {
-      applyRemoteTasksRows(data);
-    } else if (error) {
-      console.error("Gagal sinkron tugas dari Supabase:", error.message);
-    }
-  } catch (e) {
-    console.error("Error sinkron tugas dari Supabase:", e);
-  }
-}
-
-function setupTasksRealtimeSync() {
-  if (tasksRealtimeChannel || typeof sbClient.channel !== "function") return;
-  tasksRealtimeChannel = sbClient
-    .channel("tasks-public-sync")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "tasks"
-      },
-      () => {
-        syncTasksFromSupabase();
-      }
-    )
-    .subscribe();
-}
 
 function renderPlatformTaskModalList(platform) {
   ensureDailyTaskReset(rawUData, true);
@@ -2094,7 +1722,6 @@ async function openPlatformTaskModal(platform) {
   currentOpenTaskPlatform = platform;
   renderPlatformTaskModalList(platform);
   document.getElementById("availableTasksM").classList.add("on");
-  await syncTasksFromSupabase();
 }
 
 function claimSpecificTask(platform, taskId){
@@ -2105,7 +1732,7 @@ function claimSpecificTask(platform, taskId){
     toast(`⚠️ Batas tugas harian ${gVN()} (${max} tugas/hari) tercapai! Tugas akan di-refresh besok atau upgrade VIP.`);
     return;
   }
-  
+
   const todayKey=getTodayDateKey();
   if(rawUData.claimedTasks.some(ct=>ct.id===taskId && (!ct.dateKey || ct.dateKey===todayKey))){
     toast('ℹ️ Tugas ini sudah Anda ambil hari ini.');
@@ -2127,7 +1754,7 @@ function claimSpecificTask(platform, taskId){
 
   closeM('availableTasksM');
   toast(`✅ Tugas ${pInfo[platform].n} berhasil diambil!`);
-  
+
   setTimeout(()=>{
     goPage('tugas');
     selTP(platform);
@@ -2214,8 +1841,6 @@ function submitProof(){
     svU();
     autoSyncAllIconsAndMenus();
     if (document.getElementById('pgTugas')?.classList.contains('on')) updTP();
-    await persistMemberToSupabase(rawUData);
-    await distributeDailyTaskCommissions(rawUData, rpt);
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
   },2500);
 }
@@ -2246,14 +1871,6 @@ function sendProofToWhatsApp(){
 }
 
 async function openWalletModal(){
-  if (rawUData && rawUData.username) {
-    try {
-      const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
-      if (remoteRow) {
-        applyMemberRowToLocalState(remoteRow, rawUData.username);
-      }
-    } catch (_) {}
-  }
   const pwdInp = document.getElementById('wdPasswordInp');
   if (pwdInp) pwdInp.value = '';
   document.getElementById('walletM').classList.add('on');
@@ -2286,7 +1903,7 @@ async function confirmQrisPay(){
     const a=safeInt(document.getElementById('qrisAmtInp').value,0);
     if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
     if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
-    
+
     rawUData.transactions.unshift({
       id: 'tx_topup_' + Date.now(),
       title: 'Topup via QRIS Allshop',
@@ -2298,9 +1915,8 @@ async function confirmQrisPay(){
 
     svU();
     autoSyncAllIconsAndMenus();
-    await persistMemberToSupabase(rawUData);
     closeM('walletM');
-    toast('⏳ Pengajuan topup dikirim ke Admin untuk diverifikasi!');
+    toast('⏳ Pengajuan topup dicatat. Hubungi CS untuk verifikasi saldo.');
     document.getElementById('qrisArea').style.display='none';
   } finally {
     if (btn) btn.disabled = false;
@@ -2416,13 +2032,6 @@ async function submitWithdraw(){
   if (btn) btn.disabled = true;
   try {
     if (!rawUData) return;
-    try {
-      const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
-      if (remoteRow) {
-        applyMemberRowToLocalState(remoteRow, rawUData.username);
-      }
-    } catch (_) {}
-
     const pInfoObj = rawUData.personalInfo || {};
     const boundMethod = String(pInfoObj.method || 'dana').trim().toUpperCase();
     const num = String(pInfoObj.accountNum || '').trim();
@@ -2473,9 +2082,8 @@ async function submitWithdraw(){
 
     svU();
     autoSyncAllIconsAndMenus();
-    await persistMemberToSupabase(rawUData);
     closeM('walletM');
-    toast('⏳ Pengajuan penarikan dikirim ke Admin untuk diverifikasi.');
+    toast('⏳ Pengajuan penarikan dicatat. Hubungi CS untuk verifikasi.');
   } finally {
     if (btn) btn.disabled = false;
     syncWithdrawBoundBankUI();
@@ -2523,13 +2131,6 @@ function toggleBankEditMode() {
 
 async function openInfoModal(){
   if (!rawUData) return;
-  try {
-    const remoteRow = await fetchMemberRowFromSupabase(rawUData.username);
-    if (remoteRow) {
-      applyMemberRowToLocalState(remoteRow, rawUData.username);
-    }
-  } catch (_) {}
-
   const pInfoObj = rawUData.personalInfo || {};
   const methodVal = pInfoObj.method || 'dana';
   const accNumVal = String(pInfoObj.accountNum || '').trim();
@@ -2569,9 +2170,8 @@ async function savePersonalInfo(){
     svU();
     autoSyncAllIconsAndMenus();
     syncWithdrawBoundBankUI();
-    const synced = await persistMemberToSupabase(rawUData);
     closeM('infoM');
-    toast(synced ? '💾 Informasi rekening tersinkron ke server!' : '💾 Tersimpan lokal (cek koneksi Supabase)');
+    toast('💾 Informasi rekening tersimpan!');
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -2606,7 +2206,6 @@ async function submitDagang(){
     rawUData.transactions.unshift({id:'tx_ad_'+Date.now(),title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     svU();
     autoSyncAllIconsAndMenus();
-    await persistMemberToSupabase(rawUData);
     closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
   } finally {
     if (btn) btn.disabled = false;
@@ -2726,18 +2325,20 @@ async function buyVIP() {
     if (!Array.isArray(rawUData.claimedTasks)) rawUData.claimedTasks = [];
     if (!Array.isArray(rawUData.completedTasks)) rawUData.completedTasks = [];
     rawUData.firstVipPurchased = true;
-
-    const latestRow = await fetchMemberRowFromSupabase(activeUsername);
-    if (latestRow) {
-      applyMemberRowToLocalState(latestRow, activeUsername);
-    } else {
-      rawUData.balance = safeInt(rawUData.balance, 0) - safeInt(sV.p, 0);
-      rawUData.currentVip.youtube = sV.l;
-      rawUData.currentVip.tiktok = sV.l;
-      rawUData.currentVip.facebook = sV.l;
-      svU();
-      autoSyncAllIconsAndMenus();
-    }
+    rawUData.balance = Math.max(0, safeInt(rawUData.balance, 0) - safeInt(sV.p, 0));
+    rawUData.currentVip.youtube = sV.l;
+    rawUData.currentVip.tiktok = sV.l;
+    rawUData.currentVip.facebook = sV.l;
+    rawUData.transactions.unshift({
+      id: 'tx_vip_' + Date.now(),
+      title: '👑 Upgrade VIP ' + sV.l,
+      amount: safeInt(sV.p, 0),
+      type: 'minus',
+      status: 'approved',
+      date: new Date().toLocaleDateString('id-ID')
+    });
+    svU();
+    autoSyncAllIconsAndMenus();
 
     await syncReferralTeamFromSupabase();
     renderVC();
@@ -2780,66 +2381,12 @@ function writeLocalChatHistory(uname, msgs) {
 }
 
 async function fetchSupportChatsFromSupabase(uname) {
-  const candidates = getCandidateIds(uname);
-  const queryVals = candidates.length > 0 ? candidates : [uname];
-  try {
-    const { data, error } = await sbClient
-      .from('support_chats')
-      .select('id, username, sender, message, created_at')
-      .in('username', queryVals)
-      .order('id', { ascending: true })
-      .limit(80);
-
-    if (!error && Array.isArray(data)) {
-      const mapped = data.map(r => ({
-        id: r.id,
-        sender: r.sender === 'admin' ? 'admin' : 'user',
-        text: r.message || ''
-      }));
-      writeLocalChatHistory(uname, mapped);
-      return mapped;
-    }
-  } catch (e) {
-    console.error("Gagal memuat support_chats dari Supabase:", e);
-  }
   return readLocalChatHistory(uname);
 }
 
 function setupSupportChatRealtimeSync() {
   if (supportChatRealtimeChannel || typeof sbClient.channel !== "function") return;
-  supportChatRealtimeChannel = sbClient
-    .channel("support-chats-member-sync")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "support_chats"
-      },
-      (payload) => {
-        const row = payload.new || payload.record;
-        if (!row) return;
-        const activeUname = getActiveChatUsername();
-        const rowCand = getCandidateIds(row.username);
-        const activeCand = getCandidateIds(activeUname);
-        const isMatch = rowCand.some(c => activeCand.includes(c)) || String(row.username || '') === activeUname;
-        if (isMatch) {
-          const cur = readLocalChatHistory(activeUname);
-          if (!cur.some(m => row.id && m.id === row.id)) {
-            cur.push({
-              id: row.id,
-              sender: row.sender === 'admin' ? 'admin' : 'user',
-              text: row.message || ''
-            });
-            writeLocalChatHistory(activeUname, cur);
-          }
-          if (document.getElementById('liveChatM')?.classList.contains('on')) {
-            renderChatBubbleList(activeUname, cur);
-          }
-        }
-      }
-    )
-    .subscribe();
+  supportChatRealtimeChannel = sbClient.channel("support-chats-member-sync").subscribe();
 }
 
 async function openLiveChatModal(){
@@ -2847,8 +2394,6 @@ async function openLiveChatModal(){
   document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
   document.getElementById('liveChatM').classList.add('on');
   renderChatBubbleList(uname, readLocalChatHistory(uname));
-  const remoteMsgs = await fetchSupportChatsFromSupabase(uname);
-  renderChatBubbleList(uname, remoteMsgs);
 }
 
 async function openPublicLiveChat(){
@@ -2856,8 +2401,6 @@ async function openPublicLiveChat(){
   document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
   document.getElementById('liveChatM').classList.add('on');
   renderChatBubbleList(uname, readLocalChatHistory(uname));
-  const remoteMsgs = await fetchSupportChatsFromSupabase(uname);
-  renderChatBubbleList(uname, remoteMsgs);
 }
 
 async function sendChatMessage(){
@@ -2875,27 +2418,6 @@ async function sendChatMessage(){
     writeLocalChatHistory(currentUname, msgs);
     input.value = '';
     renderChatBubbleList(currentUname, msgs);
-
-    const { data, error } = await sbClient
-      .from('support_chats')
-      .insert([{
-        username: currentUname,
-        sender: 'user',
-        message: txt
-      }])
-      .select('id, sender, message')
-      .maybeSingle();
-
-    if (!error && data && data.id) {
-      const updated = readLocalChatHistory(currentUname);
-      const lastIdx = updated.length - 1;
-      if (lastIdx >= 0 && !updated[lastIdx].id) {
-        updated[lastIdx].id = data.id;
-        writeLocalChatHistory(currentUname, updated);
-      }
-    } else if (error) {
-      console.error("Gagal kirim pesan ke support_chats:", error.message);
-    }
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -2920,8 +2442,7 @@ function renderChatBubbleList(currentUname, msgs) {
 
 async function renderMemberChatMessages(){
   const currentUname = getActiveChatUsername();
-  const remoteMsgs = await fetchSupportChatsFromSupabase(currentUname);
-  renderChatBubbleList(currentUname, remoteMsgs);
+  renderChatBubbleList(currentUname, readLocalChatHistory(currentUname));
 }
 
 function openDirectWaCS(){
@@ -2987,7 +2508,7 @@ function openAIModal() {
   const currentEstDay = vipD.youtube.find(v => v.l === currentVipLvl)?.d || 8000;
   const nextVip = vipD.youtube.find(v => v.l === currentVipLvl + 1);
 
-  let recommendation = nextVip 
+  let recommendation = nextVip
     ? `Rekomendasi upgrade ke <b>VIP ${nextVip.l} (${escapeHtml(nextVip.n)})</b> untuk meningkatkan potensi penghasilan menjadi <b>Rp ${nextVip.d.toLocaleString()}/hari</b>.`
     : `Anda telah mencapai level tertinggi (VIP 7 Ruby)! Rekomendasikan anggota baru untuk menambah pendapatan komisi 10%.`;
 
@@ -3074,118 +2595,36 @@ function renderTX(){
   });
 }
 
-function buildReferralKeys(memberRow) {
-  const keys = new Set();
-  if (!memberRow) return keys;
-
-  const rawUsername = String(memberRow.username || "").trim();
-  const rawInvite = String(memberRow.invite_code || memberRow.inviteCode || "").trim();
-
-  if (rawUsername) {
-    keys.add(rawUsername.toLowerCase());
-    getCandidateIds(rawUsername).forEach((c) => keys.add(String(c).trim().toLowerCase()));
-  }
-  if (rawInvite) {
-    keys.add(rawInvite.toLowerCase());
-  }
-  return keys;
-}
-
-async function fetchDirectDownlinesByParents(parentRows, excludeKeys, limitCap = 500) {
-  const refTokens = new Set();
-  (Array.isArray(parentRows) ? parentRows : []).forEach((p) => {
-    const uname = String(p?.username || "").trim();
-    const inv = String(p?.invite_code || p?.inviteCode || "").trim();
-    if (uname) {
-      getCandidateIds(uname).forEach((c) => {
-        if (c) refTokens.add(c);
-      });
-    }
-    if (inv) {
-      refTokens.add(inv);
-      refTokens.add(inv.toUpperCase());
-      refTokens.add(inv.toLowerCase());
-    }
-  });
-
-  const tokenArr = Array.from(refTokens).filter(Boolean);
-  if (tokenArr.length === 0) return [];
-
-  const chunkSize = 80;
-  const results = [];
-  for (let i = 0; i < tokenArr.length; i += chunkSize) {
-    const chunk = tokenArr.slice(i, i + chunkSize);
-    const { data, error } = await sbClient
-      .from("members")
-      .select("username, nama, level_vip, invite_code, referred_by")
-      .in("referred_by", chunk)
-      .limit(limitCap);
-
-    if (!error && Array.isArray(data)) {
-      for (const row of data) {
-        const rKeys = buildReferralKeys(row);
-        if (Array.from(rKeys).some((k) => excludeKeys.has(k))) continue;
-        rKeys.forEach((k) => excludeKeys.add(k));
-        results.push(row);
-      }
-    }
-    if (results.length >= limitCap) break;
-  }
-  return results;
-}
-
 async function syncReferralTeamFromSupabase() {
   if (!rawUData || !rawUData.username) return;
-  try {
-    const rootNode = {
-      username: rawUData.username,
-      invite_code: rawUData.inviteCode || ""
-    };
-    const visitedKeys = buildReferralKeys(rootNode);
+  const t1 = Array.isArray(rawUData.referrals?.[1]) ? rawUData.referrals[1] : [];
+  const t2 = Array.isArray(rawUData.referrals?.[2]) ? rawUData.referrals[2] : [];
+  const t3 = Array.isArray(rawUData.referrals?.[3]) ? rawUData.referrals[3] : [];
 
-    const t1 = await fetchDirectDownlinesByParents([rootNode], visitedKeys, 500);
-    const t2 = t1.length > 0 ? await fetchDirectDownlinesByParents(t1, visitedKeys, 1000) : [];
-    const t3 = t2.length > 0 ? await fetchDirectDownlinesByParents(t2, visitedKeys, 1500) : [];
+  autoSyncAllIconsAndMenus();
 
-    const mapItem = (row) => ({
-      username: row.username,
-      vipLevel: safeInt(row.level_vip, 0)
-    });
-
-    rawUData.referrals = {
-      1: t1.map(mapItem),
-      2: t2.map(mapItem),
-      3: t3.map(mapItem)
-    };
-
-    svU();
-    autoSyncAllIconsAndMenus();
-
-    const refContainer = document.getElementById("refL");
-    if (refContainer) {
-      const allInvited = [
-        ...t1.map((x) => ({ ...x, tier: 1 })),
-        ...t2.map((x) => ({ ...x, tier: 2 })),
-        ...t3.map((x) => ({ ...x, tier: 3 }))
-      ];
-      refContainer.innerHTML =
-        allInvited.length === 0
-          ? '<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px">Belum ada anggota referral yang terdaftar.</div>'
-          : allInvited
-              .map(
-                (m) => `
-                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-                  <div>
-                    <div style="font-size:11.5px;font-weight:700;color:#fff">${escapeHtml(m.username)}</div>
-                    <div style="font-size:9.5px;color:var(--dim)">Tingkat ${m.tier}</div>
-                  </div>
-                  <div style="font-size:10.5px;font-weight:800;color:var(--gold);font-family:'Orbitron'">VIP ${safeInt(m.vipLevel, 0)}</div>
-                </div>`
-              )
-              .join("");
-    }
-  } catch (e) {
-    console.error("Gagal sinkron tim referral:", e);
+  const refContainer = document.getElementById("refL");
+  if (refContainer) {
+    const allInvited = [
+      ...t1.map((x) => ({ ...x, tier: 1 })),
+      ...t2.map((x) => ({ ...x, tier: 2 })),
+      ...t3.map((x) => ({ ...x, tier: 3 }))
+    ];
+    refContainer.innerHTML =
+      allInvited.length === 0
+        ? '<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px">Belum ada anggota referral yang terdaftar.</div>'
+        : allInvited
+            .map(
+              (m) => `
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-size:11.5px;font-weight:700;color:#fff">${escapeHtml(m.username)}</div>
+                  <div style="font-size:9.5px;color:var(--dim)">Tingkat ${m.tier}</div>
+                </div>
+                <div style="font-size:10.5px;font-weight:800;color:var(--gold);font-family:'Orbitron'">VIP ${safeInt(m.vipLevel, 0)}</div>
+              </div>`
+            )
+            .join("");
   }
 }
 
@@ -3222,16 +2661,11 @@ window.addEventListener('DOMContentLoaded',()=>{
     syncActiveMemberFromSupabase();
   }
   loadAdminAnnouncement();
-  setupAnnouncementRealtimeSync();
-  setupSupportChatRealtimeSync();
-  setupTasksRealtimeSync();
-  syncTasksFromSupabase();
 });
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     loadAdminAnnouncement();
-    syncTasksFromSupabase();
     if (document.getElementById('liveChatM')?.classList.contains('on')) {
       renderMemberChatMessages();
     }
