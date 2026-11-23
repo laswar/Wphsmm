@@ -956,23 +956,11 @@ function getCandidateIds(phoneOrId) {
   const s = new Set();
   const raw = String(phoneOrId || "").trim();
   if (raw) s.add(raw);
-  const digits = raw.replace(/[^0-9]/g, "");
-  if (digits) {
-    s.add(digits);
-    if (digits.startsWith("62")) s.add("0" + digits.slice(2));
-    if (digits.startsWith("0")) s.add("62" + digits.slice(1));
-  }
   return Array.from(s);
 }
 
 function normalizePhone(rawPhone) {
-  const raw = String(rawPhone || "").trim();
-  if (!raw) return "";
-  const digits = raw.replace(/[^0-9]/g, "");
-  if (!digits) return raw;
-  if (digits.startsWith("62")) return "0" + digits.slice(2);
-  if (digits.startsWith("8")) return "0" + digits;
-  return digits;
+  return String(rawPhone || "").trim();
 }
 
 function getTodayDateKey() {
@@ -1126,25 +1114,55 @@ function hydrateAccountFromMemberData(memberData, fallbackUsername, fallbackPass
 async function persistMemberToSupabase(userObj) {
   if (!userObj || !userObj.username) return false;
   svU();
-  return true;
+  try {
+    const candidates = getCandidateIds(userObj.username);
+    const { data: rows, error: selErr } = await sbClient
+      .from("members")
+      .select("id, username")
+      .in("username", candidates)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (selErr || !Array.isArray(rows) || rows.length === 0) return false;
+
+    const pInfo = userObj.personalInfo || {};
+    const payload = {
+      saldo: safeInt(userObj.balance, 0),
+      level_vip: getUserMaxVipLevel(userObj),
+      transaksi_json: normalizeTransactions(userObj.transactions),
+      bank_method: String(pInfo.method || "").trim(),
+      bank_account: String(pInfo.accountNum || "").trim(),
+      bank_holder: String(pInfo.accountName || "").trim()
+    };
+
+    const { error: updErr } = await sbClient
+      .from("members")
+      .update(payload)
+      .eq("id", rows[0].id);
+
+    return !updErr;
+  } catch (_) {
+    return false;
+  }
 }
 
 async function fetchMemberRowFromSupabase(phoneOrId) {
   const cleanId = normalizePhone(phoneOrId) || String(phoneOrId || "").trim();
   if (!cleanId) return null;
-  if (rawUData && getCandidateIds(rawUData.username).includes(cleanId)) {
-    return {
-      username: rawUData.username,
-      nama: rawUData.nama || rawUData.username,
-      saldo: safeInt(rawUData.balance, 0),
-      level_vip: getUserMaxVipLevel(rawUData),
-      invite_code: rawUData.inviteCode || "",
-      referred_by: rawUData.referredBy || null,
-      transaksi_json: normalizeTransactions(rawUData.transactions),
-      bank_method: rawUData.personalInfo?.method || "",
-      bank_account: rawUData.personalInfo?.accountNum || "",
-      bank_holder: rawUData.personalInfo?.accountName || ""
-    };
+  try {
+    const candidates = getCandidateIds(cleanId);
+    const { data, error } = await sbClient
+      .from("members")
+      .select("id, username, nama, level_vip, saldo, invite_code, referred_by, transaksi_json, bank_method, bank_account, bank_holder")
+      .in("username", candidates)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+  } catch (e) {
+    console.error("Gagal mengambil data member dari Supabase:", e);
   }
   return null;
 }
@@ -1161,13 +1179,33 @@ function setupMemberRealtimeSync(phoneOrId) {
     memberRealtimeChannel = null;
   }
   subscribedUsername = cleanId;
+
+  memberRealtimeChannel = sbClient
+    .channel("member-self-sync-" + encodeURIComponent(cleanId))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "members" },
+      async (payload) => {
+        const row = payload.new || payload.old;
+        const rowUser = String(row?.username || "").trim();
+        if (rowUser && getCandidateIds(cleanId).includes(rowUser) && payload.new) {
+          applyMemberRowToLocalState(payload.new, cleanId);
+        }
+      }
+    )
+    .subscribe();
 }
 
 async function syncActiveMemberFromSupabase() {
   try {
     if (!rawUData || !rawUData.username) return;
     setupMemberRealtimeSync(rawUData.username);
-    autoSyncAllIconsAndMenus();
+    const row = await fetchMemberRowFromSupabase(rawUData.username);
+    if (row) {
+      applyMemberRowToLocalState(row, rawUData.username);
+    } else {
+      autoSyncAllIconsAndMenus();
+    }
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
   }
@@ -1590,6 +1628,7 @@ function enterApp(){
   setUDataProxy(rawUData);
   startSlideshow();
   loadAdminAnnouncement();
+  setupSupportChatRealtimeSync();
 }
 
 function applyAnnouncementText(text) {
@@ -1720,6 +1759,32 @@ function renderPlatformTaskModalList(platform) {
 
 async function openPlatformTaskModal(platform) {
   currentOpenTaskPlatform = platform;
+  try {
+    const { data, error } = await sbClient
+      .from('tasks')
+      .select('id, platform, judul, link_tugas, status')
+      .eq('platform', platform)
+      .order('id', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      const mapped = data
+        .filter((r) => !r.status || String(r.status).toLowerCase() === 'active')
+        .map((r) => ({
+          id: String(r.id),
+          t: String(r.judul || '').trim(),
+          l: String(r.link_tugas || '').trim()
+        }))
+        .filter((item) => item.t || item.l);
+
+      let customTasks = {};
+      try { customTasks = JSON.parse(localStorage.getItem('wsp_custom_tasks') || '{}'); } catch (_) {}
+      customTasks[platform] = mapped;
+      localStorage.setItem('wsp_custom_tasks', JSON.stringify(customTasks));
+    }
+  } catch (e) {
+    console.error("Gagal memuat daftar tugas dari Supabase:", e);
+  }
+
   renderPlatformTaskModalList(platform);
   document.getElementById("availableTasksM").classList.add("on");
 }
@@ -1838,7 +1903,7 @@ function submitProof(){
     completionRecord.status='verified';
     rawUData.balance=safeInt(rawUData.balance,0)+rpt;
     rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
     if (document.getElementById('pgTugas')?.classList.contains('on')) updTP();
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
@@ -1874,6 +1939,7 @@ async function openWalletModal(){
   const pwdInp = document.getElementById('wdPasswordInp');
   if (pwdInp) pwdInp.value = '';
   document.getElementById('walletM').classList.add('on');
+  await syncActiveMemberFromSupabase();
   syncWithdrawBoundBankUI();
 }
 
@@ -1913,10 +1979,10 @@ async function confirmQrisPay(){
       date: new Date().toLocaleDateString('id-ID')
     });
 
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
     closeM('walletM');
-    toast('⏳ Pengajuan topup dicatat. Hubungi CS untuk verifikasi saldo.');
+    toast('⏳ Pengajuan topup dikirim ke Admin untuk verifikasi saldo.');
     document.getElementById('qrisArea').style.display='none';
   } finally {
     if (btn) btn.disabled = false;
@@ -2080,10 +2146,10 @@ async function submitWithdraw(){
       document.getElementById('wdPasswordInp').value = '';
     }
 
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
     closeM('walletM');
-    toast('⏳ Pengajuan penarikan dicatat. Hubungi CS untuk verifikasi.');
+    toast('⏳ Pengajuan penarikan dikirim ke Admin untuk verifikasi.');
   } finally {
     if (btn) btn.disabled = false;
     syncWithdrawBoundBankUI();
@@ -2131,6 +2197,7 @@ function toggleBankEditMode() {
 
 async function openInfoModal(){
   if (!rawUData) return;
+  await syncActiveMemberFromSupabase();
   const pInfoObj = rawUData.personalInfo || {};
   const methodVal = pInfoObj.method || 'dana';
   const accNumVal = String(pInfoObj.accountNum || '').trim();
@@ -2167,7 +2234,7 @@ async function savePersonalInfo(){
       accountNum:document.getElementById('infoAcc').value.trim(),
       accountName:document.getElementById('infoName').value.trim()
     };
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
     syncWithdrawBoundBankUI();
     closeM('infoM');
@@ -2204,7 +2271,7 @@ async function submitDagang(){
     rawUData.balance=safeInt(rawUData.balance,0)-tot;
     rawUData.dagangAds.push({id:'ad_'+Date.now(),platform:document.getElementById('dgPlat').value,title:t,qty:q});
     rawUData.transactions.unshift({id:'tx_ad_'+Date.now(),title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
     closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
   } finally {
@@ -2337,7 +2404,7 @@ async function buyVIP() {
       status: 'approved',
       date: new Date().toLocaleDateString('id-ID')
     });
-    svU();
+    await persistMemberToSupabase(rawUData);
     autoSyncAllIconsAndMenus();
 
     await syncReferralTeamFromSupabase();
@@ -2381,12 +2448,49 @@ function writeLocalChatHistory(uname, msgs) {
 }
 
 async function fetchSupportChatsFromSupabase(uname) {
+  try {
+    const cleanU = String(uname || '').trim();
+    if (!cleanU) return readLocalChatHistory(uname);
+
+    const { data, error } = await sbClient
+      .from('support_chats')
+      .select('id, username, sender, message, created_at')
+      .eq('username', cleanU)
+      .order('id', { ascending: true })
+      .limit(100);
+
+    if (!error && Array.isArray(data)) {
+      const mapped = data.map((row) => ({
+        id: row.id,
+        sender: row.sender === 'admin' ? 'admin' : 'user',
+        text: row.message || ''
+      }));
+      writeLocalChatHistory(cleanU, mapped);
+      return mapped;
+    }
+  } catch (e) {
+    console.error("Gagal memuat support_chats di member:", e);
+  }
   return readLocalChatHistory(uname);
 }
 
 function setupSupportChatRealtimeSync() {
   if (supportChatRealtimeChannel || typeof sbClient.channel !== "function") return;
-  supportChatRealtimeChannel = sbClient.channel("support-chats-member-sync").subscribe();
+  supportChatRealtimeChannel = sbClient
+    .channel("support-chats-member-sync")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "support_chats" },
+      async (payload) => {
+        const row = payload.new || payload.old;
+        const rowU = String(row?.username || "").trim();
+        const activeU = getActiveChatUsername();
+        if (rowU && rowU === activeU) {
+          await renderMemberChatMessages();
+        }
+      }
+    )
+    .subscribe();
 }
 
 async function openLiveChatModal(){
@@ -2394,6 +2498,8 @@ async function openLiveChatModal(){
   document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
   document.getElementById('liveChatM').classList.add('on');
   renderChatBubbleList(uname, readLocalChatHistory(uname));
+  const msgs = await fetchSupportChatsFromSupabase(uname);
+  renderChatBubbleList(uname, msgs);
 }
 
 async function openPublicLiveChat(){
@@ -2401,6 +2507,8 @@ async function openPublicLiveChat(){
   document.querySelectorAll('.chat-uname').forEach(el => el.textContent = uname);
   document.getElementById('liveChatM').classList.add('on');
   renderChatBubbleList(uname, readLocalChatHistory(uname));
+  const msgs = await fetchSupportChatsFromSupabase(uname);
+  renderChatBubbleList(uname, msgs);
 }
 
 async function sendChatMessage(){
@@ -2418,6 +2526,19 @@ async function sendChatMessage(){
     writeLocalChatHistory(currentUname, msgs);
     input.value = '';
     renderChatBubbleList(currentUname, msgs);
+
+    const { error } = await sbClient
+      .from('support_chats')
+      .insert([{
+        username: currentUname,
+        sender: 'user',
+        message: txt
+      }]);
+
+    if (!error) {
+      const updated = await fetchSupportChatsFromSupabase(currentUname);
+      renderChatBubbleList(currentUname, updated);
+    }
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -2442,7 +2563,8 @@ function renderChatBubbleList(currentUname, msgs) {
 
 async function renderMemberChatMessages(){
   const currentUname = getActiveChatUsername();
-  renderChatBubbleList(currentUname, readLocalChatHistory(currentUname));
+  const msgs = await fetchSupportChatsFromSupabase(currentUname);
+  renderChatBubbleList(currentUname, msgs);
 }
 
 function openDirectWaCS(){
