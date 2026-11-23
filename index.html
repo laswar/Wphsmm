@@ -1083,11 +1083,11 @@ function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   }
 }
 
-function hydrateAccountFromMemberData(memberData, fallbackUsername, fallbackPassword = "") {
+function hydrateAccountFromMemberData(memberData, fallbackUsername, _fallbackPassword = "") {
   const canonUsername = normalizePhone(memberData?.username || fallbackUsername) || (memberData?.username || fallbackUsername);
   const existingLocal = rawUData && getCandidateIds(rawUData.username).includes(canonUsername)
     ? rawUData
-    : mkUser(canonUsername, fallbackPassword);
+    : mkUser(canonUsername, "");
 
   const hydrated = {
     ...existingLocal,
@@ -1104,9 +1104,7 @@ function hydrateAccountFromMemberData(memberData, fallbackUsername, fallbackPass
       ? normalizeTransactions(memberData.transaksi_json)
       : normalizeTransactions(existingLocal.transactions)
   };
-  if (fallbackPassword) {
-    hydrated.password = fallbackPassword;
-  }
+  delete hydrated.password;
   ensureDailyTaskReset(hydrated, false);
   return hydrated;
 }
@@ -1367,7 +1365,7 @@ function mkUser(u,p){
 }
 
 function buildLiteSessionSnapshot(uObj) {
-  if (!uObj || typeof uObj !== 'object' || !uObj.username) return null;
+  if (!uObj || typeof uObj !== "object" || !uObj.username) return null;
   const recentTx = normalizeTransactions(uObj.transactions).slice(0, 20);
   const todayKey = getTodayDateKey();
   const claimedToday = Array.isArray(uObj.claimedTasks)
@@ -1378,7 +1376,6 @@ function buildLiteSessionSnapshot(uObj) {
     : [];
   return {
     username: String(uObj.username).trim(),
-    password: uObj.password || '',
     nama: uObj.nama || String(uObj.username).trim(),
     balance: safeInt(uObj.balance, 0),
     currentVip: normalizeVipMap(uObj.currentVip, null),
@@ -1537,7 +1534,7 @@ async function doLogin(){
       return;
     }
 
-    const hydrated = hydrateAccountFromMemberData(data.member, u, p);
+    const hydrated = hydrateAccountFromMemberData(data.member, u, "");
     setUDataProxy(hydrated);
     svU();
     localStorage.setItem('wsp_c20', hydrated.username);
@@ -1584,7 +1581,7 @@ async function doRegister(){
       return;
     }
 
-    const hydrated = hydrateAccountFromMemberData(data.member || { username: u, saldo: 1000, level_vip: 0 }, u, p);
+    const hydrated = hydrateAccountFromMemberData(data.member || { username: u, saldo: 1000, level_vip: 0 }, u, "");
     setUDataProxy(hydrated);
     svU();
     localStorage.setItem('wsp_c20', hydrated.username);
