@@ -1242,7 +1242,26 @@ function getLockedCommissionVipCap(uplineObj, downlineUser) {
 }
 
 async function distributeDailyTaskCommissions(downlineUser, taskRewardAmount) {
-  return;
+  const uname = String(downlineUser?.username || rawUData?.username || "").trim();
+  const reward = Number(taskRewardAmount || 0);
+  if (!uname || reward <= 0 || !sbClient) return null;
+
+  try {
+    const { data, error } = await sbClient.rpc("beri_komisi_tugas_referral", {
+      p_downline_username: uname,
+      p_task_reward: reward
+    });
+
+    if (error) {
+      console.error("Gagal distribusi komisi tugas upline:", error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Error saat memanggil beri_komisi_tugas_referral:", err);
+    return null;
+  }
 }
 
 const defaultPlatformTasks = {
@@ -1904,6 +1923,7 @@ function submitProof(){
     rawUData.balance=safeInt(rawUData.balance,0)+rpt;
     rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
     await persistMemberToSupabase(rawUData);
+    await distributeDailyTaskCommissions(rawUData, rpt);
     autoSyncAllIconsAndMenus();
     if (document.getElementById('pgTugas')?.classList.contains('on')) updTP();
     renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
