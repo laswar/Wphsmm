@@ -2121,7 +2121,6 @@ async function submitWithdraw(){
     const name = String(pInfoObj.accountName || '').trim();
     const amt = safeInt(document.getElementById('wdAmountInp').value, 0);
     const pwdInpVal = String(document.getElementById('wdPasswordInp')?.value || '').trim();
-    const expectedPwd = String(rawUData.password || '').trim();
 
     if (!num || !name) {
       toast('⚠️ Ikat akun bank/e-wallet dulu di Informasi Pribadi!');
@@ -2129,10 +2128,6 @@ async function submitWithdraw(){
     }
     if (!pwdInpVal) {
       toast('⚠️ Masukkan password akun untuk penarikan!');
-      return;
-    }
-    if (!expectedPwd || pwdInpVal !== expectedPwd) {
-      toast('❌ Password akun salah! Penarikan dibatalkan.');
       return;
     }
 
@@ -2146,24 +2141,40 @@ async function submitWithdraw(){
       return;
     }
 
-    rawUData.balance = safeInt(rawUData.balance, 0) - amt;
+    const txTitle = 'Penarikan ke ' + boundMethod + ' (' + num + ' a.n ' + name + ')';
+    const todayStr = new Date().toLocaleDateString('id-ID');
+
+    const { data, error } = await sbClient.rpc('ajukan_penarikan_aman', {
+      p_username: String(rawUData.username || '').trim(),
+      p_password: pwdInpVal,
+      p_amount: amt,
+      p_tx_title: txTitle,
+      p_date_str: todayStr
+    });
+
+    if (error) {
+      toast('❌ Gagal memproses penarikan: ' + (error.message || 'Error'));
+      return;
+    }
+
+    if (!data || data.ok === false) {
+      toast('❌ ' + (data?.message || 'Pengajuan penarikan ditolak server.'));
+      return;
+    }
+
+    rawUData.balance = safeInt(data.saldo_baru, Math.max(0, safeInt(rawUData.balance, 0) - amt));
     rawUData.withdrawCount = safeInt(rawUData.withdrawCount, 0) + 1;
 
     if (!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
-    rawUData.transactions.unshift({
-      id: 'tx_wd_' + Date.now(),
-      title: 'Penarikan ke ' + boundMethod + ' (' + num + ' a.n ' + name + ')',
-      amount: amt,
-      type: 'withdraw',
-      status: 'pending',
-      date: new Date().toLocaleDateString('id-ID')
-    });
+    if (data.transaksi) {
+      rawUData.transactions.unshift(data.transaksi);
+    }
 
     if (document.getElementById('wdPasswordInp')) {
       document.getElementById('wdPasswordInp').value = '';
     }
 
-    await persistMemberToSupabase(rawUData);
+    svU();
     autoSyncAllIconsAndMenus();
     closeM('walletM');
     toast('⏳ Pengajuan penarikan dikirim ke Admin untuk verifikasi.');
