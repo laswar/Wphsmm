@@ -2290,23 +2290,63 @@ function renderDagang(){
 }
 function openPasangModal(){document.getElementById('pasangM').classList.add('on');calcDgCost()}
 function calcDgCost(){const q=Math.max(0,safeInt(document.getElementById('dgQty').value,0));document.getElementById('dgTotal').textContent='Rp '+(q*500).toLocaleString()}
+async function syncDagangAdToSupabase(adPayload) {
+  try {
+    if (!adPayload) return;
+    const { error } = await sbClient
+      .from('dagang_ads')
+      .insert([{
+        username: String(adPayload.username || '').trim(),
+        platform: String(adPayload.platform || '').trim(),
+        title: String(adPayload.title || '').trim(),
+        link: String(adPayload.link || '').trim(),
+        qty: safeInt(adPayload.qty, 0),
+        total_cost: safeInt(adPayload.totalCost, 0),
+        status: 'active'
+      }]);
+    if (error) {
+      console.error('Gagal mengirim iklan Ruang Dagang ke Supabase:', error.message);
+    }
+  } catch (e) {
+    console.error('Error syncDagangAdToSupabase:', e);
+  }
+}
+
 async function submitDagang(){
   const btn = document.getElementById('btnSubmitDagang');
   if (btn) btn.disabled = true;
   try {
-    const t=document.getElementById('dgTitle').value.trim(),d=document.getElementById('dgDesc').value.trim(),q=safeInt(document.getElementById('dgQty').value,0);
+    const t=document.getElementById('dgTitle').value.trim();
+    const d=document.getElementById('dgDesc').value.trim();
+    const linkVal=document.getElementById('dgLink')?.value.trim() || '';
+    const platVal=document.getElementById('dgPlat').value;
+    const q=safeInt(document.getElementById('dgQty').value,0);
     if(!t||!d||q<1000){toast('Lengkapi data (min 1000 iklan)!');return}
-    const tot=q*500;if(safeInt(rawUData.balance,0)<tot){toast('Saldo tidak cukup!');return}
+    const tot=q*500;
+    if(safeInt(rawUData.balance,0)<tot){toast('Saldo tidak cukup!');return}
+
+    const unameClean = String(rawUData.username || '').trim();
     rawUData.balance=safeInt(rawUData.balance,0)-tot;
-    rawUData.dagangAds.push({id:'ad_'+Date.now(),platform:document.getElementById('dgPlat').value,title:t,qty:q});
+    rawUData.dagangAds.push({id:'ad_'+Date.now(),platform:platVal,title:t,link:linkVal,qty:q});
     rawUData.transactions.unshift({id:'tx_ad_'+Date.now(),title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+
     await persistMemberToSupabase(rawUData);
+    await syncDagangAdToSupabase({
+      username: unameClean,
+      platform: platVal,
+      title: t,
+      link: linkVal,
+      qty: q,
+      totalCost: tot
+    });
+
     autoSyncAllIconsAndMenus();
     closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
   } finally {
     if (btn) btn.disabled = false;
   }
 }
+
 
 function swPlat(p,el){
   cPlat=p;
