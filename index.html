@@ -984,14 +984,33 @@ function getTodayCompletedTasks(userObj) {
   return userObj.completedTasks.filter(ct => !ct.dateKey || ct.dateKey === todayKey);
 }
 
-function getUsedDailyTaskCount(userObj) {
+  function getUsedDailyTaskCount(userObj) {
+  if (!userObj) return 0;
+  const todayStr = new Date().toLocaleDateString("id-ID");
   const claimedToday = getTodayClaimedTasks(userObj);
   const completedToday = getTodayCompletedTasks(userObj);
   const uniqueIds = new Set([
-    ...claimedToday.map(x => String(x.id)),
-    ...completedToday.map(x => String(x.id))
+    ...claimedToday.map((x) => String(x.id)),
+    ...completedToday.map((x) => String(x.id))
   ]);
-  return Math.max(claimedToday.length, completedToday.length, uniqueIds.size);
+
+  let count = Math.max(claimedToday.length, completedToday.length, uniqueIds.size);
+
+  if (count === 0) {
+    const txList = normalizeTransactions(userObj.transactions);
+    const todayTaskRewards = txList.filter(
+      (t) =>
+        t &&
+        t.type === "plus" &&
+        String(t.title || "").includes("Reward Tugas Selesai") &&
+        (!t.date || t.date === todayStr)
+    );
+    if (todayTaskRewards.length > 0) {
+      count = todayTaskRewards.length;
+    }
+  }
+
+  return count;
 }
 
 function ensureDailyTaskReset(userObj, shouldSave = false) {
@@ -1019,6 +1038,7 @@ function ensureDailyTaskReset(userObj, shouldSave = false) {
   }
   return changed;
 }
+
 
 function applyMemberRowToLocalState(memberRow, targetPhoneOrId) {
   if (!memberRow) return;
