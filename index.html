@@ -1224,9 +1224,14 @@ async function syncActiveMemberFromSupabase() {
       applyMemberRowToLocalState(row, rawUData.username);
     } else {
       autoSyncAllIconsAndMenus();
-      } await syncDailyTasksFromSupabase();
+    }
+    await syncDailyTasksFromSupabase();
+  } catch (e) {
+    console.error("Gagal sinkron saldo member:", e);
+  }
 }
-      async function syncDailyTasksFromSupabase() {
+
+async function syncDailyTasksFromSupabase() {
   if (!rawUData || !rawUData.username) return;
   const todayKey = getTodayDateKey();
   const todayStr = new Date().toLocaleDateString("id-ID");
@@ -1283,11 +1288,8 @@ async function syncActiveMemberFromSupabase() {
   } catch (e) {
     console.error("Gagal sinkronisasi tugas harian dari Supabase:", e);
   }
+}
 
-    }
-  } catch (e) {
-    console.error("Gagal sinkron saldo member:", e);
-  }
 }
 
 const vipD={
