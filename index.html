@@ -2420,22 +2420,56 @@ async function openInfoModal(){
   document.getElementById('infoM').classList.add('on');
 }
 
-async function savePersonalInfo(){
+async function savePersonalInfo() {
   if (!rawUData) return;
   const btn = document.getElementById('btnSavePersonalInfo');
   if (btn) btn.disabled = true;
+
   try {
-    rawUData.personalInfo={
-      wa:document.getElementById('infoWa').value.trim(),
-      method:document.getElementById('infoMethod').value,
-      accountNum:document.getElementById('infoAcc').value.trim(),
-      accountName:document.getElementById('infoName').value.trim()
+    const activeUsername = String(rawUData.username || '').trim();
+    const waVal = document.getElementById('infoWa').value.trim();
+    const methodVal = document.getElementById('infoMethod').value.trim();
+    const accNumVal = document.getElementById('infoAcc').value.trim();
+    const accNameVal = document.getElementById('infoName').value.trim();
+
+    if (!activeUsername) {
+      toast('⚠️ Akun member tidak valid.');
+      return;
+    }
+
+    const { data, error } = await sbClient.rpc('simpan_rekening_member_aman', {
+      p_username: activeUsername,
+      p_bank_method: methodVal,
+      p_bank_account: accNumVal,
+      p_bank_holder: accNameVal
+    });
+
+    if (error) {
+      toast('❌ Gagal menyimpan rekening: ' + (error.message || 'Error'));
+      return;
+    }
+
+    if (!data || data.ok === false) {
+      toast('⚠️ ' + (data?.message || 'Informasi rekening gagal disimpan.'));
+      return;
+    }
+
+    rawUData.personalInfo = {
+      ...(rawUData.personalInfo || {}),
+      wa: waVal,
+      method: data.bank_method ?? methodVal,
+      accountNum: data.bank_account ?? accNumVal,
+      accountName: data.bank_holder ?? accNameVal
     };
-    await persistMemberToSupabase(rawUData);
-    autoSyncAllIconsAndMenus();
+
+    svU();
+    await syncActiveMemberFromSupabase();
     syncWithdrawBoundBankUI();
     closeM('infoM');
     toast('💾 Informasi rekening tersimpan!');
+  } catch (err) {
+    console.error('Error savePersonalInfo:', err);
+    toast('❌ Terjadi kesalahan saat menyimpan rekening.');
   } finally {
     if (btn) btn.disabled = false;
   }
