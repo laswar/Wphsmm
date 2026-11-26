@@ -1224,6 +1224,67 @@ async function syncActiveMemberFromSupabase() {
       applyMemberRowToLocalState(row, rawUData.username);
     } else {
       autoSyncAllIconsAndMenus();
+      }
+  await syncDailyTasksFromSupabase();
+}
+      async function syncDailyTasksFromSupabase() {
+  if (!rawUData || !rawUData.username) return;
+  const todayKey = getTodayDateKey();
+  const todayStr = new Date().toLocaleDateString("id-ID");
+
+  try {
+    const { data, error } = await sbClient.rpc("get_member_daily_tasks", {
+      p_username: String(rawUData.username).trim(),
+      p_task_date: todayKey
+    });
+
+    if (!error && data && data.ok !== false && Array.isArray(data.items)) {
+      const serverItems = data.items;
+
+      if (!Array.isArray(rawUData.claimedTasks)) rawUData.claimedTasks = [];
+      if (!Array.isArray(rawUData.completedTasks)) rawUData.completedTasks = [];
+
+      serverItems.forEach((srv) => {
+        const sid = String(srv.id);
+        if (!rawUData.claimedTasks.some((c) => String(c.id) === sid && c.dateKey === todayKey)) {
+          rawUData.claimedTasks.push({
+            id: sid,
+            platform: srv.platform || "",
+            title: srv.title || "Tugas Selesai",
+            link: srv.link || "",
+            status: "claimed",
+            dateKey: todayKey
+          });
+        }
+
+        const existingDone = rawUData.completedTasks.find((c) => String(c.id) === sid && c.dateKey === todayKey);
+        if (existingDone) {
+          existingDone.status = "verified";
+        } else {
+          rawUData.completedTasks.push({
+            id: sid,
+            proof: "",
+            status: "verified",
+            dateKey: todayKey,
+            date: todayStr
+          });
+        }
+      });
+
+      rawUData.lastTaskDate = todayKey;
+      svU();
+      autoSyncAllIconsAndMenus();
+      if (document.getElementById("pgTugas")?.classList.contains("on")) {
+        updTP();
+      }
+      if (document.getElementById("availableTasksM")?.classList.contains("on") && currentOpenTaskPlatform) {
+        renderPlatformTaskModalList(currentOpenTaskPlatform);
+      }
+    }
+  } catch (e) {
+    console.error("Gagal sinkronisasi tugas harian dari Supabase:", e);
+  }
+
     }
   } catch (e) {
     console.error("Gagal sinkron saldo member:", e);
@@ -1822,7 +1883,7 @@ async function openPlatformTaskModal(platform) {
     console.error("Gagal memuat daftar tugas dari Supabase:", e);
   }
 
-  renderPlatformTaskModalList(platform);
+  renderPlatformTaskModalList(platform);await syncDailyTasksFromSupabase();
   document.getElementById("availableTasksM").classList.add("on");
 }
 
