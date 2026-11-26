@@ -1915,17 +1915,29 @@ function showImgPrev(){
 }
 
 function submitProof(){
-  if(!pUT||!pUI)return;
+  if(!pUT||!pUI||!rawUData)return;
   ensureDailyTaskReset(rawUData, true);
-  const tid = pUT;
+
+  const tid = String(pUT);
   const todayKey = getTodayDateKey();
-  const alreadySubmittedToday = rawUData.completedTasks.some(x => x.id === tid && x.dateKey === todayKey);
+  const maxTasks = gMT();
+
+  const alreadySubmittedToday = Array.isArray(rawUData.completedTasks) &&
+    rawUData.completedTasks.some(x => String(x.id) === tid && x.dateKey === todayKey);
+
   if(alreadySubmittedToday){
     closeM('imgM');
     toast('ℹ️ Bukti tugas ini sudah dikirim hari ini.');
     return;
   }
-  const rpt=gRPT();
+
+  if(getUsedDailyTaskCount(rawUData) >= maxTasks){
+    closeM('imgM');
+    toast(`⚠️ Kuota tugas harian ${gVN()} (${maxTasks} tugas/hari) sudah penuh.`);
+    return;
+  }
+
+  const rpt = gRPT();
   const completionRecord = {
     id: tid,
     proof: pUI,
@@ -1933,20 +1945,47 @@ function submitProof(){
     dateKey: todayKey,
     date: new Date().toLocaleDateString('id-ID')
   };
+
   uData.completedTasks.push(completionRecord);
-  closeM('imgM');toast('⏳ Bukti dikirim, memverifikasi...');
+  svU();
+  closeM('imgM');
+  toast('⏳ Bukti dikirim, memverifikasi...');
+
   setTimeout(async ()=>{
     if(!rawUData) return;
-    completionRecord.status='verified';
-    rawUData.balance=safeInt(rawUData.balance,0)+rpt;
-    rawUData.transactions.unshift({id:'tx_task_'+Date.now(),title:'✅ Reward Tugas Selesai',amount:rpt,type:'plus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+
+    const verifiedTodayCount = Array.isArray(rawUData.completedTasks)
+      ? rawUData.completedTasks.filter(x => x && x.dateKey === todayKey && x.status === 'verified').length
+      : 0;
+
+    if(verifiedTodayCount >= maxTasks){
+      completionRecord.status = 'rejected';
+      svU();
+      toast('⚠️ Kuota harian sudah tercapai, reward tambahan dibatalkan.');
+      return;
+    }
+
+    completionRecord.status = 'verified';
+    rawUData.balance = safeInt(rawUData.balance, 0) + rpt;
+    rawUData.transactions.unshift({
+      id: 'tx_task_' + Date.now(),
+      title: '✅ Reward Tugas Selesai',
+      amount: rpt,
+      type: 'plus',
+      status: 'approved',
+      date: new Date().toLocaleDateString('id-ID')
+    });
+
+    svU();
     await persistMemberToSupabase(rawUData);
     await distributeDailyTaskCommissions(rawUData, rpt);
     autoSyncAllIconsAndMenus();
     if (document.getElementById('pgTugas')?.classList.contains('on')) updTP();
-    renderTL();toast('🎉 Tugas diverifikasi! +Rp '+rpt.toLocaleString());
+    renderTL();
+    toast('🎉 Tugas diverifikasi! +Rp ' + rpt.toLocaleString('id-ID'));
   },2500);
 }
+
 
 document.getElementById('topupProofFile').addEventListener('change',function(e){
   const f=e.target.files[0];if(!f)return;
