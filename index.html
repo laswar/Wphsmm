@@ -1224,7 +1224,7 @@ async function syncActiveMemberFromSupabase() {
       applyMemberRowToLocalState(row, rawUData.username);
     } else {
       autoSyncAllIconsAndMenus();
-      }await syncDailyTasksFromSupabase();
+      } await syncDailyTasksFromSupabase();
 }
       async function syncDailyTasksFromSupabase() {
   if (!rawUData || !rawUData.username) return;
