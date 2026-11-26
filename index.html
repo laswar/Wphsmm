@@ -2616,20 +2616,25 @@ async function buyVIP() {
     if (!Array.isArray(rawUData.claimedTasks)) rawUData.claimedTasks = [];
     if (!Array.isArray(rawUData.completedTasks)) rawUData.completedTasks = [];
     rawUData.firstVipPurchased = true;
-    rawUData.balance = Math.max(0, safeInt(rawUData.balance, 0) - safeInt(sV.p, 0));
-    rawUData.currentVip.youtube = sV.l;
-    rawUData.currentVip.tiktok = sV.l;
-    rawUData.currentVip.facebook = sV.l;
-    rawUData.transactions.unshift({
-      id: 'tx_vip_' + Date.now(),
-      title: '👑 Upgrade VIP ' + sV.l,
-      amount: safeInt(sV.p, 0),
-      type: 'minus',
-      status: 'approved',
-      date: new Date().toLocaleDateString('id-ID')
-    });
-    await persistMemberToSupabase(rawUData);
-    autoSyncAllIconsAndMenus();
+    if (data.saldo_baru !== undefined && data.saldo_baru !== null) {
+      rawUData.balance = safeInt(data.saldo_baru, rawUData.balance);
+    }
+
+    const nextLvl = safeInt(data.level_vip_baru ?? sV.l, sV.l);
+    rawUData.currentVip = {
+      youtube: nextLvl,
+      tiktok: nextLvl,
+      facebook: nextLvl
+    };
+
+    if (data.transaksi) {
+      if (!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+      rawUData.transactions.unshift(data.transaksi);
+    }
+
+    svU();
+    await syncActiveMemberFromSupabase();
+
 
     await syncReferralTeamFromSupabase();
     renderVC();
