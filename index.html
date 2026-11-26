@@ -2122,32 +2122,58 @@ function generateQris(){
   document.getElementById('qrisArea').style.display='block';
 }
 
-async function confirmQrisPay(){
+async function confirmQrisPay() {
   const btn = document.getElementById('btnConfirmQris');
   if (btn) btn.disabled = true;
-  try {
-    const a=safeInt(document.getElementById('qrisAmtInp').value,0);
-    if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
-    if(!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
 
-    rawUData.transactions.unshift({
-      id: 'tx_topup_' + Date.now(),
-      title: 'Topup via QRIS Allshop',
-      amount: a,
-      type: 'topup',
-      status: 'pending',
-      date: new Date().toLocaleDateString('id-ID')
+  try {
+    const a = safeInt(document.getElementById('qrisAmtInp').value, 0);
+    if (a < 20000) {
+      toast('Minimum isi ulang Rp 20.000!');
+      return;
+    }
+
+    const activeUsername = String(rawUData?.username || '').trim();
+    if (!activeUsername) {
+      toast('⚠️ Akun member tidak valid.');
+      return;
+    }
+
+    const todayStr = new Date().toLocaleDateString('id-ID');
+    const { data, error } = await sbClient.rpc('ajukan_topup_qris_aman', {
+      p_username: activeUsername,
+      p_amount: a,
+      p_date_str: todayStr
     });
 
-    await persistMemberToSupabase(rawUData);
-    autoSyncAllIconsAndMenus();
+    if (error) {
+      toast('❌ Gagal mengirim pengajuan topup: ' + (error.message || 'Error'));
+      return;
+    }
+
+    if (!data || data.ok === false) {
+      toast('⚠️ ' + (data?.message || 'Pengajuan topup gagal diproses.'));
+      return;
+    }
+
+    if (data.transaksi) {
+      if (!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+      rawUData.transactions.unshift(data.transaksi);
+    }
+
+    svU();
+    await syncActiveMemberFromSupabase();
     closeM('walletM');
+    document.getElementById('qrisArea').style.display = 'none';
     toast('⏳ Pengajuan topup dikirim ke Admin untuk verifikasi saldo.');
-    document.getElementById('qrisArea').style.display='none';
+  } catch (err) {
+    console.error('Error confirmQrisPay:', err);
+    toast('❌ Terjadi kesalahan saat mengirim topup.');
   } finally {
     if (btn) btn.disabled = false;
   }
 }
+
 
 function isEwalletMethod(methodVal) {
   const m = String(methodVal || '').trim().toLowerCase();
