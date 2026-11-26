@@ -2467,19 +2467,35 @@ async function submitDagang(){
     if(safeInt(rawUData.balance,0)<tot){toast('Saldo tidak cukup!');return}
 
     const unameClean = String(rawUData.username || '').trim();
-    rawUData.balance=safeInt(rawUData.balance,0)-tot;
-    rawUData.dagangAds.push({id:'ad_'+Date.now(),platform:platVal,title:t,link:linkVal,qty:q});
-    rawUData.transactions.unshift({id:'tx_ad_'+Date.now(),title:'📢 Iklan SMM: '+t.substring(0,18),amount:tot,type:'minus',status:'approved',date:new Date().toLocaleDateString('id-ID')});
+    const todayStr = new Date().toLocaleDateString('id-ID');
 
-    await persistMemberToSupabase(rawUData);
-    await syncDagangAdToSupabase({
-      username: unameClean,
-      platform: platVal,
-      title: t,
-      link: linkVal,
-      qty: q,
-      totalCost: tot
+    const { data, error } = await sbClient.rpc('pasang_iklan_dagang_aman', {
+      p_username: unameClean,
+      p_platform: platVal,
+      p_title: t,
+      p_desc: d,
+      p_link: linkVal,
+      p_qty: q,
+      p_date_str: todayStr
     });
+
+    if (error || !data || data.ok === false) {
+      toast('⚠️ ' + (data?.message || error?.message || 'Gagal memasang iklan.'));
+      return;
+    }
+
+    rawUData.balance = safeInt(data.saldo_baru, Math.max(0, safeInt(rawUData.balance, 0) - tot));
+    if (!Array.isArray(rawUData.dagangAds)) rawUData.dagangAds = [];
+    rawUData.dagangAds.push({ id: 'ad_' + Date.now(), platform: platVal, title: t, link: linkVal, qty: q });
+
+    if (!Array.isArray(rawUData.transactions)) rawUData.transactions = [];
+    if (data.transaksi) {
+      rawUData.transactions.unshift(data.transaksi);
+    }
+
+    svU();
+    await syncActiveMemberFromSupabase();
+
 
     autoSyncAllIconsAndMenus();
     closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
