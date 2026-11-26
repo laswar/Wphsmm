@@ -2458,14 +2458,14 @@ async function submitDagang(){
   const btn = document.getElementById('btnSubmitDagang');
   if (btn) btn.disabled = true;
   try {
-    const t=document.getElementById('dgTitle').value.trim();
-    const d=document.getElementById('dgDesc').value.trim();
-    const linkVal=document.getElementById('dgLink')?.value.trim() || '';
-    const platVal=document.getElementById('dgPlat').value;
-    const q=safeInt(document.getElementById('dgQty').value,0);
-    if(!t||!d||q<1000){toast('Lengkapi data (min 1000 iklan)!');return}
-    const tot=q*500;
-    if(safeInt(rawUData.balance,0)<tot){toast('Saldo tidak cukup!');return}
+    const t = document.getElementById('dgTitle').value.trim();
+    const d = document.getElementById('dgDesc').value.trim();
+    const linkVal = document.getElementById('dgLink')?.value.trim() || '';
+    const platVal = document.getElementById('dgPlat').value;
+    const q = safeInt(document.getElementById('dgQty').value, 0);
+    if (!t || !d || q < 1000) { toast('Lengkapi data (min 1000 iklan)!'); return; }
+    const tot = q * 500;
+    if (safeInt(rawUData.balance, 0) < tot) { toast('Saldo tidak cukup!'); return; }
 
     const unameClean = String(rawUData.username || '').trim();
     const todayStr = new Date().toLocaleDateString('id-ID');
@@ -2495,16 +2495,13 @@ async function submitDagang(){
     }
 
     svU();
-    await syncActiveMemberFromSupabase();
-
-
     autoSyncAllIconsAndMenus();
-    closeM('pasangM');toast('🎉 Iklan berhasil dipasang!');
+    closeM('pasangM');
+    toast('🎉 Iklan berhasil dipasang!');
   } finally {
     if (btn) btn.disabled = false;
   }
 }
-
 
 function swPlat(p,el){
   cPlat=p;
