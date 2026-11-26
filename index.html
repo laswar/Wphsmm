@@ -1224,8 +1224,7 @@ async function syncActiveMemberFromSupabase() {
       applyMemberRowToLocalState(row, rawUData.username);
     } else {
       autoSyncAllIconsAndMenus();
-      }
-  await syncDailyTasksFromSupabase();
+      }await syncDailyTasksFromSupabase();
 }
       async function syncDailyTasksFromSupabase() {
   if (!rawUData || !rawUData.username) return;
@@ -1883,7 +1882,9 @@ async function openPlatformTaskModal(platform) {
     console.error("Gagal memuat daftar tugas dari Supabase:", e);
   }
 
-  renderPlatformTaskModalList(platform);await syncDailyTasksFromSupabase();
+    await syncDailyTasksFromSupabase();
+  renderPlatformTaskModalList(platform);
+
   document.getElementById("availableTasksM").classList.add("on");
 }
 
