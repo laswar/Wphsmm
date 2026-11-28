@@ -1736,7 +1736,7 @@ function applyAnnouncementText(text) {
 }
 
 async function loadAdminAnnouncement() {
-  const fallbackAnn = "274 mendapatkan 300000 komisi";
+  const fallbackAnn = "Selamat datang di WPH SMM — Selesaikan tugas harian & raih komisi referral Anda.";
   const savedAnn = localStorage.getItem('wsp_admin_announcement');
   applyAnnouncementText(savedAnn || fallbackAnn);
 
