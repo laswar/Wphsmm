@@ -1169,16 +1169,12 @@ async function fetchMemberRowFromSupabase(phoneOrId) {
   const cleanId = normalizePhone(phoneOrId) || String(phoneOrId || "").trim();
   if (!cleanId) return null;
   try {
-    const candidates = getCandidateIds(cleanId);
-    const { data, error } = await sbClient
-      .from("members")
-      .select("id, username, nama, level_vip, saldo, invite_code, referred_by, transaksi_json, bank_method, bank_account, bank_holder")
-      .in("username", candidates)
-      .order("id", { ascending: false })
-      .limit(1);
+    const { data, error } = await sbClient.rpc("get_member_self_sync", {
+      p_username: cleanId
+    });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      return data[0];
+    if (!error && data && data.ok !== false && data.member) {
+      return data.member;
     }
   } catch (e) {
     console.error("Gagal mengambil data member dari Supabase:", e);
