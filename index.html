@@ -2078,7 +2078,7 @@ document.getElementById('topupProofFile').addEventListener('change',function(e){
 function sendProofToWhatsApp(){
   const a=safeInt(document.getElementById('qrisAmtInp').value,0);
   if(a<20000){toast('Minimum isi ulang Rp 20.000!');return}
-  const csPhone="6281234567890";
+  const csPhone="6289688780907";
   const msg=encodeURIComponent(
     `Halo CS WPH SMM,\n\nSaya ingin mengonfirmasi Isi Ulang Topup via QRIS DOUBLE Z ALLSHOP:\n` +
     `👤 Username: ${uData.username}\n` +
@@ -2488,27 +2488,6 @@ function renderDagang(){
 }
 function openPasangModal(){document.getElementById('pasangM').classList.add('on');calcDgCost()}
 function calcDgCost(){const q=Math.max(0,safeInt(document.getElementById('dgQty').value,0));document.getElementById('dgTotal').textContent='Rp '+(q*500).toLocaleString()}
-async function syncDagangAdToSupabase(adPayload) {
-  try {
-    if (!adPayload) return;
-    const { error } = await sbClient
-      .from('dagang_ads')
-      .insert([{
-        username: String(adPayload.username || '').trim(),
-        platform: String(adPayload.platform || '').trim(),
-        title: String(adPayload.title || '').trim(),
-        link: String(adPayload.link || '').trim(),
-        qty: safeInt(adPayload.qty, 0),
-        total_cost: safeInt(adPayload.totalCost, 0),
-        status: 'active'
-      }]);
-    if (error) {
-      console.error('Gagal mengirim iklan Ruang Dagang ke Supabase:', error.message);
-    }
-  } catch (e) {
-    console.error('Error syncDagangAdToSupabase:', e);
-  }
-}
 
 async function submitDagang(){
   const btn = document.getElementById('btnSubmitDagang');
